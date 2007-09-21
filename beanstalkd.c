@@ -79,8 +79,8 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_PEEK, OP_PEEK);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
-    TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
     TEST_CMD(c->cmd, CMD_JOBSTATS, OP_JOBSTATS);
+    TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
     return OP_UNKNOWN;
 }
 
@@ -211,6 +211,8 @@ do_cmd(conn c)
         conn_close(c);
         break;
     case OP_JOBSTATS:
+        warn("got job stats command");
+        conn_close(c);
         break;
     default:
         /* unknown command -- protocol error */
