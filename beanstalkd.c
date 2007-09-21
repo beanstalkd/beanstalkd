@@ -176,7 +176,8 @@ do_cmd(conn c)
 
         fill_extra_data(c);
 
-        return check_for_complete_job(c);
+        check_for_complete_job(c);
+        break;
     case OP_PEEK:
         r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
         if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
@@ -248,7 +249,8 @@ h_conn(const int fd, const short which, conn c)
 
             /* (j->data_read > j->data_size) can't happen */
 
-            return check_for_complete_job(c);
+            check_for_complete_job(c);
+            break;
         case STATE_SENDWORD:
             r = write(fd, c->reply+c->reply_sent, c->reply_len - c->reply_sent);
             if (r == -1) return check_err(c, "write()");
