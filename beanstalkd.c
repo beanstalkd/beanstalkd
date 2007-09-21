@@ -187,6 +187,9 @@ do_cmd(conn c)
         c->state = STATE_SENDWORD;
         break;
     case OP_RESERVE:
+        /* don't allow trailing garbage */
+        if (c->cmd_len != 9) return conn_close(c);
+
         fprintf(stderr, "got reserve cmd: %s\n", c->cmd);
 
         /* TODO reserve the job */

@@ -14,7 +14,7 @@
 
 #define CMD_PUT "put "
 #define CMD_PEEK "peek "
-#define CMD_RESERVE "reserve "
+#define CMD_RESERVE "reserve"
 #define CMD_DELETE "delete "
 #define CMD_STATS "stats "
 
