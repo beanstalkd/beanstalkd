@@ -200,6 +200,12 @@ do_cmd(conn c)
         c->state = STATE_WRITE;
         break;
     case OP_DELETE:
+        r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
+        if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
+
+        c->reply = MSG_NOTFOUND;
+        c->reply_len = CSTRSZ(MSG_NOTFOUND);
+        c->state = STATE_SENDWORD;
         break;
     case OP_STATS:
         break;
