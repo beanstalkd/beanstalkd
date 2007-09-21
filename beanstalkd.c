@@ -84,9 +84,21 @@ which_cmd(conn c)
 }
 
 static void
-enqueue_job(conn c)
+reply_word(conn c, const char *word, int len)
 {
     int r;
+
+    r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
+    if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
+
+    c->reply = word;
+    c->reply_len = len;
+    c->state = STATE_SENDWORD;
+}
+
+static void
+enqueue_job(conn c)
+{
     job j = c->job;
 
     /* check if the trailer is present and correct */
@@ -96,13 +108,8 @@ enqueue_job(conn c)
     /* TODO stick it in */
     warn("TODO stick it in");
 
-    r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
-    if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
-
     c->job = NULL;
-    c->reply = MSG_INSERTED;
-    c->reply_len = CSTRSZ(MSG_INSERTED);
-    c->state = STATE_SENDWORD;
+    reply_word(c, MSG_INSERTED, CSTRSZ(MSG_INSERTED));
 }
 
 static void
@@ -143,7 +150,6 @@ fill_extra_data(conn c)
 static void
 do_cmd(conn c)
 {
-    int r;
     char type;
     char *size_buf, *end_buf;
     unsigned int pri, data_size;
@@ -179,12 +185,7 @@ do_cmd(conn c)
         check_for_complete_job(c);
         break;
     case OP_PEEK:
-        r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
-        if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
-
-        c->reply = MSG_NOTFOUND;
-        c->reply_len = CSTRSZ(MSG_NOTFOUND);
-        c->state = STATE_SENDWORD;
+        reply_word(c, MSG_NOTFOUND, CSTRSZ(MSG_NOTFOUND));
         break;
     case OP_RESERVE:
         /* don't allow trailing garbage */
@@ -200,12 +201,7 @@ do_cmd(conn c)
         c->state = STATE_WRITE;
         break;
     case OP_DELETE:
-        r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
-        if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
-
-        c->reply = MSG_NOTFOUND;
-        c->reply_len = CSTRSZ(MSG_NOTFOUND);
-        c->state = STATE_SENDWORD;
+        reply_word(c, MSG_NOTFOUND, CSTRSZ(MSG_NOTFOUND));
         break;
     case OP_STATS:
         break;
