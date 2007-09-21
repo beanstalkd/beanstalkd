@@ -10,6 +10,7 @@
 
 #define MSG_INSERTED "INSERTED\r\n"
 #define MSG_ERR "NOT_INSERTED\r\n"
+#define MSG_NOTFOUND "NOT_FOUND\r\n"
 
 #define CMD_PUT "put "
 #define CMD_PEEK "peek "

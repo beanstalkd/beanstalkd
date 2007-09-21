@@ -141,6 +141,7 @@ fill_extra_data(conn c)
 static void
 do_cmd(conn c)
 {
+    int r;
     char type;
     char *size_buf, *end_buf;
     unsigned int pri, data_size;
@@ -154,7 +155,6 @@ do_cmd(conn c)
     type = which_cmd(c);
     switch (type) {
     case OP_PUT:
-
         errno = 0;
         pri = strtoul(c->cmd + 4, &size_buf, 10);
         if (errno) return conn_close(c);
@@ -176,7 +176,13 @@ do_cmd(conn c)
 
         return check_for_complete_job(c);
     case OP_PEEK:
-        c->state = STATE_SENDNOTFOUND;
+        r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
+        if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
+
+        c->reply = MSG_NOTFOUND;
+        c->reply_len = CSTRSZ(MSG_NOTFOUND);
+        c->state = STATE_SENDWORD;
+        break;
     case OP_RESERVE:
         fprintf(stderr, "got reserve cmd: %s\n", c->cmd);
 
