@@ -20,6 +20,7 @@
 #define OP_RESERVE 2
 #define OP_DELETE 3
 #define OP_STATS 4
+#define OP_JOBSTATS 5
 
 typedef struct conn {
     int fd;

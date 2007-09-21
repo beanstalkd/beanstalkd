@@ -16,6 +16,7 @@
 #define CMD_PEEK "peek "
 #define CMD_RESERVE "reserve"
 #define CMD_DELETE "delete "
-#define CMD_STATS "stats "
+#define CMD_STATS "stats"
+#define CMD_JOBSTATS "stats "
 
 #endif /*beanstalk_h*/

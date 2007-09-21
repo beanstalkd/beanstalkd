@@ -80,6 +80,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
     TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
+    TEST_CMD(c->cmd, CMD_JOBSTATS, OP_JOBSTATS);
     return OP_UNKNOWN;
 }
 
@@ -204,6 +205,12 @@ do_cmd(conn c)
         reply_word(c, MSG_NOTFOUND, CSTRSZ(MSG_NOTFOUND));
         break;
     case OP_STATS:
+        /* don't allow trailing garbage */
+        if (c->cmd_len != 7) return conn_close(c);
+        warn("got stats command");
+        conn_close(c);
+        break;
+    case OP_JOBSTATS:
         break;
     default:
         /* unknown command -- protocol error */
