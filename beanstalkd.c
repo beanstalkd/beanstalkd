@@ -74,7 +74,7 @@ scan_line_end(const char *s, int size)
 static int
 which_cmd(conn c)
 {
-#define TEST_CMD(s,c,o) if (strncmp((s), (c), CSTRSZ(c)) == 0) return (o);
+#define TEST_CMD(s,c,o) if (strncmp((s), (c), CONSTSTRLEN(c)) == 0) return (o);
     TEST_CMD(c->cmd, CMD_PUT, OP_PUT);
     TEST_CMD(c->cmd, CMD_PEEK, OP_PEEK);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
@@ -110,7 +110,7 @@ enqueue_job(conn c)
     warn("TODO stick it in");
 
     c->job = NULL;
-    reply_word(c, MSG_INSERTED, CSTRSZ(MSG_INSERTED));
+    reply_word(c, MSG_INSERTED, MSG_INSERTED_LEN);
 }
 
 static void
@@ -186,11 +186,11 @@ do_cmd(conn c)
         check_for_complete_job(c);
         break;
     case OP_PEEK:
-        reply_word(c, MSG_NOTFOUND, CSTRSZ(MSG_NOTFOUND));
+        reply_word(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN);
         break;
     case OP_RESERVE:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CSTRSZ(CMD_RESERVE) + 2) return conn_close(c);
+        if (c->cmd_len != CMD_RESERVE_LEN + 2) return conn_close(c);
 
         fprintf(stderr, "got reserve cmd: %s\n", c->cmd);
 
@@ -202,11 +202,11 @@ do_cmd(conn c)
         c->state = STATE_WRITE;
         break;
     case OP_DELETE:
-        reply_word(c, MSG_NOTFOUND, CSTRSZ(MSG_NOTFOUND));
+        reply_word(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN);
         break;
     case OP_STATS:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CSTRSZ(CMD_STATS) + 2) return conn_close(c);
+        if (c->cmd_len != CMD_STATS_LEN + 2) return conn_close(c);
         warn("got stats command");
         conn_close(c);
         break;
