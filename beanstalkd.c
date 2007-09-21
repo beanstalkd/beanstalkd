@@ -190,7 +190,7 @@ do_cmd(conn c)
         break;
     case OP_RESERVE:
         /* don't allow trailing garbage */
-        if (c->cmd_len != 9) return conn_close(c);
+        if (c->cmd_len != CSTRSZ(CMD_RESERVE) + 2) return conn_close(c);
 
         fprintf(stderr, "got reserve cmd: %s\n", c->cmd);
 
@@ -206,7 +206,7 @@ do_cmd(conn c)
         break;
     case OP_STATS:
         /* don't allow trailing garbage */
-        if (c->cmd_len != 7) return conn_close(c);
+        if (c->cmd_len != CSTRSZ(CMD_STATS) + 2) return conn_close(c);
         warn("got stats command");
         conn_close(c);
         break;
