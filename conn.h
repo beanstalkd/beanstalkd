@@ -18,7 +18,7 @@
 #define OP_PUT 0
 #define OP_PEEK 1
 #define OP_RESERVE 2
-#define OP_DONE 3
+#define OP_DELETE 3
 #define OP_STATS 4
 
 typedef struct conn {

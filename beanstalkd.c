@@ -78,6 +78,8 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_PUT, OP_PUT);
     TEST_CMD(c->cmd, CMD_PEEK, OP_PEEK);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
+    TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
+    TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
     return OP_UNKNOWN;
 }
 
@@ -192,6 +194,8 @@ do_cmd(conn c)
         fill_extra_data(c);
 
         c->state = STATE_WRITE;
+        break;
+    case OP_DELETE:
         break;
     default:
         /* unknown command -- protocol error */
