@@ -198,6 +198,8 @@ do_cmd(conn c)
         break;
     case OP_DELETE:
         break;
+    case OP_STATS:
+        break;
     default:
         /* unknown command -- protocol error */
         fprintf(stderr, "got unknown cmd: %s\n", c->cmd);
