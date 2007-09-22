@@ -13,6 +13,7 @@ make_pq(unsigned int size)
     if (!q) return NULL;
 
     q->size = size;
+    q->used = 0;
 
     return q;
 }
