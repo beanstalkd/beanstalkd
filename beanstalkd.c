@@ -10,10 +10,13 @@
 #include "conn.h"
 #include "net.h"
 #include "beanstalkd.h"
+#include "pq.h"
 #include "util.h"
 
 /* job data cannot be greater than this */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
+
+static pq q;
 
 static void
 drop_root()
@@ -100,17 +103,21 @@ reply_word(conn c, const char *word, int len)
 static void
 enqueue_job(conn c)
 {
+    int r;
     job j = c->job;
+
+    c->job = NULL; /* the connection no longer owns this job */
 
     /* check if the trailer is present and correct */
     if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
 
     /* we have a complete job, so let's stick it in the pqueue */
-    /* TODO stick it in */
-    warn("TODO stick it in");
+    r = pq_give(q, j);
 
-    c->job = NULL;
-    reply_word(c, MSG_INSERTED, MSG_INSERTED_LEN);
+    if (r) return reply_word(c, MSG_INSERTED, MSG_INSERTED_LEN);
+
+    free(j); /* the job didn't go in the queue, so it goes bye bye */
+    reply_word(c, MSG_NOT_INSERTED, MSG_NOT_INSERTED_LEN);
 }
 
 static void
@@ -321,7 +328,6 @@ h_accept(const int fd, const short which, struct event *ev)
 int
 main(int argc, char **argv)
 {
-    /*q q;*/
     int listen_socket;
     struct event listen_evq;
 
@@ -336,7 +342,7 @@ main(int argc, char **argv)
     event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST, (evh) h_accept, &listen_evq);
     event_add(&listen_evq, NULL);
 
-    /*q = q_new();*/
+    q = make_pq(HEAP_SIZE);
 
     event_dispatch();
     return 0;

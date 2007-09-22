@@ -6,13 +6,17 @@
 #define HOST INADDR_ANY
 #define PORT 3232
 
+/* space for 16 Mi jobs */
+#define HEAP_SIZE 16 * 1024 * 1024
+
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
 #define MSG_INSERTED "INSERTED\r\n"
-#define MSG_ERR "NOT_INSERTED\r\n"
+#define MSG_NOT_INSERTED "NOT_INSERTED\r\n"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
 
 #define MSG_INSERTED_LEN CONSTSTRLEN(MSG_INSERTED)
+#define MSG_NOT_INSERTED_LEN CONSTSTRLEN(MSG_NOT_INSERTED)
 #define MSG_NOTFOUND_LEN CONSTSTRLEN(MSG_NOTFOUND)
 
 #define CMD_PUT "put "

@@ -5,9 +5,6 @@
 
 #include "job.h"
 
-/* space for 16 Mi jobs */
-#define HEAP_SIZE 16 * 1024 * 1024
-
 typedef struct pq {
     unsigned int size;
     unsigned int used;
