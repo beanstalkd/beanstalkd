@@ -16,7 +16,7 @@
 /* job data cannot be greater than this */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
-static pq q;
+static pq ready_q;
 
 static void
 drop_root()
@@ -112,7 +112,7 @@ enqueue_job(conn c)
     if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
 
     /* we have a complete job, so let's stick it in the pqueue */
-    r = pq_give(q, j);
+    r = pq_give(ready_q, j);
 
     if (r) return reply_word(c, MSG_INSERTED, MSG_INSERTED_LEN);
 
@@ -211,7 +211,7 @@ do_cmd(conn c)
         fill_extra_data(c);
 
         /* keep any existing job, but take one if necessary */
-        c->job = c->job ? : pq_take(q);
+        c->job = c->job ? : pq_take(ready_q);
 
         if (c->job) return send_job(c);
 
@@ -352,7 +352,7 @@ main(int argc, char **argv)
     event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST, (evh) h_accept, &listen_evq);
     event_add(&listen_evq, NULL);
 
-    q = make_pq(HEAP_SIZE);
+    ready_q = make_pq(HEAP_SIZE);
 
     event_dispatch();
     return 0;
