@@ -156,6 +156,13 @@ fill_extra_data(conn c)
 }
 
 static void
+send_job(conn c)
+{
+    /* TODO send job */
+    c->state = STATE_WRITE;
+}
+
+static void
 do_cmd(conn c)
 {
     char type;
@@ -190,7 +197,7 @@ do_cmd(conn c)
 
         fill_extra_data(c);
 
-        maybe_enqueue_job(c);
+        maybe_enqueue_job(c); /* it's possible we already have a complete job */
         break;
     case OP_PEEK:
         reply_word(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN);
@@ -201,12 +208,15 @@ do_cmd(conn c)
 
         fprintf(stderr, "got reserve cmd: %s\n", c->cmd);
 
-        /* TODO reserve the job */
-        warn("TODO reserve the job");
-
         fill_extra_data(c);
 
-        c->state = STATE_WRITE;
+        /* keep any existing job, but take one if necessary */
+        c->job = c->job ? : pq_take(q);
+
+        if (c->job) return send_job(c);
+
+        /* TODO put c on worker queue */
+        conn_close(c);
         break;
     case OP_DELETE:
         reply_word(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN);
