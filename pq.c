@@ -9,21 +9,12 @@ make_pq(unsigned int size)
 {
     pq q;
 
-    q = malloc(sizeof(struct pq));
+    q = malloc(sizeof(struct pq) + size * sizeof(job));
     if (!q) return NULL;
 
     q->size = size;
-    q->heap = malloc(size * sizeof(job));
-    if (!q->heap) return free(q), NULL;
 
     return q;
-}
-
-void
-pq_free(pq q)
-{
-    if (q) free(q->heap);
-    free(q);
 }
 
 static void

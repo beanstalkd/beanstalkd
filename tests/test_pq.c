@@ -119,6 +119,6 @@ __CUT_TAKEDOWN__pq()
     free(j3a);
     free(j3b);
     free(j3c);
-    pq_free(q);
+    free(q);
 }
 
