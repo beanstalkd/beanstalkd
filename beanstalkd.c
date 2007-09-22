@@ -121,7 +121,7 @@ enqueue_job(conn c)
 }
 
 static void
-check_for_complete_job(conn c)
+maybe_enqueue_job(conn c)
 {
     job j = c->job;
 
@@ -190,7 +190,7 @@ do_cmd(conn c)
 
         fill_extra_data(c);
 
-        check_for_complete_job(c);
+        maybe_enqueue_job(c);
         break;
     case OP_PEEK:
         reply_word(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN);
@@ -272,7 +272,7 @@ h_conn(const int fd, const short which, conn c)
 
             /* (j->data_read > j->data_size) can't happen */
 
-            check_for_complete_job(c);
+            maybe_enqueue_job(c);
             break;
         case STATE_SENDWORD:
             r = write(fd, c->reply+c->reply_sent, c->reply_len - c->reply_sent);
