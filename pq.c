@@ -5,16 +5,25 @@
 #include "pq.h"
 
 pq
-make_pq()
+make_pq(unsigned int size)
 {
     pq q;
 
     q = malloc(sizeof(struct pq));
     if (!q) return NULL;
 
-    q->size = HEAP_SIZE;
-    q->heap = malloc(HEAP_SIZE * sizeof(job));
+    q->size = size;
+    q->heap = malloc(size * sizeof(job));
+    if (!q->heap) return free(q), NULL;
+
     return q;
+}
+
+void
+pq_free(pq q)
+{
+    if (q) free(q->heap);
+    free(q);
 }
 
 static void
@@ -27,9 +36,15 @@ swap(pq q, unsigned int a, unsigned int b)
     q->heap[b] = j;
 }
 
-#define PARENT(i) ((i)>>1)
+#define PARENT(i) (((i-1))>>1)
 #define CHILD_LEFT(i) (((i)<<1)+1)
 #define CHILD_RIGHT(i) (((i)<<1)+2)
+
+static int
+cmp(pq q, unsigned int a, unsigned int b)
+{
+    return job_cmp(q->heap[a], q->heap[b]);
+}
 
 static void
 bubble_up(pq q, unsigned int k)
@@ -38,7 +53,7 @@ bubble_up(pq q, unsigned int k)
 
     if (k == 0) return;
     p = PARENT(k);
-    if (q->heap[p]->pri < q->heap[k]->pri) return;
+    if (cmp(q, p, k) <= 0) return;
     swap(q, k, p);
     bubble_up(q, p);
 }
@@ -52,19 +67,18 @@ bubble_down(pq q, unsigned int k)
     r = CHILD_RIGHT(k);
 
     s = k;
-    if (l < q->used && q->heap[l]->pri < q->heap[k]->pri) s = l;
-    if (r < q->used && q->heap[r]->pri < q->heap[s]->pri) s = r;
+    if (l < q->used && cmp(q, l, k) < 0) s = l;
+    if (r < q->used && cmp(q, r, s) < 0) s = r;
     if (s == k) return; /* already satisfies the heap property */
 
     swap(q, k, s);
     bubble_down(q, s);
 }
 
+/* assumes there is at least one item in the queue */
 static void
 delete_min(pq q)
 {
-    if (!q->heap[0])
-
     q->heap[0] = q->heap[--q->used];
     if (q->used) bubble_down(q, 0);
 }
