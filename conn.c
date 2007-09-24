@@ -57,6 +57,7 @@ conn_close(conn c)
 
     close(c->fd);
     if (c->reserved_job) enqueue_job(c->reserved_job);
+    if (c->in_job) free(c->in_job);
 
     free(c);
 }
