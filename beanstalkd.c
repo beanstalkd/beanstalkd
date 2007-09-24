@@ -17,6 +17,7 @@
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
 static pq ready_q;
+static conn waiting_conn_front, waiting_conn_rear;
 
 static void
 drop_root()
@@ -57,6 +58,37 @@ check_err(conn c, const char *s)
     return;
 }
 
+static int
+waiting_conn_p()
+{
+    return !!waiting_conn_front;
+}
+
+static void
+enqueue_waiting_conn(conn c)
+{
+    c->next_waiting = NULL;
+    if (waiting_conn_p()) {
+        waiting_conn_rear->next_waiting = c;
+    } else {
+        waiting_conn_front = c;
+    }
+    waiting_conn_rear = c;
+}
+
+static conn
+next_waiting_conn()
+{
+    conn c;
+
+    if (!waiting_conn_p()) return NULL;
+
+    c = waiting_conn_front;
+    waiting_conn_front = c->next_waiting;
+
+    return c;
+}
+
 /* Scan the given string for the sequence "\r\n" and return the line length.
  * Always returns at least 2 if a match is found. Returns 0 if no match. */
 static int
@@ -88,48 +120,17 @@ which_cmd(conn c)
 }
 
 static void
-reply_word(conn c, char *word, int len)
+reply(conn c, char *line, int len, int state)
 {
     int r;
 
     r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
     if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
 
-    c->reply = word;
+    c->reply = line;
     c->reply_len = len;
-    c->state = STATE_SENDWORD;
-}
-
-static void
-enqueue_job(conn c)
-{
-    int r;
-    job j = c->in_job;
-
-    c->in_job = NULL; /* the connection no longer owns this job */
-
-    /* check if the trailer is present and correct */
-    if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
-
-    /* we have a complete job, so let's stick it in the pqueue */
-    r = pq_give(ready_q, j);
-
-    if (r) return reply_word(c, MSG_INSERTED, MSG_INSERTED_LEN);
-
-    free(j); /* the job didn't go in the queue, so it goes bye bye */
-    reply_word(c, MSG_NOT_INSERTED, MSG_NOT_INSERTED_LEN);
-}
-
-static void
-maybe_enqueue_job(conn c)
-{
-    job j = c->in_job;
-
-    /* do we have a complete job? */
-    if (j->data_xfer == j->data_size) return enqueue_job(c);
-
-    /* otherwise we have incomplete data, so just keep waiting */
-    c->state = STATE_WANTDATA;
+    c->reply_sent = 0;
+    c->state = state;
 }
 
 /* Copy up to data_size trailing bytes into the job, then the rest into the cmd
@@ -151,60 +152,84 @@ fill_extra_data(conn c)
         c->in_job->data_xfer = job_data_bytes;
     }
 
-    /* how many bytes are left to go into the next cmd? */
+    /* how many bytes are left to go into the future cmd? */
     cmd_bytes = extra_bytes - job_data_bytes;
     memmove(c->cmd, c->cmd + c->cmd_len + job_data_bytes, cmd_bytes);
     c->cmd_read = cmd_bytes;
 }
 
 static void
-send_reply_data(conn c)
+send_reply(conn c, const char *word)
 {
     int r;
     job j = c->reserved_job;
-    struct iovec iov[2];
 
-    iov[0].iov_base = c->reply + c->reply_sent;
-    iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
-    iov[1].iov_base = j->data + j->data_xfer;
-    iov[1].iov_len = j->data_size - j->data_xfer;
+    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "%s %lld %d\r\n",
+                 word, j->id, j->pri);
 
-    r = writev(c->fd, iov, 2);
-    if (r == -1) return check_err(c, "writev()");
-    if (r == 0) return conn_close(c); /* the client hung up */
+    /* can't happen */
+    if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
 
-    /* update the sent values */
-    c->reply_sent += r;
-    if (c->reply_sent >= c->reply_len) {
-        j->data_xfer += c->reply_sent - c->reply_len;
-        c->reply_sent = c->reply_len;
-    }
-
-    /* (j->data_xfer > j->data_size) can't happen */
-
-    /* are we done? */
-    if (j->data_xfer == j->data_size) {
-        r = conn_update_evq(c, EV_READ | EV_PERSIST, NULL);
-        if (r == -1) return warn("update flags failed"), conn_close(c);
-
-        c->reply_sent = 0; /* now that we're done, reset this */
-        c->state = STATE_WANTCOMMAND;
-    }
-
-    /* otherwise we sent incomplete data, so just keep waiting */
+    return reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
 }
 
 static void
-send_reply(conn c, const char *word)
+reserve_job(conn c, job j)
 {
-    job j = c->reserved_job;
+    c->reserved_job = j;
 
-    sprintf(c->reply_buf, "%s %lld %d\r\n", word, j->id, j->pri);
-    c->reply_len = strlen(c->reply_buf);
-    c->reply_sent = 0;
-    c->reply = c->reply_buf;
-    c->state = STATE_SENDJOB;
-    send_reply_data(c);
+    fprintf(stderr, "found job %p\n", c->reserved_job);
+
+    return send_reply(c, MSG_RESERVED);
+}
+
+static void
+process_queue()
+{
+    job j;
+
+    warn("processing queue");
+    while (waiting_conn_p() && (j = pq_take(ready_q))) {
+        reserve_job(next_waiting_conn(), j);
+    }
+}
+
+static void
+enqueue_job(conn c)
+{
+    int r;
+    job j = c->in_job;
+
+    c->in_job = NULL; /* the connection no longer owns this job */
+
+    fprintf(stderr, "enqueueing job %lld\n", j->id);
+
+    /* check if the trailer is present and correct */
+    if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
+
+    /* we have a complete job, so let's stick it in the pqueue */
+    r = pq_give(ready_q, j);
+
+    if (r) {
+        process_queue();
+        return reply(c, MSG_INSERTED, MSG_INSERTED_LEN, STATE_SENDWORD);
+    }
+
+    free(j); /* the job didn't go in the queue, so it goes bye bye */
+    reply(c, MSG_NOT_INSERTED, MSG_NOT_INSERTED_LEN, STATE_SENDWORD);
+
+}
+
+static void
+maybe_enqueue_job(conn c)
+{
+    job j = c->in_job;
+
+    /* do we have a complete job? */
+    if (j->data_xfer == j->data_size) return enqueue_job(c);
+
+    /* otherwise we have incomplete data, so just keep waiting */
+    c->state = STATE_WANTDATA;
 }
 
 static void
@@ -245,7 +270,7 @@ do_cmd(conn c)
         maybe_enqueue_job(c); /* it's possible we already have a complete job */
         break;
     case OP_PEEK:
-        reply_word(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN);
+        reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
         break;
     case OP_RESERVE:
         /* don't allow trailing garbage */
@@ -264,11 +289,10 @@ do_cmd(conn c)
 
         if (c->reserved_job) return send_reply(c, MSG_RESERVED);
 
-        /* TODO put c on worker queue */
-        conn_close(c);
+        enqueue_waiting_conn(c);
         break;
     case OP_DELETE:
-        reply_word(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN);
+        reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
         break;
     case OP_STATS:
         /* don't allow trailing garbage */
@@ -288,10 +312,23 @@ do_cmd(conn c)
 }
 
 static void
+reset_conn(conn c)
+{
+    int r;
+
+    r = conn_update_evq(c, EV_READ | EV_PERSIST, NULL);
+    if (r == -1) return warn("update flags failed"), conn_close(c);
+
+    c->reply_sent = 0; /* now that we're done, reset this */
+    c->state = STATE_WANTCOMMAND;
+}
+
+static void
 h_conn(const int fd, const short which, conn c)
 {
     int r;
     job j;
+    struct iovec iov[2];
 
     if (fd != c->fd) {
         warn("Argh! event fd doesn't match conn fd.");
@@ -342,15 +379,35 @@ h_conn(const int fd, const short which, conn c)
 
             /* (c->reply_sent > c->reply_len) can't happen */
 
-            if (c->reply_sent == c->reply_len) {
-                r = conn_update_evq(c, EV_READ | EV_PERSIST, NULL);
-                if (r == -1) return warn("update flags failed"), conn_close(c);
-
-                c->reply_sent = 0; /* now that we're done, reset this */
-                c->state = STATE_WANTCOMMAND;
-            }
+            if (c->reply_sent == c->reply_len) return reset_conn(c);
 
             /* otherwise we sent an incomplete reply, so just keep waiting */
+            break;
+        case STATE_SENDJOB:
+            j = c->reserved_job;
+
+            iov[0].iov_base = c->reply + c->reply_sent;
+            iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
+            iov[1].iov_base = j->data + j->data_xfer;
+            iov[1].iov_len = j->data_size - j->data_xfer;
+
+            r = writev(c->fd, iov, 2);
+            if (r == -1) return check_err(c, "writev()");
+            if (r == 0) return conn_close(c); /* the client hung up */
+
+            /* update the sent values */
+            c->reply_sent += r;
+            if (c->reply_sent >= c->reply_len) {
+                j->data_xfer += c->reply_sent - c->reply_len;
+                c->reply_sent = c->reply_len;
+            }
+
+            /* (j->data_xfer > j->data_size) can't happen */
+
+            /* are we done? */
+            if (j->data_xfer == j->data_size) return reset_conn(c);
+
+            /* otherwise we sent incomplete data, so just keep waiting */
             break;
     }
 }

@@ -26,7 +26,9 @@
 #define OP_STATS 4
 #define OP_JOBSTATS 5
 
-typedef struct conn {
+typedef struct conn *conn;
+
+struct conn {
     int fd;
     char state;
     struct event evq;
@@ -43,7 +45,8 @@ typedef struct conn {
     char reply_buf[LINE_BUF_SIZE]; /* this string IS NUL-terminated */
     job in_job;
     job reserved_job;
-} *conn;
+    conn next_waiting; /* linked list of connections waiting for a job */
+};
 
 conn make_conn(int fd, char start_state);
 
