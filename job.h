@@ -7,7 +7,7 @@ typedef struct job {
     unsigned long long int id;
     unsigned int pri;
     int data_size;
-    int data_read;
+    int data_xfer;
     unsigned char data[];
 } *job;
 

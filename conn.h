@@ -8,11 +8,15 @@
 
 #define STATE_WANTCOMMAND 0
 #define STATE_WANTDATA 1
-#define STATE_WRITE 2
+#define STATE_SENDJOB 2
 #define STATE_SENDWORD 3
 
-/* a command can be at most LINE_BUF_SIZE chars, including "\r\n" */
-#define LINE_BUF_SIZE 50
+/* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
+ * MUST be enough to hold the longest possible reply line, which is currently
+ * "RESERVED 18446744073709551615 4294967295 65535\r\n". Note, this depends on
+ * the value of JOB_DATA_SIZE_LIMIT, but conservatively we will assume that the
+ * bytes entry can be up to 10 characters. */
+#define LINE_BUF_SIZE 54
 
 #define OP_UNKNOWN -1
 #define OP_PUT 0
@@ -26,13 +30,19 @@ typedef struct conn {
     int fd;
     char state;
     struct event evq;
+
+    /* we cannot share this buffer with the reply line because we might read in
+     * command line data for a subsequent command, and we need to store it
+     * here. */
     char cmd[LINE_BUF_SIZE]; /* this string is NOT NUL-terminated */
     int cmd_len;
     int cmd_read;
-    const char *reply;
+    char *reply;
     int reply_len;
     int reply_sent;
-    job job;
+    char reply_buf[LINE_BUF_SIZE]; /* this string IS NUL-terminated */
+    job in_job;
+    job reserved_job;
 } *conn;
 
 conn make_conn(int fd, char start_state);

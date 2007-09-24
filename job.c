@@ -18,7 +18,7 @@ make_job(unsigned int pri, int data_size)
     j->id = next_id++;
     j->pri = pri;
     j->data_size = data_size;
-    j->data_read = 0;
+    j->data_xfer = 0;
 
     return j;
 }

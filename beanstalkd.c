@@ -88,7 +88,7 @@ which_cmd(conn c)
 }
 
 static void
-reply_word(conn c, const char *word, int len)
+reply_word(conn c, char *word, int len)
 {
     int r;
 
@@ -104,9 +104,9 @@ static void
 enqueue_job(conn c)
 {
     int r;
-    job j = c->job;
+    job j = c->in_job;
 
-    c->job = NULL; /* the connection no longer owns this job */
+    c->in_job = NULL; /* the connection no longer owns this job */
 
     /* check if the trailer is present and correct */
     if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
@@ -123,17 +123,17 @@ enqueue_job(conn c)
 static void
 maybe_enqueue_job(conn c)
 {
-    job j = c->job;
+    job j = c->in_job;
 
     /* do we have a complete job? */
-    if (j->data_read == j->data_size) return enqueue_job(c);
+    if (j->data_xfer == j->data_size) return enqueue_job(c);
 
     /* otherwise we have incomplete data, so just keep waiting */
     c->state = STATE_WANTDATA;
 }
 
 /* Copy up to data_size trailing bytes into the job, then the rest into the cmd
- * buffer. If c->job exists, this assumes that c->job->data is empty. */
+ * buffer. If c->in_job exists, this assumes that c->in_job->data is empty. */
 static void
 fill_extra_data(conn c)
 {
@@ -141,12 +141,14 @@ fill_extra_data(conn c)
 
     /* how many extra bytes did we read? */
     extra_bytes = c->cmd_read - c->cmd_len;
+    fprintf(stderr, "have %d extra bytes\n", extra_bytes);
 
     /* how many bytes should we put into the job data? */
-    if (c->job) {
-        job_data_bytes = min(extra_bytes, c->job->data_size);
-        memcpy(c->job->data, c->cmd + c->cmd_len, job_data_bytes);
-        c->job->data_read = job_data_bytes;
+    fprintf(stderr, "c->in_job is %p\n", c->in_job);
+    if (c->in_job) {
+        job_data_bytes = min(extra_bytes, c->in_job->data_size);
+        memcpy(c->in_job->data, c->cmd + c->cmd_len, job_data_bytes);
+        c->in_job->data_xfer = job_data_bytes;
     }
 
     /* how many bytes are left to go into the next cmd? */
@@ -156,10 +158,53 @@ fill_extra_data(conn c)
 }
 
 static void
-send_job(conn c)
+send_reply_data(conn c)
 {
-    /* TODO send job */
-    c->state = STATE_WRITE;
+    int r;
+    job j = c->reserved_job;
+    struct iovec iov[2];
+
+    iov[0].iov_base = c->reply + c->reply_sent;
+    iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
+    iov[1].iov_base = j->data + j->data_xfer;
+    iov[1].iov_len = j->data_size - j->data_xfer;
+
+    r = writev(c->fd, iov, 2);
+    if (r == -1) return check_err(c, "writev()");
+    if (r == 0) return conn_close(c); /* the client hung up */
+
+    /* update the sent values */
+    c->reply_sent += r;
+    if (c->reply_sent >= c->reply_len) {
+        j->data_xfer += c->reply_sent - c->reply_len;
+        c->reply_sent = c->reply_len;
+    }
+
+    /* (j->data_xfer > j->data_size) can't happen */
+
+    /* are we done? */
+    if (j->data_xfer == j->data_size) {
+        r = conn_update_evq(c, EV_READ | EV_PERSIST, NULL);
+        if (r == -1) return warn("update flags failed"), conn_close(c);
+
+        c->reply_sent = 0; /* now that we're done, reset this */
+        c->state = STATE_WANTCOMMAND;
+    }
+
+    /* otherwise we sent incomplete data, so just keep waiting */
+}
+
+static void
+send_reply(conn c, const char *word)
+{
+    job j = c->reserved_job;
+
+    sprintf(c->reply_buf, "%s %lld %d\r\n", word, j->id, j->pri);
+    c->reply_len = strlen(c->reply_buf);
+    c->reply_sent = 0;
+    c->reply = c->reply_buf;
+    c->state = STATE_SENDJOB;
+    send_reply_data(c);
 }
 
 static void
@@ -191,7 +236,7 @@ do_cmd(conn c)
         /* don't allow trailing garbage */
         if (end_buf[0] != '\0') return conn_close(c);
 
-        c->job = make_job(pri, data_size + 2);
+        c->in_job = make_job(pri, data_size + 2);
 
         fprintf(stderr, "put pri=%d bytes=%d\n", pri, data_size);
 
@@ -210,10 +255,14 @@ do_cmd(conn c)
 
         fill_extra_data(c);
 
-        /* keep any existing job, but take one if necessary */
-        c->job = c->job ? : pq_take(ready_q);
+        warn("looking for a job");
 
-        if (c->job) return send_job(c);
+        /* keep any existing job, but take one if necessary */
+        c->reserved_job = c->reserved_job ? : pq_take(ready_q);
+
+        fprintf(stderr, "found job %p\n", c->reserved_job);
+
+        if (c->reserved_job) return send_reply(c, MSG_RESERVED);
 
         /* TODO put c on worker queue */
         conn_close(c);
@@ -271,16 +320,16 @@ h_conn(const int fd, const short which, conn c)
             /* otherwise we have an incomplete line, so just keep waiting */
             break;
         case STATE_WANTDATA:
-            j = c->job;
+            j = c->in_job;
 
-            r = read(fd, j->data + j->data_read, j->data_size - j->data_read);
+            r = read(fd, j->data + j->data_xfer, j->data_size - j->data_xfer);
             if (r == -1) return check_err(c, "read()");
             if (r == 0) return conn_close(c); /* the client hung up */
 
             fprintf(stderr, "got %d data bytes\n", r);
-            j->data_read += r; /* we got some bytes */
+            j->data_xfer += r; /* we got some bytes */
 
-            /* (j->data_read > j->data_size) can't happen */
+            /* (j->data_xfer > j->data_size) can't happen */
 
             maybe_enqueue_job(c);
             break;

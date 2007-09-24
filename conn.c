@@ -18,6 +18,8 @@ make_conn(int fd, char start_state)
     c->fd = fd;
     c->state = start_state;
     c->cmd_read = 0;
+    c->in_job = NULL;
+    c->reserved_job = NULL;
 
     return c;
 }
