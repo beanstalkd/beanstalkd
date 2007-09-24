@@ -194,8 +194,18 @@ process_queue()
     }
 }
 
+int
+enqueue_job(job j)
+{
+    int r;
+
+    r = pq_give(ready_q, j);
+    if (r) return process_queue(), 1;
+    return 0;
+}
+
 static void
-enqueue_job(conn c)
+enqueue_incoming_job(conn c)
 {
     int r;
     job j = c->in_job;
@@ -208,25 +218,21 @@ enqueue_job(conn c)
     if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
 
     /* we have a complete job, so let's stick it in the pqueue */
-    r = pq_give(ready_q, j);
+    r = enqueue_job(j);
 
-    if (r) {
-        process_queue();
-        return reply(c, MSG_INSERTED, MSG_INSERTED_LEN, STATE_SENDWORD);
-    }
+    if (r) return reply(c, MSG_INSERTED, MSG_INSERTED_LEN, STATE_SENDWORD);
 
     free(j); /* the job didn't go in the queue, so it goes bye bye */
     reply(c, MSG_NOT_INSERTED, MSG_NOT_INSERTED_LEN, STATE_SENDWORD);
-
 }
 
 static void
-maybe_enqueue_job(conn c)
+maybe_enqueue_incoming_job(conn c)
 {
     job j = c->in_job;
 
     /* do we have a complete job? */
-    if (j->data_xfer == j->data_size) return enqueue_job(c);
+    if (j->data_xfer == j->data_size) return enqueue_incoming_job(c);
 
     /* otherwise we have incomplete data, so just keep waiting */
     c->state = STATE_WANTDATA;
@@ -267,7 +273,9 @@ do_cmd(conn c)
 
         fill_extra_data(c);
 
-        maybe_enqueue_job(c); /* it's possible we already have a complete job */
+        /* it's possible we already have a complete job */
+        maybe_enqueue_incoming_job(c);
+
         break;
     case OP_PEEK:
         reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
@@ -368,7 +376,7 @@ h_conn(const int fd, const short which, conn c)
 
             /* (j->data_xfer > j->data_size) can't happen */
 
-            maybe_enqueue_job(c);
+            maybe_enqueue_incoming_job(c);
             break;
         case STATE_SENDWORD:
             r = write(fd, c->reply+c->reply_sent, c->reply_len - c->reply_sent);
