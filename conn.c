@@ -6,7 +6,7 @@
 #include "conn.h"
 #include "net.h"
 #include "util.h"
-#include "beanstalkd.h"
+#include "prot.h"
 
 conn
 make_conn(int fd, char start_state)

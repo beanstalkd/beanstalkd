@@ -12,12 +12,10 @@
 #include "beanstalkd.h"
 #include "pq.h"
 #include "util.h"
+#include "prot.h"
 
 /* job data cannot be greater than this */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
-
-static pq ready_q;
-static conn waiting_conn_front, waiting_conn_rear;
 
 static void
 drop_root()
@@ -58,37 +56,6 @@ check_err(conn c, const char *s)
     return;
 }
 
-static int
-waiting_conn_p()
-{
-    return !!waiting_conn_front;
-}
-
-static void
-enqueue_waiting_conn(conn c)
-{
-    c->next_waiting = NULL;
-    if (waiting_conn_p()) {
-        waiting_conn_rear->next_waiting = c;
-    } else {
-        waiting_conn_front = c;
-    }
-    waiting_conn_rear = c;
-}
-
-static conn
-next_waiting_conn()
-{
-    conn c;
-
-    if (!waiting_conn_p()) return NULL;
-
-    c = waiting_conn_front;
-    waiting_conn_front = c->next_waiting;
-
-    return c;
-}
-
 /* Scan the given string for the sequence "\r\n" and return the line length.
  * Always returns at least 2 if a match is found. Returns 0 if no match. */
 static int
@@ -119,20 +86,6 @@ which_cmd(conn c)
     return OP_UNKNOWN;
 }
 
-static void
-reply(conn c, char *line, int len, int state)
-{
-    int r;
-
-    r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
-    if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
-
-    c->reply = line;
-    c->reply_len = len;
-    c->reply_sent = 0;
-    c->state = state;
-}
-
 /* Copy up to data_size trailing bytes into the job, then the rest into the cmd
  * buffer. If c->in_job exists, this assumes that c->in_job->data is empty. */
 static void
@@ -156,52 +109,6 @@ fill_extra_data(conn c)
     cmd_bytes = extra_bytes - job_data_bytes;
     memmove(c->cmd, c->cmd + c->cmd_len + job_data_bytes, cmd_bytes);
     c->cmd_read = cmd_bytes;
-}
-
-static void
-send_reply(conn c, const char *word)
-{
-    int r;
-    job j = c->reserved_job;
-
-    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "%s %lld %d\r\n",
-                 word, j->id, j->pri);
-
-    /* can't happen */
-    if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
-
-    return reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
-}
-
-static void
-reserve_job(conn c, job j)
-{
-    c->reserved_job = j;
-
-    fprintf(stderr, "found job %p\n", c->reserved_job);
-
-    return send_reply(c, MSG_RESERVED);
-}
-
-static void
-process_queue()
-{
-    job j;
-
-    warn("processing queue");
-    while (waiting_conn_p() && (j = pq_take(ready_q))) {
-        reserve_job(next_waiting_conn(), j);
-    }
-}
-
-int
-enqueue_job(job j)
-{
-    int r;
-
-    r = pq_give(ready_q, j);
-    if (r) return process_queue(), 1;
-    return 0;
 }
 
 static void
@@ -291,13 +198,14 @@ do_cmd(conn c)
         warn("looking for a job");
 
         /* keep any existing job, but take one if necessary */
-        c->reserved_job = c->reserved_job ? : pq_take(ready_q);
+        //c->reserved_job = c->reserved_job ? : pq_take(ready_q);
 
-        fprintf(stderr, "found job %p\n", c->reserved_job);
+        //fprintf(stderr, "found job %p\n", c->reserved_job);
 
-        if (c->reserved_job) return send_reply(c, MSG_RESERVED);
+        if (c->reserved_job) return reply_job(c, MSG_RESERVED);
 
         enqueue_waiting_conn(c);
+        process_queue();
         break;
     case OP_DELETE:
         reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
@@ -459,14 +367,13 @@ main(int argc, char **argv)
     if (listen_socket == -1) warn("make_server_socket()"), exit(111);
 
     drop_root();
+    prot_init();
     daemonize();
     event_init();
     set_sig_handlers();
 
     event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST, (evh) h_accept, &listen_evq);
     event_add(&listen_evq, NULL);
-
-    ready_q = make_pq(HEAP_SIZE);
 
     event_dispatch();
     return 0;
