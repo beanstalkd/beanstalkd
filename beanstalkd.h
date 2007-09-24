@@ -30,4 +30,6 @@
 #define CMD_RESERVE_LEN CONSTSTRLEN(CMD_RESERVE)
 #define CMD_STATS_LEN CONSTSTRLEN(CMD_STATS)
 
+int enqueue_job(job j);
+
 #endif /*beanstalk_h*/

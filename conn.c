@@ -6,6 +6,7 @@
 #include "conn.h"
 #include "net.h"
 #include "util.h"
+#include "beanstalkd.h"
 
 conn
 make_conn(int fd, char start_state)
@@ -55,6 +56,7 @@ conn_close(conn c)
     event_del(&c->evq);
 
     close(c->fd);
+    if (c->reserved_job) enqueue_job(c->reserved_job);
 
     free(c);
 }
