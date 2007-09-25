@@ -53,9 +53,6 @@ static void
 reserve_job(conn c, job j)
 {
     c->reserved_job = j;
-
-    fprintf(stderr, "found job %p\n", c->reserved_job);
-
     return reply_job(c, MSG_RESERVED);
 }
 
@@ -94,6 +91,7 @@ enqueue_job(job j)
 {
     int r;
 
+    j->data_xfer = 0; /* the queue owns this job now, so make it sendable */
     r = pq_give(ready_q, j);
     if (r) return process_queue(), 1;
     return 0;
