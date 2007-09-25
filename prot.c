@@ -11,6 +11,7 @@
 
 static pq ready_q;
 
+/* linked list of waiting connections. See struct conn's next field in conn.h */
 static conn waiting_conn_front, waiting_conn_rear;
 
 static int
@@ -65,9 +66,10 @@ next_waiting_conn()
 
     if (!waiting_conn_p()) return NULL;
 
+    /* remove it from the list */
     c = waiting_conn_front;
-    waiting_conn_front = c->next_waiting;
-    c->next_waiting = NULL; /* remove it from the list */
+    waiting_conn_front = c->next;
+    c->next = NULL;
 
     return c;
 }
@@ -77,8 +79,12 @@ process_queue()
 {
     job j;
 
-    warn("processing queue");
-    while (waiting_conn_p() && (j = pq_take(ready_q))) {
+    fprintf(stderr, "processing queue conns=%d j=%p\n", waiting_conn_p(), &ready_q[0]);
+    while (waiting_conn_p()) {
+        j = pq_take(ready_q);
+        fprintf(stderr, "j=%p\n", j);
+        if (!j) return;
+        warn("reserving job");
         reserve_job(next_waiting_conn(), j);
     }
 }
@@ -96,9 +102,10 @@ enqueue_job(job j)
 void
 enqueue_waiting_conn(conn c)
 {
-    c->next_waiting = NULL;
+    fprintf(stderr, "%d: putting in wait queue\n", c->fd);
+    c->next = NULL;
     if (waiting_conn_p()) {
-        waiting_conn_rear->next_waiting = c;
+        waiting_conn_rear->next = c;
     } else {
         waiting_conn_front = c;
     }
@@ -109,4 +116,5 @@ void
 prot_init()
 {
     ready_q = make_pq(HEAP_SIZE);
+    waiting_conn_front = waiting_conn_rear = NULL;
 }

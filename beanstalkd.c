@@ -72,6 +72,12 @@ scan_line_end(const char *s, int size)
     return 0;
 }
 
+static int
+cmd_len(conn c)
+{
+    return scan_line_end(c->cmd, c->cmd_read);
+}
+
 /* parse the command line */
 static int
 which_cmd(conn c)
@@ -87,11 +93,15 @@ which_cmd(conn c)
 }
 
 /* Copy up to data_size trailing bytes into the job, then the rest into the cmd
- * buffer. If c->in_job exists, this assumes that c->in_job->data is empty. */
+ * buffer. If c->in_job exists, this assumes that c->in_job->data is empty.
+ * This function is idempotent(). */
 static void
 fill_extra_data(conn c)
 {
     int extra_bytes, job_data_bytes = 0, cmd_bytes;
+
+    if (!c->fd) return; /* the connection was closed */
+    if (!c->cmd_len) return; /* we don't have a complete command */
 
     /* how many extra bytes did we read? */
     extra_bytes = c->cmd_read - c->cmd_len;
@@ -109,6 +119,7 @@ fill_extra_data(conn c)
     cmd_bytes = extra_bytes - job_data_bytes;
     memmove(c->cmd, c->cmd + c->cmd_len + job_data_bytes, cmd_bytes);
     c->cmd_read = cmd_bytes;
+    c->cmd_len = 0; /* we no longer know the length of the new command */
 }
 
 static void
@@ -146,11 +157,21 @@ maybe_enqueue_incoming_job(conn c)
 }
 
 static void
+wait_for_job(conn c)
+{
+    /* this conn is waiting, so we are not interested in reading or writing */
+    event_del(&c->evq);
+    c->state = STATE_WAIT;
+    enqueue_waiting_conn(c);
+}
+
+static void
 do_cmd(conn c)
 {
     char type;
     char *size_buf, *end_buf;
     unsigned int pri, data_size;
+    unsigned long long int id;
 
     /* NUL-terminate this string so we can use strtol and friends */
     c->cmd[c->cmd_len - 2] = '\0';
@@ -159,6 +180,9 @@ do_cmd(conn c)
     if (strlen(c->cmd) != c->cmd_len - 2) return conn_close(c);
 
     type = which_cmd(c);
+
+    /* do not return inside this switch unless you close the connection */
+    /* likewise, be sure to return if you close the connection */
     switch (type) {
     case OP_PUT:
         errno = 0;
@@ -193,8 +217,6 @@ do_cmd(conn c)
 
         fprintf(stderr, "got reserve cmd: %s\n", c->cmd);
 
-        fill_extra_data(c);
-
         warn("looking for a job");
 
         /* keep any existing job, but take one if necessary */
@@ -202,29 +224,47 @@ do_cmd(conn c)
 
         //fprintf(stderr, "found job %p\n", c->reserved_job);
 
-        if (c->reserved_job) return reply_job(c, MSG_RESERVED);
+        /* does this conn already have a job reserved? */
+        if (c->reserved_job) {
+            reply_job(c, MSG_RESERVED);
+            break;
+        }
 
-        enqueue_waiting_conn(c);
+        /* try to get a new job for this guy */
+        wait_for_job(c);
         process_queue();
         break;
     case OP_DELETE:
-        reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        errno = 0;
+        id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10);
+        if (errno) return conn_close(c);
+
+        if (!c->reserved_job || id != c->reserved_job->id) {
+            reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+            break;
+        }
+
+        free(c->reserved_job);
+        c->reserved_job = NULL;
+
+        reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_WANTCOMMAND);
         break;
     case OP_STATS:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_STATS_LEN + 2) return conn_close(c);
         warn("got stats command");
-        conn_close(c);
+        return conn_close(c);
         break;
     case OP_JOBSTATS:
         warn("got job stats command");
-        conn_close(c);
+        return conn_close(c);
         break;
     default:
         /* unknown command -- protocol error */
         fprintf(stderr, "got unknown cmd: %s\n", c->cmd);
         return conn_close(c);
     }
+    fill_extra_data(c);
 }
 
 static void
@@ -232,12 +272,16 @@ reset_conn(conn c)
 {
     int r;
 
+    fprintf(stderr, "%d: resetting back to STATE_WANTCOMMAND\n", c->fd);
+
     r = conn_update_evq(c, EV_READ | EV_PERSIST, NULL);
     if (r == -1) return warn("update flags failed"), conn_close(c);
 
     c->reply_sent = 0; /* now that we're done, reset this */
     c->state = STATE_WANTCOMMAND;
 }
+
+#define cmd_is_ready(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
 
 static void
 h_conn(const int fd, const short which, conn c)
@@ -254,6 +298,9 @@ h_conn(const int fd, const short which, conn c)
 
     fprintf(stderr, "%d: got event %d\n", fd, which);
 
+    /* Do not return inside this switch unless you close the connection or got
+     * no data. Likewise, be sure to return if you might close the connection.
+     * */
     switch (c->state) {
         case STATE_WANTCOMMAND:
             r = read(fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
@@ -262,13 +309,18 @@ h_conn(const int fd, const short which, conn c)
 
             c->cmd_read += r; /* we got some bytes */
 
-            c->cmd_len = scan_line_end(c->cmd, c->cmd_read); /* find the EOL */
+            c->cmd_len = cmd_len(c); /* find the EOL */
 
             /* yay, complete command line */
-            if (c->cmd_len) return do_cmd(c);
+            if (c->cmd_len) {
+                do_cmd(c);
+                break;
+            }
+
+            /* c->cmd_read > LINE_BUF_SIZE can't happen */
 
             /* command line too long? */
-            if (c->cmd_read >= LINE_BUF_SIZE) return conn_close(c);
+            if (c->cmd_read == LINE_BUF_SIZE) return conn_close(c);
 
             /* otherwise we have an incomplete line, so just keep waiting */
             break;
@@ -295,7 +347,7 @@ h_conn(const int fd, const short which, conn c)
 
             /* (c->reply_sent > c->reply_len) can't happen */
 
-            if (c->reply_sent == c->reply_len) return reset_conn(c);
+            if (c->reply_sent == c->reply_len) reset_conn(c);
 
             /* otherwise we sent an incomplete reply, so just keep waiting */
             break;
@@ -321,11 +373,16 @@ h_conn(const int fd, const short which, conn c)
             /* (j->data_xfer > j->data_size) can't happen */
 
             /* are we done? */
-            if (j->data_xfer == j->data_size) return reset_conn(c);
+            if (j->data_xfer == j->data_size) reset_conn(c);
 
             /* otherwise we sent incomplete data, so just keep waiting */
             break;
     }
+
+    /* If we got here, it means we still have an open connection and we're
+     * ready to run a command. So we should check if we already got more
+     * commands to process. */
+    while (cmd_is_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
 }
 
 static void
@@ -368,6 +425,7 @@ main(int argc, char **argv)
 
     drop_root();
     prot_init();
+    conn_init();
     daemonize();
     event_init();
     set_sig_handlers();

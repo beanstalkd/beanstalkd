@@ -8,13 +8,61 @@
 #include "util.h"
 #include "prot.h"
 
+static struct conn pool[MAX_CONNECTIONS];
+
+/* linked list of free connections. See struct conn's next field in conn.h */
+static conn pool_front, pool_rear;
+
+static int
+pool_conn_p()
+{
+    return !!pool_front;
+}
+
+static conn
+conn_alloc()
+{
+    conn c;
+
+    if (!pool_conn_p()) return NULL;
+
+    /* remove it from the list */
+    c = pool_front;
+    pool_front = c->next;
+    c->next = NULL;
+
+    return c;
+}
+
+static void
+conn_free(conn c)
+{
+    c->fd = 0;
+    c->next = NULL;
+    if (pool_conn_p()) {
+        pool_rear->next = c;
+    } else {
+        pool_front = c;
+    }
+    pool_rear = c;
+}
+
+void
+conn_init()
+{
+    int i;
+
+    pool_front = pool_rear = NULL;
+    for (i = 0; i < MAX_CONNECTIONS; i++) conn_free(&pool[i]);
+}
+
 conn
 make_conn(int fd, char start_state)
 {
     conn c;
 
-    c = malloc(sizeof(struct conn));
-    if (!c) return warn("OOM"), NULL;
+    c = conn_alloc();
+    if (!c) return NULL;
 
     c->fd = fd;
     c->state = start_state;
@@ -59,5 +107,5 @@ conn_close(conn c)
     if (c->reserved_job) enqueue_job(c->reserved_job);
     if (c->in_job) free(c->in_job);
 
-    free(c);
+    conn_free(c);
 }

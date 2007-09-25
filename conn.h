@@ -6,10 +6,14 @@
 #include "event.h"
 #include "job.h"
 
+/* We will stop accepting new connections at 8 simultaneous Ki-connections. */
+#define MAX_CONNECTIONS (8 * 1024)
+
 #define STATE_WANTCOMMAND 0
 #define STATE_WANTDATA 1
 #define STATE_SENDJOB 2
 #define STATE_SENDWORD 3
+#define STATE_WAIT 4
 
 /* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
  * MUST be enough to hold the longest possible reply line, which is currently
@@ -45,8 +49,10 @@ struct conn {
     char reply_buf[LINE_BUF_SIZE]; /* this string IS NUL-terminated */
     job in_job;
     job reserved_job;
-    conn next_waiting; /* linked list of connections waiting for a job */
+    conn next; /* linked list of connections */
 };
+
+void conn_init();
 
 conn make_conn(int fd, char start_state);
 
