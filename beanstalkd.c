@@ -281,7 +281,7 @@ reset_conn(conn c)
     c->state = STATE_WANTCOMMAND;
 }
 
-#define cmd_is_ready(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
+#define cmd_ready(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
 
 static void
 h_conn(const int fd, const short which, conn c)
@@ -382,7 +382,7 @@ h_conn(const int fd, const short which, conn c)
     /* If we got here, it means we still have an open connection and we're
      * ready to run a command. So we should check if we already got more
      * commands to process. */
-    while (cmd_is_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
+    while (cmd_ready(c) && c->cmd_read && (c->cmd_len = cmd_len(c))) do_cmd(c);
 }
 
 static void
