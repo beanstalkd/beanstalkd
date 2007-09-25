@@ -8,15 +8,15 @@
 #include "util.h"
 #include "prot.h"
 
-/* Singly-linked list of free connections (the prev pointer isn't used here). */
-static conn pool_front = NULL, pool_rear = NULL;
+/* Doubly-linked list of free connections. */
+static struct conn pool = { &pool, &pool, 0 };
 
 int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
 
 static int
 pool_conn_p()
 {
-    return !!pool_front;
+    return conn_list_empty_p(&pool);
 }
 
 static conn
@@ -27,9 +27,8 @@ conn_alloc()
     if (!pool_conn_p()) return malloc(sizeof(struct conn));
 
     /* remove it from the list */
-    c = pool_front;
-    pool_front = c->next;
-    c->prev = c->next = NULL;
+    c = pool.next;
+    conn_remove(c);
 
     return c;
 }
@@ -38,13 +37,7 @@ static void
 conn_free(conn c)
 {
     c->fd = 0;
-    c->prev = c->next = NULL;
-    if (pool_conn_p()) {
-        pool_rear->next = c;
-    } else {
-        pool_front = c;
-    }
-    pool_rear = c;
+    conn_insert(&pool, c);
 }
 
 conn
@@ -130,6 +123,12 @@ conn_update_evq(conn c, const int events)
     }
 
     return conn_set_evq(c, events, c->evq.ev_callback);
+}
+
+int
+conn_list_empty_p(conn head)
+{
+    return head->next != head;
 }
 
 void

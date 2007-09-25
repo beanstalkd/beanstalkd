@@ -12,12 +12,12 @@
 static pq ready_q;
 
 /* Doubly-linked list of waiting connections. */
-static struct conn wait_queue; /* sentinel */
+static struct conn wait_queue = { &wait_queue, &wait_queue, 0 };
 
 static int
 waiting_conn_p()
 {
-    return wait_queue.next != &wait_queue;
+    return conn_list_empty_p(&wait_queue);
 }
 
 void
@@ -110,5 +110,4 @@ void
 prot_init()
 {
     ready_q = make_pq(HEAP_SIZE);
-    wait_queue.next = wait_queue.prev = &wait_queue;
 }

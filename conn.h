@@ -34,6 +34,7 @@
 typedef struct conn *conn;
 
 struct conn {
+    conn prev, next; /* linked list of connections */
     int fd;
     char state;
     char type;
@@ -54,7 +55,6 @@ struct conn {
     job out_job;
     int out_job_sent;
     job reserved_job;
-    conn prev, next; /* linked list of connections */
 };
 
 void conn_init();
@@ -66,6 +66,7 @@ int conn_update_evq(conn c, const int flags);
 
 void conn_close(conn c);
 
+int conn_list_empty_p(conn head);
 void conn_remove(conn c);
 void conn_insert(conn head, conn c);
 
