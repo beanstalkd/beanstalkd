@@ -8,10 +8,8 @@
 #include "util.h"
 #include "prot.h"
 
-static struct conn pool[MAX_CONNECTIONS];
-
 /* linked list of free connections. See struct conn's next field in conn.h */
-static conn pool_front, pool_rear;
+static conn pool_front = NULL, pool_rear = NULL;
 
 static int
 pool_conn_p()
@@ -24,7 +22,7 @@ conn_alloc()
 {
     conn c;
 
-    if (!pool_conn_p()) return NULL;
+    if (!pool_conn_p()) return malloc(sizeof(struct conn));
 
     /* remove it from the list */
     c = pool_front;
@@ -47,22 +45,13 @@ conn_free(conn c)
     pool_rear = c;
 }
 
-void
-conn_init()
-{
-    int i;
-
-    pool_front = pool_rear = NULL;
-    for (i = 0; i < MAX_CONNECTIONS; i++) conn_free(&pool[i]);
-}
-
 conn
 make_conn(int fd, char start_state)
 {
     conn c;
 
     c = conn_alloc();
-    if (!c) return NULL;
+    if (!c) return warn("OOM"), NULL;
 
     c->fd = fd;
     c->state = start_state;

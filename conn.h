@@ -6,9 +6,6 @@
 #include "event.h"
 #include "job.h"
 
-/* We will stop accepting new connections at 8 simultaneous Ki-connections. */
-#define MAX_CONNECTIONS (8 * 1024)
-
 #define STATE_WANTCOMMAND 0
 #define STATE_WANTDATA 1
 #define STATE_SENDJOB 2

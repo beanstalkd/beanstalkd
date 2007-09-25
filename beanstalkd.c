@@ -425,7 +425,6 @@ main(int argc, char **argv)
 
     drop_root();
     prot_init();
-    conn_init();
     daemonize();
     event_init();
     set_sig_handlers();
