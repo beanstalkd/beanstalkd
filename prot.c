@@ -17,7 +17,7 @@ static struct conn wait_queue = { &wait_queue, &wait_queue, 0 };
 static int
 waiting_conn_p()
 {
-    return conn_list_empty_p(&wait_queue);
+    return conn_list_any_p(&wait_queue);
 }
 
 void

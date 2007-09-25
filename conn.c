@@ -16,7 +16,7 @@ int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
 static int
 pool_conn_p()
 {
-    return conn_list_empty_p(&pool);
+    return conn_list_any_p(&pool);
 }
 
 static conn
@@ -54,6 +54,7 @@ make_conn(int fd, char start_state)
     c->cmd_read = 0;
     c->in_job = c->out_job = c->reserved_job = NULL;
     c->in_job_read = c->out_job_sent = 0;
+    c->prev = c->next = c; /* must be out of a linked list right now */
 
     cur_conn_ct++; /* stats */
 
@@ -126,26 +127,26 @@ conn_update_evq(conn c, const int events)
 }
 
 int
-conn_list_empty_p(conn head)
+conn_list_any_p(conn head)
 {
-    return head->next != head;
+    return head->next != head || head->prev != head;
 }
 
 void
 conn_remove(conn c)
 {
-    if (!c->next || !c->prev) return; /* not in a doubly-linked list */
+    if (!conn_list_any_p(c)) return; /* not in a doubly-linked list */
 
     c->next->prev = c->prev;
     c->prev->next = c->next;
 
-    c->prev = c->next = NULL;
+    c->prev = c->next = c;
 }
 
 void
 conn_insert(conn head, conn c)
 {
-    if (c->prev || c->next) return; /* already in a linked list */
+    if (conn_list_any_p(c)) return; /* already in a linked list */
 
     c->prev = head->prev;
     c->next = head;
