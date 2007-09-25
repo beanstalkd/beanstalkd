@@ -11,6 +11,8 @@
 /* Singly-linked list of free connections (the prev pointer isn't used here). */
 static conn pool_front = NULL, pool_rear = NULL;
 
+int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
+
 static int
 pool_conn_p()
 {
@@ -55,11 +57,48 @@ make_conn(int fd, char start_state)
 
     c->fd = fd;
     c->state = start_state;
+    c->type = 0;
     c->cmd_read = 0;
     c->in_job = c->out_job = c->reserved_job = NULL;
     c->in_job_read = c->out_job_sent = 0;
 
+    cur_conn_ct++; /* stats */
+
     return c;
+}
+
+void
+conn_set_producer(conn c)
+{
+    if (c->type & CONN_TYPE_PRODUCER) return;
+    c->type |= CONN_TYPE_PRODUCER;
+    cur_producer_ct++; /* stats */
+}
+
+void
+conn_set_worker(conn c)
+{
+    if (c->type & CONN_TYPE_WORKER) return;
+    c->type |= CONN_TYPE_WORKER;
+    cur_worker_ct++; /* stats */
+}
+
+int
+count_cur_conns()
+{
+    return cur_conn_ct;
+}
+
+int
+count_cur_producers()
+{
+    return cur_producer_ct;
+}
+
+int
+count_cur_workers()
+{
+    return cur_worker_ct;
 }
 
 int
@@ -126,6 +165,10 @@ conn_close(conn c)
     free(c->in_job);
     if (c->out_job != c->reserved_job) free(c->out_job); /* peek command? */
     c->in_job = c->out_job = c->reserved_job = NULL;
+
+
+    if (c->type & CONN_TYPE_PRODUCER) cur_producer_ct--; /* stats */
+    if (c->type & CONN_TYPE_WORKER) cur_worker_ct--; /* stats */
 
     conn_remove(c);
     conn_free(c);

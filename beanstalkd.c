@@ -17,6 +17,9 @@
 /* job data cannot be greater than this */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
+static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
+                     delete_ct = 0, stats_ct = 0;
+
 static void
 drop_root()
 {
@@ -194,6 +197,8 @@ dispatch_cmd(conn c)
         /* don't allow trailing garbage */
         if (end_buf[0] != '\0') return conn_close(c);
 
+        put_ct++; /* stats */
+
         c->in_job = make_job(pri, data_size + 2);
 
         fill_extra_data(c);
@@ -206,6 +211,8 @@ dispatch_cmd(conn c)
         errno = 0;
         id = strtoull(c->cmd + CMD_PEEK_LEN, &end_buf, 10);
         if (errno) return conn_close(c);
+
+        peek_ct++; /* stats */
 
         /* So, peek is annoying, because some other connection might free the
          * job while we are still trying to write it out. So we copy it and
@@ -220,6 +227,8 @@ dispatch_cmd(conn c)
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_RESERVE_LEN + 2) return conn_close(c);
 
+        reserve_ct++; /* stats */
+
         /* does this conn already have a job reserved? */
         if (c->reserved_job) return reply_job(c, c->reserved_job, MSG_RESERVED);
 
@@ -231,6 +240,8 @@ dispatch_cmd(conn c)
         errno = 0;
         id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10);
         if (errno) return conn_close(c);
+
+        delete_ct++; /* stats */
 
         if (!c->reserved_job || id != c->reserved_job->id) {
             reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
@@ -245,10 +256,12 @@ dispatch_cmd(conn c)
     case OP_STATS:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_STATS_LEN + 2) return conn_close(c);
+        stats_ct++; /* stats */
         warn("got stats command");
         return conn_close(c);
         break;
     case OP_JOBSTATS:
+        stats_ct++; /* stats */
         warn("got job stats command");
         return conn_close(c);
         break;

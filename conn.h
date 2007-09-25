@@ -27,11 +27,16 @@
 #define OP_STATS 4
 #define OP_JOBSTATS 5
 
+/* CONN_TYPE_* are bit masks */
+#define CONN_TYPE_PRODUCER 1
+#define CONN_TYPE_WORKER 2
+
 typedef struct conn *conn;
 
 struct conn {
     int fd;
     char state;
+    char type;
     struct event evq;
 
     /* we cannot share this buffer with the reply line because we might read in
@@ -63,5 +68,12 @@ void conn_close(conn c);
 
 void conn_remove(conn c);
 void conn_insert(conn head, conn c);
+
+int count_cur_conns();
+int count_cur_producers();
+int count_cur_workers();
+
+void conn_set_producer(conn c);
+void conn_set_worker(conn c);
 
 #endif /*conn_h*/
