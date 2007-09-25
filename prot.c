@@ -14,6 +14,9 @@ static pq ready_q;
 /* Doubly-linked list of waiting connections. */
 static struct conn wait_queue = { &wait_queue, &wait_queue, 0 };
 
+/* Doubly-linked list of connections running jobs. */
+static struct conn running_list = { &running_list, &running_list, 0 };
+
 static int
 waiting_conn_p()
 {
@@ -56,7 +59,18 @@ static void
 reserve_job(conn c, job j)
 {
     c->reserved_job = j;
+    conn_insert(&running_list, c);
     return reply_job(c, j, MSG_RESERVED);
+}
+
+int
+count_reserved_jobs()
+{
+    int count = 0;
+    conn c = &running_list;
+
+    for (c = c->next; c != &running_list; c = c->next) count++;
+    return count;
 }
 
 static conn

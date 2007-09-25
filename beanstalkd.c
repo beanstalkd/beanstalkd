@@ -250,6 +250,7 @@ dispatch_cmd(conn c)
 
         free(c->reserved_job);
         c->reserved_job = NULL;
+        conn_remove(c); /* remove it from the running_list */
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
         break;
