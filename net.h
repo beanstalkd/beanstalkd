@@ -13,6 +13,4 @@
 
 int make_server_socket(int host, int port);
 
-int conn_update_evq(conn c, const int flags, evh handler);
-
 #endif /*net_h*/

@@ -46,15 +46,19 @@ struct conn {
     char reply_buf[LINE_BUF_SIZE]; /* this string IS NUL-terminated */
     job in_job;
     job reserved_job;
-    conn next; /* linked list of connections */
+    conn prev, next; /* linked list of connections */
 };
 
 void conn_init();
 
 conn make_conn(int fd, char start_state);
 
-int conn_update_evq(conn c, const int flags, evh handler);
+int conn_set_evq(conn c, const int events, evh handler);
+int conn_update_evq(conn c, const int flags);
 
 void conn_close(conn c);
+
+void conn_remove(conn c);
+void conn_insert(conn head, conn c);
 
 #endif /*conn_h*/

@@ -11,13 +11,13 @@
 
 static pq ready_q;
 
-/* linked list of waiting connections. See struct conn's next field in conn.h */
-static conn waiting_conn_front, waiting_conn_rear;
+/* Doubly-linked list of waiting connections. */
+static struct conn wait_queue; /* sentinel */
 
 static int
 waiting_conn_p()
 {
-    return !!waiting_conn_front;
+    return wait_queue.next != &wait_queue;
 }
 
 void
@@ -25,7 +25,7 @@ reply(conn c, char *line, int len, int state)
 {
     int r;
 
-    r = conn_update_evq(c, EV_WRITE | EV_PERSIST, NULL);
+    r = conn_update_evq(c, EV_WRITE | EV_PERSIST);
     if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
 
     c->reply = line;
@@ -63,10 +63,8 @@ next_waiting_conn()
 
     if (!waiting_conn_p()) return NULL;
 
-    /* remove it from the list */
-    c = waiting_conn_front;
-    waiting_conn_front = c->next;
-    c->next = NULL;
+    c = wait_queue.next;
+    conn_remove(c);
 
     return c;
 }
@@ -97,18 +95,12 @@ enqueue_job(job j)
 void
 enqueue_waiting_conn(conn c)
 {
-    c->next = NULL;
-    if (waiting_conn_p()) {
-        waiting_conn_rear->next = c;
-    } else {
-        waiting_conn_front = c;
-    }
-    waiting_conn_rear = c;
+    conn_insert(&wait_queue, c);
 }
 
 void
 prot_init()
 {
     ready_q = make_pq(HEAP_SIZE);
-    waiting_conn_front = waiting_conn_rear = NULL;
+    wait_queue.next = wait_queue.prev = &wait_queue;
 }

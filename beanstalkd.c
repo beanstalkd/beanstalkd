@@ -258,7 +258,7 @@ reset_conn(conn c)
 {
     int r;
 
-    r = conn_update_evq(c, EV_READ | EV_PERSIST, NULL);
+    r = conn_update_evq(c, EV_READ | EV_PERSIST);
     if (r == -1) return warn("update events failed"), conn_close(c);
 
     /* we are done transferring the job, so reset */
@@ -389,8 +389,8 @@ h_accept(const int fd, const short which, struct event *ev)
     c = make_conn(cfd, STATE_WANTCOMMAND);
     if (!c) return warn("make_conn() failed"), close(cfd), v();
 
-    r = conn_update_evq(c, EV_READ | EV_PERSIST, (evh) h_conn);
-    if (r == -1) return warn("conn_update_evq() failed"), close(cfd), v();
+    r = conn_set_evq(c, EV_READ | EV_PERSIST, (evh) h_conn);
+    if (r == -1) return warn("conn_set_evq() failed"), close(cfd), v();
 }
 
 int
