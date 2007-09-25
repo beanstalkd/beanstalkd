@@ -276,7 +276,7 @@ reset_conn(conn c)
     fprintf(stderr, "%d: resetting back to STATE_WANTCOMMAND\n", c->fd);
 
     r = conn_update_evq(c, EV_READ | EV_PERSIST, NULL);
-    if (r == -1) return warn("update flags failed"), conn_close(c);
+    if (r == -1) return warn("update events failed"), conn_close(c);
 
     /* we are done transferring the job, so reset */
     if (c->reserved_job) c->reserved_job->data_xfer = 0;

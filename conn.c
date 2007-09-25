@@ -63,13 +63,13 @@ make_conn(int fd, char start_state)
 }
 
 int
-conn_update_evq(conn c, const int flags, evh handler)
+conn_update_evq(conn c, const int events, evh handler)
 {
     int r;
 
     if (!c) return -1;
 
-    if (c->evq.ev_flags == flags) return 0;
+    if (c->evq.ev_events == events) return 0;
 
     /* If it's been added, try to delete it first */
     if (c->evq.ev_base) {
@@ -77,8 +77,8 @@ conn_update_evq(conn c, const int flags, evh handler)
         if (r == -1) return -1;
     }
 
-    /* set the flags and handler, but don't change any existing handler */
-    event_set(&c->evq, c->fd, flags, c->evq.ev_callback ? : handler, c);
+    /* set the events and handler, but don't change any existing handler */
+    event_set(&c->evq, c->fd, events, c->evq.ev_callback ? : handler, c);
 
     r = event_add(&c->evq, NULL);
     if (r == -1) return -1;
