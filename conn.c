@@ -89,7 +89,6 @@ conn_update_evq(conn c, const int events, evh handler)
 void
 conn_close(conn c)
 {
-    fprintf(stderr, "closing conn %d\n", c->fd);
     event_del(&c->evq);
 
     close(c->fd);

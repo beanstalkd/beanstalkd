@@ -105,10 +105,8 @@ fill_extra_data(conn c)
 
     /* how many extra bytes did we read? */
     extra_bytes = c->cmd_read - c->cmd_len;
-    fprintf(stderr, "have %d extra bytes\n", extra_bytes);
 
     /* how many bytes should we put into the job data? */
-    fprintf(stderr, "c->in_job is %p\n", c->in_job);
     if (c->in_job) {
         job_data_bytes = min(extra_bytes, c->in_job->data_size);
         memcpy(c->in_job->data, c->cmd + c->cmd_len, job_data_bytes);
@@ -129,8 +127,6 @@ enqueue_incoming_job(conn c)
     job j = c->in_job;
 
     c->in_job = NULL; /* the connection no longer owns this job */
-
-    fprintf(stderr, "enqueueing job %lld\n", j->id);
 
     /* check if the trailer is present and correct */
     if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
@@ -198,8 +194,6 @@ dispatch_cmd(conn c)
 
         c->in_job = make_job(pri, data_size + 2);
 
-        fprintf(stderr, "put pri=%d bytes=%d\n", pri, data_size);
-
         fill_extra_data(c);
 
         /* it's possible we already have a complete job */
@@ -212,10 +206,6 @@ dispatch_cmd(conn c)
     case OP_RESERVE:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_RESERVE_LEN + 2) return conn_close(c);
-
-        fprintf(stderr, "got reserve cmd: %s\n", c->cmd);
-
-        warn("looking for a job");
 
         /* keep any existing job, but take one if necessary */
         //c->reserved_job = c->reserved_job ? : pq_take(ready_q);
@@ -273,8 +263,6 @@ reset_conn(conn c)
 {
     int r;
 
-    fprintf(stderr, "%d: resetting back to STATE_WANTCOMMAND\n", c->fd);
-
     r = conn_update_evq(c, EV_READ | EV_PERSIST, NULL);
     if (r == -1) return warn("update events failed"), conn_close(c);
 
@@ -318,7 +306,6 @@ handle_connection(conn c)
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
-        fprintf(stderr, "got %d data bytes\n", r);
         j->data_xfer += r; /* we got some bytes */
 
         /* (j->data_xfer > j->data_size) can't happen */
@@ -379,8 +366,6 @@ h_conn(const int fd, const short which, conn c)
         return conn_close(c);
     }
 
-    fprintf(stderr, "%d: got event %d\n", fd, which);
-
     handle_connection(c);
     while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
 }
@@ -406,7 +391,6 @@ h_accept(const int fd, const short which, struct event *ev)
     r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
     if (r < 0) return perror("setting O_NONBLOCK"), close(cfd), v();
 
-    fprintf(stderr, "got a new connection %d\n", cfd);
     c = make_conn(cfd, STATE_WANTCOMMAND);
     if (!c) return warn("make_conn() failed"), close(cfd), v();
 

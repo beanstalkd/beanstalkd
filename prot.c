@@ -76,12 +76,9 @@ process_queue()
 {
     job j;
 
-    fprintf(stderr, "processing queue conns=%d j=%p\n", waiting_conn_p(), &ready_q[0]);
     while (waiting_conn_p()) {
         j = pq_take(ready_q);
-        fprintf(stderr, "j=%p\n", j);
         if (!j) return;
-        warn("reserving job");
         reserve_job(next_waiting_conn(), j);
     }
 }
@@ -100,7 +97,6 @@ enqueue_job(job j)
 void
 enqueue_waiting_conn(conn c)
 {
-    fprintf(stderr, "%d: putting in wait queue\n", c->fd);
     c->next = NULL;
     if (waiting_conn_p()) {
         waiting_conn_rear->next = c;
