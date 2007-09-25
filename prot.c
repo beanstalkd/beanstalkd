@@ -67,6 +67,7 @@ next_waiting_conn()
 
     c = waiting_conn_front;
     waiting_conn_front = c->next_waiting;
+    c->next_waiting = NULL; /* remove it from the list */
 
     return c;
 }
