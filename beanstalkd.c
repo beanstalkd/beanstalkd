@@ -284,8 +284,6 @@ reset_conn(conn c)
     c->state = STATE_WANTCOMMAND;
 }
 
-#define cmd_ready(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
-
 static void
 handle_connection(conn c)
 {
@@ -369,6 +367,9 @@ handle_connection(conn c)
     }
 }
 
+#define want_command(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
+#define cmd_data_ready(c) (want_command(c) && (c)->cmd_read)
+
 static void
 h_conn(const int fd, const short which, conn c)
 {
@@ -381,7 +382,7 @@ h_conn(const int fd, const short which, conn c)
     fprintf(stderr, "%d: got event %d\n", fd, which);
 
     handle_connection(c);
-    while (cmd_ready(c) && c->cmd_read && (c->cmd_len = cmd_len(c))) do_cmd(c);
+    while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
 }
 
 static void
