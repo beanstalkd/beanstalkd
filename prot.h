@@ -14,11 +14,13 @@
 void prot_init();
 
 void reply(conn c, char *line, int len, int state);
-void reply_job(conn c, const char *word);
+void reply_job(conn c, job j, const char *word);
 
 void enqueue_waiting_conn(conn c);
 
 int enqueue_job(job j);
 void process_queue();
+
+job peek_job(unsigned long long int id);
 
 #endif /*prot_h*/

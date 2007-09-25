@@ -45,6 +45,9 @@ struct conn {
     int reply_sent;
     char reply_buf[LINE_BUF_SIZE]; /* this string IS NUL-terminated */
     job in_job;
+    int in_job_read;
+    job out_job;
+    int out_job_sent;
     job reserved_job;
     conn prev, next; /* linked list of connections */
 };

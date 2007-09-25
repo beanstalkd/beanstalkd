@@ -1,6 +1,7 @@
 /* pq.c - priority queue */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "pq.h"
 

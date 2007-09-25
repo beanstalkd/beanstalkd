@@ -110,7 +110,7 @@ fill_extra_data(conn c)
     if (c->in_job) {
         job_data_bytes = min(extra_bytes, c->in_job->data_size);
         memcpy(c->in_job->data, c->cmd + c->cmd_len, job_data_bytes);
-        c->in_job->data_xfer = job_data_bytes;
+        c->in_job_read = job_data_bytes;
     }
 
     /* how many bytes are left to go into the future cmd? */
@@ -127,6 +127,7 @@ enqueue_incoming_job(conn c)
     job j = c->in_job;
 
     c->in_job = NULL; /* the connection no longer owns this job */
+    c->in_job_read = 0;
 
     /* check if the trailer is present and correct */
     if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
@@ -146,7 +147,7 @@ maybe_enqueue_incoming_job(conn c)
     job j = c->in_job;
 
     /* do we have a complete job? */
-    if (j->data_xfer == j->data_size) return enqueue_incoming_job(c);
+    if (c->in_job_read == j->data_size) return enqueue_incoming_job(c);
 
     /* otherwise we have incomplete data, so just keep waiting */
     c->state = STATE_WANTDATA;
@@ -164,6 +165,7 @@ wait_for_job(conn c)
 static void
 dispatch_cmd(conn c)
 {
+    job j;
     char type;
     char *size_buf, *end_buf;
     unsigned int pri, data_size;
@@ -201,6 +203,17 @@ dispatch_cmd(conn c)
 
         break;
     case OP_PEEK:
+        errno = 0;
+        id = strtoull(c->cmd + CMD_PEEK_LEN, &end_buf, 10);
+        if (errno) return conn_close(c);
+
+        /* So, peek is annoying, because some other connection might free the
+         * job while we are still trying to write it out. So we copy it and
+         * then free the copy when it's done sending. */
+        j = job_copy(peek_job(id));
+
+        if (j) return reply_job(c, j, MSG_FOUND);
+
         reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
         break;
     case OP_RESERVE:
@@ -208,7 +221,7 @@ dispatch_cmd(conn c)
         if (c->cmd_len != CMD_RESERVE_LEN + 2) return conn_close(c);
 
         /* does this conn already have a job reserved? */
-        if (c->reserved_job) return reply_job(c, MSG_RESERVED);
+        if (c->reserved_job) return reply_job(c, c->reserved_job, MSG_RESERVED);
 
         /* try to get a new job for this guy */
         wait_for_job(c);
@@ -261,8 +274,10 @@ reset_conn(conn c)
     r = conn_update_evq(c, EV_READ | EV_PERSIST);
     if (r == -1) return warn("update events failed"), conn_close(c);
 
-    /* we are done transferring the job, so reset */
-    if (c->reserved_job) c->reserved_job->data_xfer = 0;
+    /* was this a peek command? */
+    if (c->out_job != c->reserved_job) free(c->out_job);
+    c->out_job = NULL;
+
     c->reply_sent = 0; /* now that we're done, reset this */
     c->state = STATE_WANTCOMMAND;
 }
@@ -297,13 +312,13 @@ handle_connection(conn c)
     case STATE_WANTDATA:
         j = c->in_job;
 
-        r = read(c->fd, j->data + j->data_xfer, j->data_size - j->data_xfer);
+        r = read(c->fd, j->data + c->in_job_read, j->data_size - c->in_job_read);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
-        j->data_xfer += r; /* we got some bytes */
+        c->in_job_read += r; /* we got some bytes */
 
-        /* (j->data_xfer > j->data_size) can't happen */
+        /* (j->in_job_read > j->data_size) can't happen */
 
         maybe_enqueue_incoming_job(c);
         break;
@@ -321,12 +336,12 @@ handle_connection(conn c)
         /* otherwise we sent an incomplete reply, so just keep waiting */
         break;
     case STATE_SENDJOB:
-        j = c->reserved_job;
+        j = c->out_job;
 
         iov[0].iov_base = c->reply + c->reply_sent;
         iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
-        iov[1].iov_base = j->data + j->data_xfer;
-        iov[1].iov_len = j->data_size - j->data_xfer;
+        iov[1].iov_base = j->data + c->out_job_sent;
+        iov[1].iov_len = j->data_size - c->out_job_sent;
 
         r = writev(c->fd, iov, 2);
         if (r == -1) return check_err(c, "writev()");
@@ -335,14 +350,14 @@ handle_connection(conn c)
         /* update the sent values */
         c->reply_sent += r;
         if (c->reply_sent >= c->reply_len) {
-            j->data_xfer += c->reply_sent - c->reply_len;
+            c->out_job_sent += c->reply_sent - c->reply_len;
             c->reply_sent = c->reply_len;
         }
 
-        /* (j->data_xfer > j->data_size) can't happen */
+        /* (c->out_job_sent > j->data_size) can't happen */
 
         /* are we done? */
-        if (j->data_xfer == j->data_size) return reset_conn(c);
+        if (c->out_job_sent == j->data_size) return reset_conn(c);
 
         /* otherwise we sent incomplete data, so just keep waiting */
         break;

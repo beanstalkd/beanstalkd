@@ -35,10 +35,13 @@ reply(conn c, char *line, int len, int state)
 }
 
 void
-reply_job(conn c, const char *word)
+reply_job(conn c, job j, const char *word)
 {
     int r;
-    job j = c->reserved_job;
+
+    /* tell this connection which job to send */
+    c->out_job = j;
+    c->out_job_sent = 0;
 
     r = snprintf(c->reply_buf, LINE_BUF_SIZE, "%s %lld %d\r\n",
                  word, j->id, j->pri);
@@ -53,7 +56,7 @@ static void
 reserve_job(conn c, job j)
 {
     c->reserved_job = j;
-    return reply_job(c, MSG_RESERVED);
+    return reply_job(c, j, MSG_RESERVED);
 }
 
 static conn
@@ -86,7 +89,6 @@ enqueue_job(job j)
 {
     int r;
 
-    j->data_xfer = 0; /* the queue owns this job now, so make it sendable */
     r = pq_give(ready_q, j);
     if (r) return process_queue(), 1;
     return 0;
@@ -96,6 +98,12 @@ void
 enqueue_waiting_conn(conn c)
 {
     conn_insert(&wait_queue, c);
+}
+
+job
+peek_job(unsigned long long int id)
+{
+    return pq_find(ready_q, id);
 }
 
 void

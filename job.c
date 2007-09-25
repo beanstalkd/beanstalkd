@@ -1,6 +1,7 @@
 /* job.c - a job in the queue */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "job.h"
 #include "util.h"
@@ -18,9 +19,26 @@ make_job(unsigned int pri, int data_size)
     j->id = next_id++;
     j->pri = pri;
     j->data_size = data_size;
-    j->data_xfer = 0;
 
     return j;
+}
+
+job
+job_copy(job j)
+{
+    job n;
+
+    if (!j) return NULL;
+
+    n = malloc(sizeof(struct job) + j->data_size);
+    if (!n) return warn("OOM"), NULL;
+
+    n->id = j->id;
+    n->pri = j->pri;
+    n->data_size = j->data_size;
+    memcpy(n->data, j->data, j->data_size);
+
+    return n;
 }
 
 int

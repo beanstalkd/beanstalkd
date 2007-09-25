@@ -56,8 +56,8 @@ make_conn(int fd, char start_state)
     c->fd = fd;
     c->state = start_state;
     c->cmd_read = 0;
-    c->in_job = NULL;
-    c->reserved_job = NULL;
+    c->in_job = c->out_job = c->reserved_job = NULL;
+    c->in_job_read = c->out_job_sent = 0;
 
     return c;
 }
@@ -121,9 +121,11 @@ conn_close(conn c)
     event_del(&c->evq);
 
     close(c->fd);
+
     if (c->reserved_job) enqueue_job(c->reserved_job);
-    if (c->in_job) free(c->in_job);
-    c->in_job = c->reserved_job = NULL;
+    free(c->in_job);
+    if (c->out_job != c->reserved_job) free(c->out_job); /* peek command? */
+    c->in_job = c->out_job = c->reserved_job = NULL;
 
     conn_remove(c);
     conn_free(c);

@@ -7,12 +7,13 @@ typedef struct job {
     unsigned long long int id;
     unsigned int pri;
     int data_size;
-    int data_xfer;
     unsigned char data[];
 } *job;
 
 job make_job(unsigned int pri, int data_size);
 
 int job_cmp(job a, job b);
+
+job job_copy(job j);
 
 #endif /*job_h*/
