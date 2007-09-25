@@ -242,7 +242,7 @@ dispatch_cmd(conn c)
         free(c->reserved_job);
         c->reserved_job = NULL;
 
-        reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_WANTCOMMAND);
+        reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
         break;
     case OP_STATS:
         /* don't allow trailing garbage */
