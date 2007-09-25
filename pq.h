@@ -20,4 +20,8 @@ int pq_give(pq q, job j);
 /* return a job if the queue contains jobs, else NULL */
 job pq_take(pq q);
 
+/* return a job that matches the given id, else NULL */
+/* This is O(n), so don't do it much. */
+job pq_find(pq q, unsigned long long int id);
+
 #endif /*q_h*/

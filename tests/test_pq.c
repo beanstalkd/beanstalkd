@@ -112,6 +112,30 @@ __CUT__pq_test_fifo_property()
 }
 
 void
+__CUT__pq_test_find_match()
+{
+    job j;
+
+    q = make_pq(2);
+    pq_give(q, j1);
+
+    j = pq_find(q, j1->id);
+    ASSERT(j == j1, "j1 should come out.");
+}
+
+void
+__CUT__pq_test_find_miss()
+{
+    job j;
+
+    q = make_pq(2);
+    pq_give(q, j1);
+
+    j = pq_find(q, j1->id + 1);
+    ASSERT(j == NULL, "no job should match.");
+}
+
+void
 __CUT_TAKEDOWN__pq()
 {
     free(j1);

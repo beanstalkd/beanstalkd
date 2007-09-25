@@ -100,3 +100,12 @@ pq_take(pq q)
     delete_min(q);
     return j;
 }
+
+job
+pq_find(pq q, unsigned long long int id)
+{
+    unsigned int i;
+
+    for (i = 0; i < q->used; i++) if (q->heap[i]->id == id) return q->heap[i];
+    return NULL;
+}
