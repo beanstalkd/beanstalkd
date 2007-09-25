@@ -166,7 +166,7 @@ wait_for_job(conn c)
 }
 
 static void
-do_cmd(conn c)
+dispatch_cmd(conn c)
 {
     char type;
     char *size_buf, *end_buf;
@@ -181,8 +181,6 @@ do_cmd(conn c)
 
     type = which_cmd(c);
 
-    /* do not return inside this switch unless you close the connection */
-    /* likewise, be sure to return if you close the connection */
     switch (type) {
     case OP_PUT:
         errno = 0;
@@ -225,10 +223,7 @@ do_cmd(conn c)
         //fprintf(stderr, "found job %p\n", c->reserved_job);
 
         /* does this conn already have a job reserved? */
-        if (c->reserved_job) {
-            reply_job(c, MSG_RESERVED);
-            break;
-        }
+        if (c->reserved_job) return reply_job(c, MSG_RESERVED);
 
         /* try to get a new job for this guy */
         wait_for_job(c);
@@ -264,6 +259,12 @@ do_cmd(conn c)
         fprintf(stderr, "got unknown cmd: %s\n", c->cmd);
         return conn_close(c);
     }
+}
+
+static void
+do_cmd(conn c)
+{
+    dispatch_cmd(c);
     fill_extra_data(c);
 }
 
@@ -284,12 +285,91 @@ reset_conn(conn c)
 #define cmd_ready(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
 
 static void
-h_conn(const int fd, const short which, conn c)
+handle_connection(conn c)
 {
     int r;
     job j;
     struct iovec iov[2];
 
+    switch (c->state) {
+    case STATE_WANTCOMMAND:
+        r = read(c->fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
+        if (r == -1) return check_err(c, "read()");
+        if (r == 0) return conn_close(c); /* the client hung up */
+
+        c->cmd_read += r; /* we got some bytes */
+
+        c->cmd_len = cmd_len(c); /* find the EOL */
+
+        /* yay, complete command line */
+        if (c->cmd_len) return do_cmd(c);
+
+        /* c->cmd_read > LINE_BUF_SIZE can't happen */
+
+        /* command line too long? */
+        if (c->cmd_read == LINE_BUF_SIZE) return conn_close(c);
+
+        /* otherwise we have an incomplete line, so just keep waiting */
+        break;
+    case STATE_WANTDATA:
+        j = c->in_job;
+
+        r = read(c->fd, j->data + j->data_xfer, j->data_size - j->data_xfer);
+        if (r == -1) return check_err(c, "read()");
+        if (r == 0) return conn_close(c); /* the client hung up */
+
+        fprintf(stderr, "got %d data bytes\n", r);
+        j->data_xfer += r; /* we got some bytes */
+
+        /* (j->data_xfer > j->data_size) can't happen */
+
+        maybe_enqueue_incoming_job(c);
+        break;
+    case STATE_SENDWORD:
+        r= write(c->fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
+        if (r == -1) return check_err(c, "write()");
+        if (r == 0) return conn_close(c); /* the client hung up */
+
+        c->reply_sent += r; /* we got some bytes */
+
+        /* (c->reply_sent > c->reply_len) can't happen */
+
+        if (c->reply_sent == c->reply_len) return reset_conn(c);
+
+        /* otherwise we sent an incomplete reply, so just keep waiting */
+        break;
+    case STATE_SENDJOB:
+        j = c->reserved_job;
+
+        iov[0].iov_base = c->reply + c->reply_sent;
+        iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
+        iov[1].iov_base = j->data + j->data_xfer;
+        iov[1].iov_len = j->data_size - j->data_xfer;
+
+        r = writev(c->fd, iov, 2);
+        if (r == -1) return check_err(c, "writev()");
+        if (r == 0) return conn_close(c); /* the client hung up */
+
+        /* update the sent values */
+        c->reply_sent += r;
+        if (c->reply_sent >= c->reply_len) {
+            j->data_xfer += c->reply_sent - c->reply_len;
+            c->reply_sent = c->reply_len;
+        }
+
+        /* (j->data_xfer > j->data_size) can't happen */
+
+        /* are we done? */
+        if (j->data_xfer == j->data_size) return reset_conn(c);
+
+        /* otherwise we sent incomplete data, so just keep waiting */
+        break;
+    }
+}
+
+static void
+h_conn(const int fd, const short which, conn c)
+{
     if (fd != c->fd) {
         warn("Argh! event fd doesn't match conn fd.");
         close(fd);
@@ -298,90 +378,7 @@ h_conn(const int fd, const short which, conn c)
 
     fprintf(stderr, "%d: got event %d\n", fd, which);
 
-    /* Do not return inside this switch unless you close the connection or got
-     * no data. Likewise, be sure to return if you might close the connection.
-     * */
-    switch (c->state) {
-        case STATE_WANTCOMMAND:
-            r = read(fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
-            if (r == -1) return check_err(c, "read()");
-            if (r == 0) return conn_close(c); /* the client hung up */
-
-            c->cmd_read += r; /* we got some bytes */
-
-            c->cmd_len = cmd_len(c); /* find the EOL */
-
-            /* yay, complete command line */
-            if (c->cmd_len) {
-                do_cmd(c);
-                break;
-            }
-
-            /* c->cmd_read > LINE_BUF_SIZE can't happen */
-
-            /* command line too long? */
-            if (c->cmd_read == LINE_BUF_SIZE) return conn_close(c);
-
-            /* otherwise we have an incomplete line, so just keep waiting */
-            break;
-        case STATE_WANTDATA:
-            j = c->in_job;
-
-            r = read(fd, j->data + j->data_xfer, j->data_size - j->data_xfer);
-            if (r == -1) return check_err(c, "read()");
-            if (r == 0) return conn_close(c); /* the client hung up */
-
-            fprintf(stderr, "got %d data bytes\n", r);
-            j->data_xfer += r; /* we got some bytes */
-
-            /* (j->data_xfer > j->data_size) can't happen */
-
-            maybe_enqueue_incoming_job(c);
-            break;
-        case STATE_SENDWORD:
-            r = write(fd, c->reply+c->reply_sent, c->reply_len - c->reply_sent);
-            if (r == -1) return check_err(c, "write()");
-            if (r == 0) return conn_close(c); /* the client hung up */
-
-            c->reply_sent += r; /* we got some bytes */
-
-            /* (c->reply_sent > c->reply_len) can't happen */
-
-            if (c->reply_sent == c->reply_len) reset_conn(c);
-
-            /* otherwise we sent an incomplete reply, so just keep waiting */
-            break;
-        case STATE_SENDJOB:
-            j = c->reserved_job;
-
-            iov[0].iov_base = c->reply + c->reply_sent;
-            iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
-            iov[1].iov_base = j->data + j->data_xfer;
-            iov[1].iov_len = j->data_size - j->data_xfer;
-
-            r = writev(c->fd, iov, 2);
-            if (r == -1) return check_err(c, "writev()");
-            if (r == 0) return conn_close(c); /* the client hung up */
-
-            /* update the sent values */
-            c->reply_sent += r;
-            if (c->reply_sent >= c->reply_len) {
-                j->data_xfer += c->reply_sent - c->reply_len;
-                c->reply_sent = c->reply_len;
-            }
-
-            /* (j->data_xfer > j->data_size) can't happen */
-
-            /* are we done? */
-            if (j->data_xfer == j->data_size) reset_conn(c);
-
-            /* otherwise we sent incomplete data, so just keep waiting */
-            break;
-    }
-
-    /* If we got here, it means we still have an open connection and we're
-     * ready to run a command. So we should check if we already got more
-     * commands to process. */
+    handle_connection(c);
     while (cmd_ready(c) && c->cmd_read && (c->cmd_len = cmd_len(c))) do_cmd(c);
 }
 
