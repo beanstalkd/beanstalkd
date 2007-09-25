@@ -207,11 +207,6 @@ dispatch_cmd(conn c)
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_RESERVE_LEN + 2) return conn_close(c);
 
-        /* keep any existing job, but take one if necessary */
-        //c->reserved_job = c->reserved_job ? : pq_take(ready_q);
-
-        //fprintf(stderr, "found job %p\n", c->reserved_job);
-
         /* does this conn already have a job reserved? */
         if (c->reserved_job) return reply_job(c, MSG_RESERVED);
 
