@@ -168,9 +168,10 @@ wait_for_job(conn c)
 static void
 dispatch_cmd(conn c)
 {
+    int r, stats_len;
     job j;
     char type;
-    char *size_buf, *end_buf;
+    char *size_buf, *end_buf, *stats;
     unsigned int pri, data_size;
     unsigned long long int id;
 
@@ -257,9 +258,35 @@ dispatch_cmd(conn c)
     case OP_STATS:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_STATS_LEN + 2) return conn_close(c);
+
         stats_ct++; /* stats */
-        warn("got stats command");
-        return conn_close(c);
+
+        stats = malloc(STATS_BUF_SIZE * sizeof(char));
+        if (!stats) return conn_close(c);
+
+        stats_len = snprintf(stats, STATS_BUF_SIZE, STATS_FMT,
+                0,
+                count_reserved_jobs(),
+                put_ct,
+                peek_ct,
+                reserve_ct,
+                delete_ct,
+                stats_ct,
+                0,
+                count_cur_conns(),
+                count_cur_producers(),
+                count_cur_workers());
+
+        /* can't happen */
+        if (stats_len >= STATS_BUF_SIZE) {
+            return warn("truncated reply"), conn_close(c);
+        }
+
+        r = snprintf(stats + 3, 4, "%d\r", stats_len);
+        if (r != 4) return warn("stats reply out of range"), conn_close(c);
+        stats[6] = '\r'; /* patch up the \0 left by snprintf */
+
+        reply(c, stats, stats_len + r, STATE_SENDSTATS);
         break;
     case OP_JOBSTATS:
         stats_ct++; /* stats */
@@ -299,7 +326,7 @@ reset_conn(conn c)
 static void
 handle_connection(conn c)
 {
-    int r;
+    int r, free_reply_buf = 0;
     job j;
     struct iovec iov[2];
 
@@ -336,6 +363,9 @@ handle_connection(conn c)
 
         maybe_enqueue_incoming_job(c);
         break;
+    case STATE_SENDSTATS:
+        free_reply_buf = 1;
+        /* fall through... */
     case STATE_SENDWORD:
         r= write(c->fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
         if (r == -1) return check_err(c, "write()");
@@ -345,7 +375,10 @@ handle_connection(conn c)
 
         /* (c->reply_sent > c->reply_len) can't happen */
 
-        if (c->reply_sent == c->reply_len) return reset_conn(c);
+        if (c->reply_sent == c->reply_len) {
+            if (free_reply_buf) free(c->reply);
+            return reset_conn(c);
+        }
 
         /* otherwise we sent an incomplete reply, so just keep waiting */
         break;

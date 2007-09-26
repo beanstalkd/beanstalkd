@@ -11,6 +11,7 @@
 #define STATE_SENDJOB 2
 #define STATE_SENDWORD 3
 #define STATE_WAIT 4
+#define STATE_SENDSTATS 5
 
 /* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
  * MUST be enough to hold the longest possible reply line, which is currently
