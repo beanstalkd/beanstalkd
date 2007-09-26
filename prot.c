@@ -120,6 +120,12 @@ peek_job(unsigned long long int id)
     return pq_find(ready_q, id);
 }
 
+unsigned int
+count_ready_jobs()
+{
+    return pq_used(ready_q);
+}
+
 void
 prot_init()
 {

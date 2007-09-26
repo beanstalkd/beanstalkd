@@ -24,4 +24,6 @@ job pq_take(pq q);
 /* This is O(n), so don't do it much. */
 job pq_find(pq q, unsigned long long int id);
 
+unsigned int pq_used(pq q);
+
 #endif /*q_h*/

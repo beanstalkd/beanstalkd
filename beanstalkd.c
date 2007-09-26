@@ -265,7 +265,7 @@ dispatch_cmd(conn c)
         if (!stats) return conn_close(c);
 
         stats_len = snprintf(stats, STATS_BUF_SIZE, STATS_FMT,
-                0,
+                count_ready_jobs(),
                 count_reserved_jobs(),
                 put_ct,
                 peek_ct,

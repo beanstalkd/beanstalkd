@@ -110,3 +110,9 @@ pq_find(pq q, unsigned long long int id)
     for (i = 0; i < q->used; i++) if (q->heap[i]->id == id) return q->heap[i];
     return NULL;
 }
+
+unsigned int
+pq_used(pq q)
+{
+    return q->used;
+}
