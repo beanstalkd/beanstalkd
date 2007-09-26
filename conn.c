@@ -170,6 +170,8 @@ conn_close(conn c)
     if (c->type & CONN_TYPE_PRODUCER) cur_producer_ct--; /* stats */
     if (c->type & CONN_TYPE_WORKER) cur_worker_ct--; /* stats */
 
+    cur_conn_ct--; /* stats */
+
     conn_remove(c);
     conn_free(c);
 }
