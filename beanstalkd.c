@@ -425,6 +425,7 @@ h_conn_timeout(conn c)
     timeout_ct++; /* stats */
     enqueue_job(j);
     c->reserved_job = NULL;
+    conn_remove(c); /* remove it from the running_list */
 }
 
 #define want_command(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
