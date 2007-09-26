@@ -9,6 +9,9 @@
 /* space for 16 Mi jobs */
 #define HEAP_SIZE 16 * 1024 * 1024
 
+/* measured in seconds */
+#define RESERVATION_TIMEOUT 120
+
 #define MSG_RESERVED "RESERVED"
 
 void prot_init();

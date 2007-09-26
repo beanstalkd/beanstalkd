@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "conn.h"
 #include "net.h"
@@ -99,10 +100,13 @@ int
 conn_set_evq(conn c, const int events, evh handler)
 {
     int r;
+    struct timeval tv = {0, 0};
 
     event_set(&c->evq, c->fd, events, handler, c);
 
-    r = event_add(&c->evq, NULL);
+    if (c->reserved_job) tv.tv_sec = c->reserved_job->deadline - time(NULL);
+
+    r = event_add(&c->evq, c->reserved_job ? &tv : NULL);
     if (r == -1) return -1;
 
     return 0;

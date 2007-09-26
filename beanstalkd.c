@@ -326,7 +326,7 @@ reset_conn(conn c)
 }
 
 static void
-handle_connection(conn c)
+h_conn_data(conn c)
 {
     int r, free_reply_buf = 0;
     job j;
@@ -413,6 +413,19 @@ handle_connection(conn c)
     }
 }
 
+/* if we get a timeout, it means that a job has been reserved for too long, so
+ * we should put it back in the queue */
+static void
+h_conn_timeout(conn c)
+{
+    job j = c->reserved_job;
+
+    if (!j) return;
+
+    enqueue_job(j);
+    c->reserved_job = NULL;
+}
+
 #define want_command(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
 #define cmd_data_ready(c) (want_command(c) && (c)->cmd_read)
 
@@ -425,7 +438,16 @@ h_conn(const int fd, const short which, conn c)
         return conn_close(c);
     }
 
-    handle_connection(c);
+    switch (which) {
+    case EV_TIMEOUT:
+        h_conn_timeout(c);
+        break;
+    case EV_READ:
+        /* fall through... */
+    case EV_WRITE:
+        h_conn_data(c);
+    }
+
     while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
 }
 

@@ -58,6 +58,7 @@ reply_job(conn c, job j, const char *word)
 static void
 reserve_job(conn c, job j)
 {
+    j->deadline = time(NULL) + RESERVATION_TIMEOUT;
     c->reserved_job = j;
     conn_insert(&running_list, c);
     return reply_job(c, j, MSG_RESERVED);

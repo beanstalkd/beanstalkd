@@ -3,10 +3,13 @@
 #ifndef job_h
 #define job_h
 
+#include <time.h>
+
 typedef struct job {
     unsigned long long int id;
     unsigned int pri;
     int data_size;
+    time_t deadline;
     unsigned char data[];
 } *job;
 
