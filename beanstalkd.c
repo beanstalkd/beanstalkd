@@ -159,8 +159,12 @@ maybe_enqueue_incoming_job(conn c)
 static void
 wait_for_job(conn c)
 {
-    /* this conn is waiting, so we are not interested in reading or writing */
-    event_del(&c->evq);
+    int r;
+
+    /* this conn is waiting, but we want to know if they hang up */
+    r = conn_update_evq(c, EV_READ | EV_PERSIST);
+    if (r == -1) return warn("update events failed"), conn_close(c);
+
     c->state = STATE_WAIT;
     enqueue_waiting_conn(c);
 }
@@ -409,6 +413,15 @@ h_conn_data(conn c)
 
         /* otherwise we sent incomplete data, so just keep waiting */
         break;
+    case STATE_WAIT: /* keep an eye out in case they hang up */
+        /* but don't hang up just because our buffer is full */
+        if (LINE_BUF_SIZE - c->cmd_read < 1) break;
+
+        r = read(c->fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
+        fprintf(stderr, "%d: read() returned got %d with errno %d\n", c->fd, r, errno);
+        if (r == -1) return check_err(c, "read()");
+        if (r == 0) return conn_close(c); /* the client hung up */
+        c->cmd_read += r; /* we got some bytes */
     }
 }
 
