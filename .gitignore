@@ -2,4 +2,5 @@
 *.o
 beanstalkd
 gmon.out
+tags
 tests/cutcheck*
