@@ -46,8 +46,8 @@ reply_job(conn c, job j, const char *word)
     c->out_job = j;
     c->out_job_sent = 0;
 
-    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "%s %lld %d\r\n",
-                 word, j->id, j->pri);
+    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "%s %lld %d %d\r\n",
+                 word, j->id, j->pri, j->data_size - 2);
 
     /* can't happen */
     if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
