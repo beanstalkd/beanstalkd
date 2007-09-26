@@ -292,8 +292,7 @@ dispatch_cmd(conn c)
         break;
     case OP_JOBSTATS:
         stats_ct++; /* stats */
-        warn("got job stats command");
-        return conn_close(c);
+        reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
         break;
     default:
         /* unknown command -- protocol error */
