@@ -199,6 +199,7 @@ dispatch_cmd(conn c)
         if (end_buf[0] != '\0') return conn_close(c);
 
         put_ct++; /* stats */
+        conn_set_producer(c);
 
         c->in_job = make_job(pri, data_size + 2);
 
@@ -229,6 +230,7 @@ dispatch_cmd(conn c)
         if (c->cmd_len != CMD_RESERVE_LEN + 2) return conn_close(c);
 
         reserve_ct++; /* stats */
+        conn_set_worker(c);
 
         /* does this conn already have a job reserved? */
         if (c->reserved_job) return reply_job(c, c->reserved_job, MSG_RESERVED);
