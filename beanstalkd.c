@@ -442,10 +442,13 @@ h_conn(const int fd, const short which, conn c)
     switch (which) {
     case EV_TIMEOUT:
         h_conn_timeout(c);
+        event_add(&c->evq, NULL); /* seems to be necessary */
         break;
     case EV_READ:
         /* fall through... */
     case EV_WRITE:
+        /* fall through... */
+    default:
         h_conn_data(c);
     }
 
