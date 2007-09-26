@@ -42,7 +42,7 @@
     "cmd-reserve: %lld\n" \
     "cmd-delete: %lld\n" \
     "cmd-stats: %lld\n" \
-    "job-timeouts: %d\n" \
+    "job-timeouts: %lld\n" \
     "current-connections: %d\n" \
     "current-producers: %d\n" \
     "current-workers: %d\n" \

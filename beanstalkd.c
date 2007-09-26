@@ -18,7 +18,7 @@
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
-                     delete_ct = 0, stats_ct = 0;
+                     delete_ct = 0, stats_ct = 0, timeout_ct = 0;
 
 static void
 drop_root()
@@ -274,7 +274,7 @@ dispatch_cmd(conn c)
                 reserve_ct,
                 delete_ct,
                 stats_ct,
-                0,
+                timeout_ct,
                 count_cur_conns(),
                 count_cur_producers(),
                 count_cur_workers());
@@ -422,6 +422,7 @@ h_conn_timeout(conn c)
 
     if (!j) return;
 
+    timeout_ct++; /* stats */
     enqueue_job(j);
     c->reserved_job = NULL;
 }
