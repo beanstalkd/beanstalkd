@@ -4,7 +4,7 @@
 #define beanstalk_h
 
 #define HOST INADDR_ANY
-#define PORT 3232
+#define PORT 11300
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
