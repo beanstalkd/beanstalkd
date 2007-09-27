@@ -169,13 +169,31 @@ wait_for_job(conn c)
     enqueue_waiting_conn(c);
 }
 
+static int
+fmt_stats(char *buf, size_t size)
+{
+    return snprintf(buf, size, STATS_FMT,
+            count_ready_jobs(),
+            count_reserved_jobs(),
+            put_ct,
+            peek_ct,
+            reserve_ct,
+            delete_ct,
+            stats_ct,
+            timeout_ct,
+            count_cur_conns(),
+            count_cur_producers(),
+            count_cur_workers());
+
+}
+
 static void
 dispatch_cmd(conn c)
 {
     int r, stats_len;
     job j;
     char type;
-    char *size_buf, *end_buf, *stats;
+    char *size_buf, *end_buf;
     unsigned int pri, data_size;
     unsigned long long int id;
 
@@ -267,32 +285,23 @@ dispatch_cmd(conn c)
 
         stats_ct++; /* stats */
 
-        stats = malloc(STATS_BUF_SIZE * sizeof(char));
-        if (!stats) return conn_close(c);
+        /* first, measure how big a buffer we will need */
+        stats_len = fmt_stats(NULL, 0);
 
-        stats_len = snprintf(stats, STATS_BUF_SIZE, STATS_FMT,
-                count_ready_jobs(),
-                count_reserved_jobs(),
-                put_ct,
-                peek_ct,
-                reserve_ct,
-                delete_ct,
-                stats_ct,
-                timeout_ct,
-                count_cur_conns(),
-                count_cur_producers(),
-                count_cur_workers());
+        c->out_job = allocate_job(stats_len); /* fake job to hold stats data */
+        if (!c->out_job) return conn_close(c);
 
-        /* can't happen */
-        if (stats_len >= STATS_BUF_SIZE) {
-            return warn("truncated reply"), conn_close(c);
-        }
+        /* now actually format the stats data */
+        r = fmt_stats(c->out_job->data, stats_len);
+        if (r != stats_len) return warn("snprintf inconsistency"), conn_close(c);
+        c->out_job->data[stats_len - 1] = '\n'; /* patch up sprintf's output */
 
-        r = snprintf(stats + 3, 4, "%d\r", stats_len);
-        if (r != 4) return warn("stats reply out of range"), conn_close(c);
-        stats[6] = '\r'; /* patch up the \0 left by snprintf */
+        c->out_job_sent = 0;
 
-        reply(c, stats, stats_len + r, STATE_SENDSTATS);
+        r = snprintf(c->reply_buf, LINE_BUF_SIZE, "OK %d\r\n", stats_len - 2);
+        if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
+
+        reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
         break;
     case OP_JOBSTATS:
         stats_ct++; /* stats */
@@ -320,7 +329,7 @@ reset_conn(conn c)
     r = conn_update_evq(c, EV_READ | EV_PERSIST);
     if (r == -1) return warn("update events failed"), conn_close(c);
 
-    /* was this a peek command? */
+    /* was this a peek or stats command? */
     if (c->out_job != c->reserved_job) free(c->out_job);
     c->out_job = NULL;
 
@@ -331,7 +340,7 @@ reset_conn(conn c)
 static void
 h_conn_data(conn c)
 {
-    int r, free_reply_buf = 0;
+    int r;
     job j;
     struct iovec iov[2];
 
@@ -368,9 +377,6 @@ h_conn_data(conn c)
 
         maybe_enqueue_incoming_job(c);
         break;
-    case STATE_SENDSTATS:
-        free_reply_buf = 1;
-        /* fall through... */
     case STATE_SENDWORD:
         r= write(c->fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
         if (r == -1) return check_err(c, "write()");
@@ -380,10 +386,7 @@ h_conn_data(conn c)
 
         /* (c->reply_sent > c->reply_len) can't happen */
 
-        if (c->reply_sent == c->reply_len) {
-            if (free_reply_buf) free(c->reply);
-            return reset_conn(c);
-        }
+        if (c->reply_sent == c->reply_len) return reset_conn(c);
 
         /* otherwise we sent an incomplete reply, so just keep waiting */
         break;

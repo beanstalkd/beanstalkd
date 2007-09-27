@@ -10,9 +10,10 @@ typedef struct job {
     unsigned int pri;
     int data_size;
     time_t deadline;
-    unsigned char data[];
+    char data[];
 } *job;
 
+job allocate_job(int data_size);
 job make_job(unsigned int pri, int data_size);
 
 int job_cmp(job a, job b);

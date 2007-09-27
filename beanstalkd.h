@@ -31,10 +31,7 @@
 #define CMD_DELETE_LEN CONSTSTRLEN(CMD_DELETE)
 #define CMD_STATS_LEN CONSTSTRLEN(CMD_STATS)
 
-/* plenty big enough to hold the stats output */
-#define STATS_BUF_SIZE 400
-#define STATS_FMT "OK xxx\r\n" \
-    "---\n" \
+#define STATS_FMT "---\n" \
     "current-jobs-ready: %d\n" \
     "current-jobs-reserved: %d\n" \
     "cmd-put: %lld\n" \
@@ -46,6 +43,6 @@
     "current-connections: %d\n" \
     "current-producers: %d\n" \
     "current-workers: %d\n" \
-    ""
+    "\r\n"
 
 #endif /*beanstalk_h*/

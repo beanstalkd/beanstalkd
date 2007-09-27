@@ -9,16 +9,28 @@
 static unsigned long long int next_id = 0;
 
 job
-make_job(unsigned int pri, int data_size)
+allocate_job(int data_size)
 {
     job j;
 
     j = malloc(sizeof(struct job) + data_size);
     if (!j) return warn("OOM"), NULL;
 
+    j->data_size = data_size;
+
+    return j;
+}
+
+job
+make_job(unsigned int pri, int data_size)
+{
+    job j;
+
+    j = allocate_job(data_size);
+    if (!j) return warn("OOM"), NULL;
+
     j->id = next_id++;
     j->pri = pri;
-    j->data_size = data_size;
 
     return j;
 }
