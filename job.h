@@ -8,13 +8,13 @@
 typedef struct job {
     unsigned long long int id;
     unsigned int pri;
-    int data_size;
+    int body_size;
     time_t deadline;
-    char data[];
+    char body[];
 } *job;
 
-job allocate_job(int data_size);
-job make_job(unsigned int pri, int data_size);
+job allocate_job(int body_size);
+job make_job(unsigned int pri, int body_size);
 
 int job_cmp(job a, job b);
 

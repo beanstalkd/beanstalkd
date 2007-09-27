@@ -14,7 +14,7 @@
 #include "util.h"
 #include "prot.h"
 
-/* job data cannot be greater than this */
+/* job body cannot be greater than this */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
@@ -95,8 +95,8 @@ which_cmd(conn c)
     return OP_UNKNOWN;
 }
 
-/* Copy up to data_size trailing bytes into the job, then the rest into the cmd
- * buffer. If c->in_job exists, this assumes that c->in_job->data is empty.
+/* Copy up to body_size trailing bytes into the job, then the rest into the cmd
+ * buffer. If c->in_job exists, this assumes that c->in_job->body is empty.
  * This function is idempotent(). */
 static void
 fill_extra_data(conn c)
@@ -109,10 +109,10 @@ fill_extra_data(conn c)
     /* how many extra bytes did we read? */
     extra_bytes = c->cmd_read - c->cmd_len;
 
-    /* how many bytes should we put into the job data? */
+    /* how many bytes should we put into the job body? */
     if (c->in_job) {
-        job_data_bytes = min(extra_bytes, c->in_job->data_size);
-        memcpy(c->in_job->data, c->cmd + c->cmd_len, job_data_bytes);
+        job_data_bytes = min(extra_bytes, c->in_job->body_size);
+        memcpy(c->in_job->body, c->cmd + c->cmd_len, job_data_bytes);
         c->in_job_read = job_data_bytes;
     }
 
@@ -133,7 +133,7 @@ enqueue_incoming_job(conn c)
     c->in_job_read = 0;
 
     /* check if the trailer is present and correct */
-    if (memcmp(j->data + j->data_size - 2, "\r\n", 2)) return conn_close(c);
+    if (memcmp(j->body + j->body_size - 2, "\r\n", 2)) return conn_close(c);
 
     /* we have a complete job, so let's stick it in the pqueue */
     r = enqueue_job(j);
@@ -150,7 +150,7 @@ maybe_enqueue_incoming_job(conn c)
     job j = c->in_job;
 
     /* do we have a complete job? */
-    if (c->in_job_read == j->data_size) return enqueue_incoming_job(c);
+    if (c->in_job_read == j->body_size) return enqueue_incoming_job(c);
 
     /* otherwise we have incomplete data, so just keep waiting */
     c->state = STATE_WANTDATA;
@@ -194,7 +194,7 @@ dispatch_cmd(conn c)
     job j;
     char type;
     char *size_buf, *end_buf;
-    unsigned int pri, data_size;
+    unsigned int pri, body_size;
     unsigned long long int id;
 
     /* NUL-terminate this string so we can use strtol and friends */
@@ -212,10 +212,10 @@ dispatch_cmd(conn c)
         if (errno) return conn_close(c);
 
         errno = 0;
-        data_size = strtoul(size_buf, &end_buf, 10);
+        body_size = strtoul(size_buf, &end_buf, 10);
         if (errno) return conn_close(c);
 
-        if (data_size > JOB_DATA_SIZE_LIMIT) return conn_close(c);
+        if (body_size > JOB_DATA_SIZE_LIMIT) return conn_close(c);
 
         /* don't allow trailing garbage */
         if (end_buf[0] != '\0') return conn_close(c);
@@ -223,7 +223,7 @@ dispatch_cmd(conn c)
         put_ct++; /* stats */
         conn_set_producer(c);
 
-        c->in_job = make_job(pri, data_size + 2);
+        c->in_job = make_job(pri, body_size + 2);
 
         fill_extra_data(c);
 
@@ -292,9 +292,9 @@ dispatch_cmd(conn c)
         if (!c->out_job) return conn_close(c);
 
         /* now actually format the stats data */
-        r = fmt_stats(c->out_job->data, stats_len);
+        r = fmt_stats(c->out_job->body, stats_len);
         if (r != stats_len) return warn("snprintf inconsistency"), conn_close(c);
-        c->out_job->data[stats_len - 1] = '\n'; /* patch up sprintf's output */
+        c->out_job->body[stats_len - 1] = '\n'; /* patch up sprintf's output */
 
         c->out_job_sent = 0;
 
@@ -367,13 +367,13 @@ h_conn_data(conn c)
     case STATE_WANTDATA:
         j = c->in_job;
 
-        r = read(c->fd, j->data + c->in_job_read, j->data_size - c->in_job_read);
+        r = read(c->fd, j->body + c->in_job_read, j->body_size - c->in_job_read);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
         c->in_job_read += r; /* we got some bytes */
 
-        /* (j->in_job_read > j->data_size) can't happen */
+        /* (j->in_job_read > j->body_size) can't happen */
 
         maybe_enqueue_incoming_job(c);
         break;
@@ -395,8 +395,8 @@ h_conn_data(conn c)
 
         iov[0].iov_base = c->reply + c->reply_sent;
         iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
-        iov[1].iov_base = j->data + c->out_job_sent;
-        iov[1].iov_len = j->data_size - c->out_job_sent;
+        iov[1].iov_base = j->body + c->out_job_sent;
+        iov[1].iov_len = j->body_size - c->out_job_sent;
 
         r = writev(c->fd, iov, 2);
         if (r == -1) return check_err(c, "writev()");
@@ -409,10 +409,10 @@ h_conn_data(conn c)
             c->reply_sent = c->reply_len;
         }
 
-        /* (c->out_job_sent > j->data_size) can't happen */
+        /* (c->out_job_sent > j->body_size) can't happen */
 
         /* are we done? */
-        if (c->out_job_sent == j->data_size) return reset_conn(c);
+        if (c->out_job_sent == j->body_size) return reset_conn(c);
 
         /* otherwise we sent incomplete data, so just keep waiting */
         break;

@@ -9,24 +9,24 @@
 static unsigned long long int next_id = 0;
 
 job
-allocate_job(int data_size)
+allocate_job(int body_size)
 {
     job j;
 
-    j = malloc(sizeof(struct job) + data_size);
+    j = malloc(sizeof(struct job) + body_size);
     if (!j) return warn("OOM"), NULL;
 
-    j->data_size = data_size;
+    j->body_size = body_size;
 
     return j;
 }
 
 job
-make_job(unsigned int pri, int data_size)
+make_job(unsigned int pri, int body_size)
 {
     job j;
 
-    j = allocate_job(data_size);
+    j = allocate_job(body_size);
     if (!j) return warn("OOM"), NULL;
 
     j->id = next_id++;
@@ -42,13 +42,13 @@ job_copy(job j)
 
     if (!j) return NULL;
 
-    n = malloc(sizeof(struct job) + j->data_size);
+    n = malloc(sizeof(struct job) + j->body_size);
     if (!n) return warn("OOM"), NULL;
 
     n->id = j->id;
     n->pri = j->pri;
-    n->data_size = j->data_size;
-    memcpy(n->data, j->data, j->data_size);
+    n->body_size = j->body_size;
+    memcpy(n->body, j->body, j->body_size);
 
     return n;
 }
