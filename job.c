@@ -17,6 +17,7 @@ allocate_job(int body_size)
     if (!j) return warn("OOM"), NULL;
 
     j->body_size = body_size;
+    j->next = j->prev = j; /* not in a linked list */
 
     return j;
 }
@@ -64,3 +65,35 @@ job_cmp(job a, job b)
     }
     return a->pri - b->pri;
 }
+
+int
+job_list_any_p(job head)
+{
+    return head->next != head || head->prev != head;
+}
+
+job
+job_remove(job j)
+{
+    if (!j) return NULL;
+    if (!job_list_any_p(j)) return NULL; /* not in a doubly-linked list */
+
+    j->next->prev = j->prev;
+    j->prev->next = j->next;
+
+    j->prev = j->next = j;
+
+    return j;
+}
+
+void
+job_insert(job head, job j)
+{
+    if (job_list_any_p(j)) return; /* already in a linked list */
+
+    j->prev = head->prev;
+    j->next = head;
+    head->prev->next = j;
+    head->prev = j;
+}
+

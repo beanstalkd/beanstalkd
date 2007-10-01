@@ -1,5 +1,6 @@
 /* reserve.c - job reservations */
 
+#include "job.h"
 #include "prot.h"
 #include "reserve.h"
 
@@ -10,14 +11,14 @@ reserve_job(conn c, job j)
 {
     j->deadline = time(NULL) + RESERVATION_TIMEOUT;
     cur_reserved_ct++; /* stats */
-    c->reserved_job = j;
+    job_insert(&c->reserved_jobs, j);
     return reply_job(c, j, MSG_RESERVED);
 }
 
 int
 has_reserved_job(conn c)
 {
-    return !!c->reserved_job;
+    return job_list_any_p(&c->reserved_jobs);
 }
 
 /* return the reserved job with the earliest deadline,
@@ -25,43 +26,58 @@ has_reserved_job(conn c)
 job
 soonest_job(conn c)
 {
-    return c->reserved_job;
+    job j, soonest = NULL;
+
+    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
+        if (j->deadline <= (soonest ? : j)->deadline) soonest = j;
+    }
+    return soonest;
 }
 
 void
 enqueue_reserved_jobs(conn c)
 {
-    enqueue_job(c->reserved_job);
-    cur_reserved_ct--;
-    c->reserved_job = NULL;
+    while (job_list_any_p(&c->reserved_jobs)) {
+        enqueue_job(job_remove(c->reserved_jobs.next));
+        cur_reserved_ct--;
+    }
 }
 
 int
-has_reserved_this_job(conn c, job j)
+has_reserved_this_job(conn c, job needle)
 {
-    return c->reserved_job == j;
+    job j;
+
+    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
+        if (needle == j) return 1;
+    }
+    return 0;
+}
+
+static job
+find_reserved_job(conn c, unsigned long long int id)
+{
+    job j;
+
+    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
+        if (j->id == id) return j;
+    }
+    return NULL;
 }
 
 job
 remove_reserved_job(conn c, unsigned long long int id)
 {
-    job j;
-
-    if (!c->reserved_job) return NULL;
-    if (id != c->reserved_job->id) return NULL;
-    j = c->reserved_job;
-    cur_reserved_ct--;
-    c->reserved_job = NULL;
-    return j;
+    return remove_this_reserved_job(c, find_reserved_job(c, id));
 }
 
-void
+/* j can be NULL */
+job
 remove_this_reserved_job(conn c, job j)
 {
-    if (c->reserved_job == j) {
-        cur_reserved_ct--;
-        c->reserved_job = NULL;
-    }
+    j = job_remove(j);
+    if (j) cur_reserved_ct--;
+    return j;
 }
 
 unsigned int

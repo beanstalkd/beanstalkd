@@ -45,6 +45,7 @@ conn_free(conn c)
 conn
 make_conn(int fd, char start_state)
 {
+    job j;
     conn c;
 
     c = conn_alloc();
@@ -54,9 +55,11 @@ make_conn(int fd, char start_state)
     c->state = start_state;
     c->type = 0;
     c->cmd_read = 0;
-    c->in_job = c->out_job = c->reserved_job = NULL;
+    c->in_job = c->out_job = NULL;
     c->in_job_read = c->out_job_sent = 0;
     c->prev = c->next = c; /* must be out of a linked list right now */
+    j = &c->reserved_jobs;
+    j->prev = j->next = j;
 
     cur_conn_ct++; /* stats */
 
@@ -119,8 +122,6 @@ conn_update_evq(conn c, const int events)
     int r;
 
     if (!c) return -1;
-
-    if (c->evq.ev_events == events) return 0;
 
     /* If it's been added, try to delete it first */
     if (c->evq.ev_base) {

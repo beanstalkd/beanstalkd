@@ -54,7 +54,7 @@ struct conn {
     int in_job_read;
     job out_job;
     int out_job_sent;
-    job reserved_job;
+    struct job reserved_jobs; /* doubly-linked list header */
 };
 
 void conn_init();

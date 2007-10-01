@@ -255,9 +255,6 @@ dispatch_cmd(conn c)
         reserve_ct++; /* stats */
         conn_set_worker(c);
 
-        /* does this conn already have a job reserved? */
-        if (has_reserved_job(c)) return reply_job(c, c->reserved_job, MSG_RESERVED);
-
         /* try to get a new job for this guy */
         wait_for_job(c);
         process_queue();
@@ -429,13 +426,16 @@ h_conn_data(conn c)
 static void
 h_conn_timeout(conn c)
 {
-    job j = soonest_job(c);
+    int r;
+    job j;
 
-    if (!j) return;
-
-    timeout_ct++; /* stats */
-    enqueue_job(j);
-    remove_this_reserved_job(c, j);
+    while ((j = soonest_job(c))) {
+        if (j->deadline > time(NULL)) return;
+        timeout_ct++; /* stats */
+        enqueue_job(remove_this_reserved_job(c, j));
+        r = conn_update_evq(c, c->evq.ev_events);
+        if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
+    }
 }
 
 #define want_command(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
