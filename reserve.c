@@ -3,6 +3,17 @@
 #include "prot.h"
 #include "reserve.h"
 
+static unsigned int cur_reserved_ct = 0;
+
+void
+reserve_job(conn c, job j)
+{
+    j->deadline = time(NULL) + RESERVATION_TIMEOUT;
+    cur_reserved_ct++; /* stats */
+    c->reserved_job = j;
+    return reply_job(c, j, MSG_RESERVED);
+}
+
 int
 has_reserved_job(conn c)
 {
@@ -21,6 +32,7 @@ void
 enqueue_reserved_jobs(conn c)
 {
     enqueue_job(c->reserved_job);
+    cur_reserved_ct--;
     c->reserved_job = NULL;
 }
 
@@ -38,13 +50,23 @@ remove_reserved_job(conn c, unsigned long long int id)
     if (!c->reserved_job) return NULL;
     if (id != c->reserved_job->id) return NULL;
     j = c->reserved_job;
+    cur_reserved_ct--;
     c->reserved_job = NULL;
     return j;
 }
 
 void
-job_remove(conn c, job j)
+remove_this_reserved_job(conn c, job j)
 {
-    if (c->reserved_job == j) c->reserved_job = NULL;
+    if (c->reserved_job == j) {
+        cur_reserved_ct--;
+        c->reserved_job = NULL;
+    }
+}
+
+unsigned int
+count_reserved_jobs()
+{
+    return cur_reserved_ct;
 }
 

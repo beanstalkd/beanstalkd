@@ -274,7 +274,6 @@ dispatch_cmd(conn c)
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         free(j);
-        if (!has_reserved_job(c)) conn_remove(c); /* remove from running_list */
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
         break;
@@ -436,8 +435,7 @@ h_conn_timeout(conn c)
 
     timeout_ct++; /* stats */
     enqueue_job(j);
-    job_remove(c, j);
-    if (!has_reserved_job(c)) conn_remove(c); /* remove from running_list */
+    remove_this_reserved_job(c, j);
 }
 
 #define want_command(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
