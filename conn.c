@@ -104,9 +104,9 @@ conn_set_evq(conn c, const int events, evh handler)
 
     event_set(&c->evq, c->fd, events, handler, c);
 
-    if (c->reserved_job) tv.tv_sec = c->reserved_job->deadline - time(NULL);
+    if (has_reserved_job(c)) tv.tv_sec = soonest_job(c)->deadline - time(NULL);
 
-    r = event_add(&c->evq, c->reserved_job ? &tv : NULL);
+    r = event_add(&c->evq, has_reserved_job(c) ? &tv : NULL);
     if (r == -1) return -1;
 
     return 0;
@@ -165,10 +165,13 @@ conn_close(conn c)
 
     close(c->fd);
 
-    if (c->reserved_job) enqueue_job(c->reserved_job);
     free(c->in_job);
-    if (c->out_job != c->reserved_job) free(c->out_job); /* peek command? */
-    c->in_job = c->out_job = c->reserved_job = NULL;
+
+    /* was this a peek or stats command? */
+    if (!has_reserved_this_job(c, c->out_job)) free(c->out_job);
+
+    if (has_reserved_job(c)) enqueue_reserved_jobs(c);
+    c->in_job = c->out_job = NULL;
 
 
     if (c->type & CONN_TYPE_PRODUCER) cur_producer_ct--; /* stats */

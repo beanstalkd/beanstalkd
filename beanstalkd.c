@@ -255,7 +255,7 @@ dispatch_cmd(conn c)
         conn_set_worker(c);
 
         /* does this conn already have a job reserved? */
-        if (c->reserved_job) return reply_job(c, c->reserved_job, MSG_RESERVED);
+        if (has_reserved_job(c)) return reply_job(c, c->reserved_job, MSG_RESERVED);
 
         /* try to get a new job for this guy */
         wait_for_job(c);
@@ -268,14 +268,12 @@ dispatch_cmd(conn c)
 
         delete_ct++; /* stats */
 
-        if (!c->reserved_job || id != c->reserved_job->id) {
-            reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
-            break;
-        }
+        j = remove_reserved_job(c, id);
 
-        free(c->reserved_job);
-        c->reserved_job = NULL;
-        conn_remove(c); /* remove it from the running_list */
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+
+        free(j);
+        if (!has_reserved_job(c)) conn_remove(c); /* remove from running_list */
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
         break;
@@ -329,7 +327,7 @@ reset_conn(conn c)
     if (r == -1) return warn("update events failed"), conn_close(c);
 
     /* was this a peek or stats command? */
-    if (c->out_job != c->reserved_job) free(c->out_job);
+    if (!has_reserved_this_job(c, c->out_job)) free(c->out_job);
     c->out_job = NULL;
 
     c->reply_sent = 0; /* now that we're done, reset this */
@@ -431,14 +429,14 @@ h_conn_data(conn c)
 static void
 h_conn_timeout(conn c)
 {
-    job j = c->reserved_job;
+    job j = soonest_job(c);
 
     if (!j) return;
 
     timeout_ct++; /* stats */
     enqueue_job(j);
-    c->reserved_job = NULL;
-    conn_remove(c); /* remove it from the running_list */
+    job_remove(c, j);
+    if (!has_reserved_job(c)) conn_remove(c); /* remove from running_list */
 }
 
 #define want_command(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
