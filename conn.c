@@ -8,6 +8,7 @@
 #include "net.h"
 #include "util.h"
 #include "prot.h"
+#include "reserve.h"
 
 /* Doubly-linked list of free connections. */
 static struct conn pool = { &pool, &pool, 0 };

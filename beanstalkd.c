@@ -13,6 +13,7 @@
 #include "pq.h"
 #include "util.h"
 #include "prot.h"
+#include "reserve.h"
 
 /* job body cannot be greater than this */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
