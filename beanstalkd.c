@@ -309,7 +309,6 @@ dispatch_cmd(conn c)
         break;
     default:
         /* unknown command -- protocol error */
-        fprintf(stderr, "got unknown cmd: %s\n", c->cmd);
         return conn_close(c);
     }
 }
@@ -421,7 +420,6 @@ h_conn_data(conn c)
         if (LINE_BUF_SIZE - c->cmd_read < 1) break;
 
         r = read(c->fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
-        fprintf(stderr, "%d: read() returned got %d with errno %d\n", c->fd, r, errno);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
         c->cmd_read += r; /* we got some bytes */
