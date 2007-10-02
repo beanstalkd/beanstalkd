@@ -90,7 +90,7 @@ enqueue_waiting_conn(conn c)
 job
 peek_job(unsigned long long int id)
 {
-    return pq_find(ready_q, id);
+    return pq_find(ready_q, id) ? : find_reserved_job(id);
 }
 
 unsigned int
