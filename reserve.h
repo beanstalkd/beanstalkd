@@ -15,6 +15,6 @@ job remove_reserved_job(conn c, unsigned long long int id);
 job remove_this_reserved_job(conn c, job j);
 job find_reserved_job(unsigned long long int id);
 
-unsigned int count_reserved_jobs();
+unsigned int get_reserved_job_ct();
 
 #endif /*reserve_h*/

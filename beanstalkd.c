@@ -176,8 +176,8 @@ static int
 fmt_stats(char *buf, size_t size, void *x)
 {
     return snprintf(buf, size, STATS_FMT,
-            count_ready_jobs(),
-            count_reserved_jobs(),
+            get_ready_job_ct(),
+            get_reserved_job_ct(),
             put_ct,
             peek_ct,
             reserve_ct,

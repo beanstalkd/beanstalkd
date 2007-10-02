@@ -95,7 +95,7 @@ peek_job(unsigned long long int id)
 }
 
 unsigned int
-count_ready_jobs()
+get_ready_job_ct()
 {
     return pq_used(ready_q);
 }

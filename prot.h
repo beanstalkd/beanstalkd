@@ -26,6 +26,6 @@ void process_queue();
 
 job peek_job(unsigned long long int id);
 
-unsigned int count_ready_jobs();
+unsigned int get_ready_job_ct();
 
 #endif /*prot_h*/

@@ -102,7 +102,7 @@ find_reserved_job(unsigned long long int id)
 }
 
 unsigned int
-count_reserved_jobs()
+get_reserved_job_ct()
 {
     return cur_reserved_ct;
 }
