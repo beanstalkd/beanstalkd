@@ -19,7 +19,8 @@
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
-                     delete_ct = 0, stats_ct = 0, timeout_ct = 0;
+                     delete_ct = 0, release_ct = 0, stats_ct = 0,
+                     timeout_ct = 0;
 
 static void
 drop_root()
@@ -91,6 +92,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_PEEK, OP_PEEK);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
+    TEST_CMD(c->cmd, CMD_RELEASE, OP_RELEASE);
     TEST_CMD(c->cmd, CMD_JOBSTATS, OP_JOBSTATS);
     TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
     return OP_UNKNOWN;
@@ -231,6 +233,7 @@ do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
 static void
 dispatch_cmd(conn c)
 {
+    int r;
     job j;
     char type;
     char *size_buf, *end_buf;
@@ -312,6 +315,23 @@ dispatch_cmd(conn c)
         free(j);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
+        break;
+    case OP_RELEASE:
+        errno = 0;
+        id = strtoull(c->cmd + CMD_RELEASE_LEN, &end_buf, 10);
+        if (errno) return conn_close(c);
+
+        release_ct++; /* stats */
+
+        j = remove_reserved_job(c, id);
+
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+
+        r = enqueue_job(j);
+        if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
+
+        free(j); /* the job didn't go in the queue, so it goes bye bye */
+        reply(c, MSG_NOT_RELEASED, MSG_NOT_RELEASED_LEN, STATE_SENDWORD);
         break;
     case OP_STATS:
         /* don't allow trailing garbage */
