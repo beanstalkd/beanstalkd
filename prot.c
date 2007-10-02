@@ -56,14 +56,7 @@ reply_job(conn c, job j, const char *word)
 static conn
 next_waiting_conn()
 {
-    conn c;
-
-    if (!waiting_conn_p()) return NULL;
-
-    c = wait_queue.next;
-    conn_remove(c);
-
-    return c;
+    return conn_remove(wait_queue.next);
 }
 
 void

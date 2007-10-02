@@ -15,24 +15,10 @@ static struct conn pool = { &pool, &pool, 0 };
 
 int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
 
-static int
-pool_conn_p()
-{
-    return conn_list_any_p(&pool);
-}
-
 static conn
 conn_alloc()
 {
-    conn c;
-
-    if (!pool_conn_p()) return malloc(sizeof(struct conn));
-
-    /* remove it from the list */
-    c = pool.next;
-    conn_remove(c);
-
-    return c;
+    return conn_remove(pool.next) ? : malloc(sizeof(struct conn));
 }
 
 static void
@@ -138,15 +124,16 @@ conn_list_any_p(conn head)
     return head->next != head || head->prev != head;
 }
 
-void
+conn
 conn_remove(conn c)
 {
-    if (!conn_list_any_p(c)) return; /* not in a doubly-linked list */
+    if (!conn_list_any_p(c)) return NULL; /* not in a doubly-linked list */
 
     c->next->prev = c->prev;
     c->prev->next = c->next;
 
     c->prev = c->next = c;
+    return c;
 }
 
 void
