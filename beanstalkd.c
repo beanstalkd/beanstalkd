@@ -236,7 +236,7 @@ dispatch_cmd(conn c)
     int r;
     job j;
     char type;
-    char *size_buf, *end_buf;
+    char *size_buf, *pri_buf, *end_buf;
     unsigned int pri, body_size;
     unsigned long long int id;
 
@@ -318,7 +318,11 @@ dispatch_cmd(conn c)
         break;
     case OP_RELEASE:
         errno = 0;
-        id = strtoull(c->cmd + CMD_RELEASE_LEN, &end_buf, 10);
+        id = strtoull(c->cmd + CMD_RELEASE_LEN, &pri_buf, 10);
+        if (errno) return conn_close(c);
+
+        errno = 0;
+        pri = strtoul(pri_buf, &end_buf, 10);
         if (errno) return conn_close(c);
 
         release_ct++; /* stats */
@@ -327,6 +331,7 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
+        j->pri = pri;
         r = enqueue_job(j);
         if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
 
