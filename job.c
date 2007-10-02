@@ -6,7 +6,7 @@
 #include "job.h"
 #include "util.h"
 
-static unsigned long long int next_id = 0;
+static unsigned long long int next_id = 1;
 
 job
 allocate_job(int body_size)
