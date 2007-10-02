@@ -324,6 +324,7 @@ dispatch_cmd(conn c)
         errno = 0;
         pri = strtoul(pri_buf, &end_buf, 10);
         if (errno) return conn_close(c);
+        if (end_buf == pri_buf) return conn_close(c);
 
         release_ct++; /* stats */
 
