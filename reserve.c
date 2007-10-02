@@ -16,6 +16,7 @@ reserve_job(conn c, job j)
     cur_reserved_ct++; /* stats */
     conn_remove(c);
     conn_insert(&running, c);
+    j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
     return reply_job(c, j, MSG_RESERVED);
 }

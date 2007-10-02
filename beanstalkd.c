@@ -191,13 +191,16 @@ fmt_stats(char *buf, size_t size, void *x)
 static int
 fmt_job_stats(char *buf, size_t size, void *jp)
 {
+    time_t t;
     job j = (job) jp;
 
+    t = time(NULL);
     return snprintf(buf, size, JOB_STATS_FMT,
             j->id,
-            "x",
-            0,
-            (long long) 0);
+            job_state(j),
+            (unsigned int) (t - j->creation),
+            (unsigned int) (j->deadline - t),
+            j->timeout_ct);
 
 }
 
@@ -459,6 +462,7 @@ h_conn_timeout(conn c)
     while ((j = soonest_job(c))) {
         if (j->deadline > time(NULL)) return;
         timeout_ct++; /* stats */
+        j->timeout_ct++;
         enqueue_job(remove_this_reserved_job(c, j));
         r = conn_update_evq(c, c->evq.ev_events);
         if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);

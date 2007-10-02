@@ -16,6 +16,9 @@ allocate_job(int body_size)
     j = malloc(sizeof(struct job) + body_size);
     if (!j) return warn("OOM"), NULL;
 
+    j->state = JOB_STATE_INVALID;
+    j->creation = time(NULL);
+    j->timeout_ct = 0;
     j->body_size = body_size;
     j->next = j->prev = j; /* not in a linked list */
 
@@ -64,6 +67,14 @@ job_cmp(job a, job b)
         return 0;
     }
     return a->pri - b->pri;
+}
+
+const char *
+job_state(job j)
+{
+    if (j->state == JOB_STATE_READY) return "ready";
+    if (j->state == JOB_STATE_RESERVED) return "reserved";
+    return "invalid";
 }
 
 int

@@ -48,9 +48,10 @@
 
 #define JOB_STATS_FMT "---\n" \
     "id: %lld\n" \
-    "status: %s\n" \
+    "state: %s\n" \
     "age: %d\n" \
-    "timeouts: %lld\n" \
+    "time-left: %d\n" \
+    "timeouts: %d\n" \
     "\r\n"
 
 #endif /*beanstalk_h*/
