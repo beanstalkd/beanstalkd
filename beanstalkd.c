@@ -171,7 +171,7 @@ wait_for_job(conn c)
 }
 
 static int
-fmt_stats(char *buf, size_t size)
+fmt_stats(char *buf, size_t size, void *x)
 {
     return snprintf(buf, size, STATS_FMT,
             count_ready_jobs(),
@@ -188,10 +188,46 @@ fmt_stats(char *buf, size_t size)
 
 }
 
+static int
+fmt_job_stats(char *buf, size_t size, void *jp)
+{
+    job j = (job) jp;
+
+    return snprintf(buf, size, JOB_STATS_FMT,
+            j->id,
+            "x",
+            0,
+            (long long) 0);
+
+}
+
+static void
+do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
+{
+    int r, stats_len;
+
+    /* first, measure how big a buffer we will need */
+    stats_len = fmt(NULL, 0, data);
+
+    c->out_job = allocate_job(stats_len); /* fake job to hold stats data */
+    if (!c->out_job) return conn_close(c);
+
+    /* now actually format the stats data */
+    r = fmt(c->out_job->body, stats_len, data);
+    if (r != stats_len) return warn("snprintf inconsistency"), conn_close(c);
+    c->out_job->body[stats_len - 1] = '\n'; /* patch up sprintf's output */
+
+    c->out_job_sent = 0;
+
+    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "OK %d\r\n", stats_len - 2);
+    if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
+
+    reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
+}
+
 static void
 dispatch_cmd(conn c)
 {
-    int r, stats_len;
     job j;
     char type;
     char *size_buf, *end_buf;
@@ -280,27 +316,18 @@ dispatch_cmd(conn c)
 
         stats_ct++; /* stats */
 
-        /* first, measure how big a buffer we will need */
-        stats_len = fmt_stats(NULL, 0);
-
-        c->out_job = allocate_job(stats_len); /* fake job to hold stats data */
-        if (!c->out_job) return conn_close(c);
-
-        /* now actually format the stats data */
-        r = fmt_stats(c->out_job->body, stats_len);
-        if (r != stats_len) return warn("snprintf inconsistency"), conn_close(c);
-        c->out_job->body[stats_len - 1] = '\n'; /* patch up sprintf's output */
-
-        c->out_job_sent = 0;
-
-        r = snprintf(c->reply_buf, LINE_BUF_SIZE, "OK %d\r\n", stats_len - 2);
-        if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
-
-        reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
+        do_stats(c, fmt_stats, NULL);
         break;
     case OP_JOBSTATS:
+        errno = 0;
+        id = strtoull(c->cmd + CMD_JOBSTATS_LEN, &end_buf, 10);
+        if (errno) return conn_close(c);
+
         stats_ct++; /* stats */
-        reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+
+        j = peek_job(id);
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        do_stats(c, fmt_job_stats, j);
         break;
     default:
         /* unknown command -- protocol error */
