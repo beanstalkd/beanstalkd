@@ -230,6 +230,29 @@ do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
     reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
 }
 
+/* Read a priority value from the given buffer and place it in pri.
+ * Update end to point to the address after the last character consumed.
+ * Pri and end can be NULL. If they are both NULL, read_pri() will do the
+ * conversion and return the status code but not update any values. This is an
+ * easy way to check for errors.
+ * Return 0 on success, or nonzero on failure.
+ * If a failure occurs, pri and end are not modified. */
+static int
+read_pri(unsigned int *pri, const char *buf, char **end)
+{
+    char *tend;
+    unsigned int tpri;
+
+    errno = 0;
+    tpri = strtoul(buf, &tend, 10);
+    if (tend == buf) return -1;
+    if (errno && errno != ERANGE) return -1;
+
+    if (pri) *pri = tpri;
+    if (end) *end = tend;
+    return 0;
+}
+
 static void
 dispatch_cmd(conn c)
 {
@@ -250,9 +273,8 @@ dispatch_cmd(conn c)
 
     switch (type) {
     case OP_PUT:
-        errno = 0;
-        pri = strtoul(c->cmd + 4, &size_buf, 10);
-        if (errno) return conn_close(c);
+        r = read_pri(&pri, c->cmd + 4, &size_buf);
+        if (r) return conn_close(c);
 
         errno = 0;
         body_size = strtoul(size_buf, &end_buf, 10);
@@ -321,10 +343,8 @@ dispatch_cmd(conn c)
         id = strtoull(c->cmd + CMD_RELEASE_LEN, &pri_buf, 10);
         if (errno) return conn_close(c);
 
-        errno = 0;
-        pri = strtoul(pri_buf, &end_buf, 10);
-        if (errno) return conn_close(c);
-        if (end_buf == pri_buf) return conn_close(c);
+        r = read_pri(&pri, pri_buf, NULL);
+        if (r) return conn_close(c);
 
         release_ct++; /* stats */
 
