@@ -52,6 +52,9 @@
     "cmd-peek: %lld\n" \
     "cmd-reserve: %lld\n" \
     "cmd-delete: %lld\n" \
+    "cmd-release: %lld\n" \
+    "cmd-bury: %lld\n" \
+    "cmd-kick: %lld\n" \
     "cmd-stats: %lld\n" \
     "job-timeouts: %lld\n" \
     "current-connections: %d\n" \
