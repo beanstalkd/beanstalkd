@@ -23,6 +23,12 @@ waiting_conn_p()
     return conn_list_any_p(&wait_queue);
 }
 
+static int
+buried_job_p()
+{
+    return job_list_any_p(&graveyard);
+}
+
 void
 reply(conn c, char *line, int len, int state)
 {
@@ -90,6 +96,21 @@ bury_job(job j)
     job_insert(&graveyard, j);
     buried_ct++;
     j->state = JOB_STATE_BURIED;
+}
+
+/* return the number of jobs successfully kicked */
+int
+kick_job()
+{
+    int r;
+    job j;
+
+    if (!buried_job_p()) return 0;
+    j = job_remove(graveyard.next);
+    buried_ct--;
+    r = enqueue_job(j);
+    if (!r) return bury_job(j), 0;
+    return 1;
 }
 
 void

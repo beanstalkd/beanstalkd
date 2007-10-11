@@ -23,6 +23,7 @@ void enqueue_waiting_conn(conn c);
 
 int enqueue_job(job j);
 void bury_job(job j);
+int kick_job();
 void process_queue();
 
 job peek_job(unsigned long long int id);

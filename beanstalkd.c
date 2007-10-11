@@ -19,8 +19,8 @@
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
-                     delete_ct = 0, release_ct = 0, bury_ct = 0, stats_ct = 0,
-                     timeout_ct = 0;
+                     delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
+                     stats_ct = 0, timeout_ct = 0;
 
 static void
 drop_root()
@@ -259,7 +259,7 @@ read_pri(unsigned int *pri, const char *buf, char **end)
 static void
 dispatch_cmd(conn c)
 {
-    int r;
+    int r, count, i;
     job j;
     char type;
     char *size_buf, *pri_buf, *end_buf;
@@ -379,6 +379,22 @@ dispatch_cmd(conn c)
         j->pri = pri;
         bury_job(j);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
+        break;
+    case OP_KICK:
+        errno = 0;
+        count = strtoul(c->cmd + CMD_KICK_LEN, &end_buf, 10);
+        if (end_buf == c->cmd + CMD_KICK_LEN) return conn_close(c);
+        if (errno) return conn_close(c);
+
+        kick_ct++; /* stats */
+
+        for (i = 0; (i < count) && kick_job(); i++);
+
+        r = snprintf(c->reply_buf, LINE_BUF_SIZE, "KICKED %u\r\n", i);
+        /* can't happen */
+        if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
+
+        reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDWORD);
         break;
     case OP_STATS:
         /* don't allow trailing garbage */

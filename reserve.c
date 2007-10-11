@@ -45,6 +45,7 @@ enqueue_reserved_jobs(conn c)
 {
     while (job_list_any_p(&c->reserved_jobs)) {
         enqueue_job(job_remove(c->reserved_jobs.next));
+        /* TODO bury this job if enqueue_job() fails */
         cur_reserved_ct--;
         if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
     }
