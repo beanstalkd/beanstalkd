@@ -74,6 +74,7 @@ job_state(job j)
 {
     if (j->state == JOB_STATE_READY) return "ready";
     if (j->state == JOB_STATE_RESERVED) return "reserved";
+    if (j->state == JOB_STATE_BURIED) return "buried";
     return "invalid";
 }
 

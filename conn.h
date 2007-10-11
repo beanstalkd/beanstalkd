@@ -25,8 +25,10 @@
 #define OP_RESERVE 2
 #define OP_DELETE 3
 #define OP_RELEASE 4
-#define OP_STATS 5
-#define OP_JOBSTATS 6
+#define OP_BURY 5
+#define OP_KICK 6
+#define OP_STATS 7
+#define OP_JOBSTATS 8
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1

@@ -19,7 +19,7 @@
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
-                     delete_ct = 0, release_ct = 0, stats_ct = 0,
+                     delete_ct = 0, release_ct = 0, bury_ct = 0, stats_ct = 0,
                      timeout_ct = 0;
 
 static void
@@ -93,6 +93,8 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
     TEST_CMD(c->cmd, CMD_RELEASE, OP_RELEASE);
+    TEST_CMD(c->cmd, CMD_BURY, OP_BURY);
+    TEST_CMD(c->cmd, CMD_KICK, OP_KICK);
     TEST_CMD(c->cmd, CMD_JOBSTATS, OP_JOBSTATS);
     TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
     return OP_UNKNOWN;
@@ -178,6 +180,7 @@ fmt_stats(char *buf, size_t size, void *x)
     return snprintf(buf, size, STATS_FMT,
             get_ready_job_ct(),
             get_reserved_job_ct(),
+            get_buried_job_ct(),
             put_ct,
             peek_ct,
             reserve_ct,
@@ -358,6 +361,24 @@ dispatch_cmd(conn c)
 
         free(j); /* the job didn't go in the queue, so it goes bye bye */
         reply(c, MSG_NOT_RELEASED, MSG_NOT_RELEASED_LEN, STATE_SENDWORD);
+        break;
+    case OP_BURY:
+        errno = 0;
+        id = strtoull(c->cmd + CMD_BURY_LEN, &pri_buf, 10);
+        if (errno) return conn_close(c);
+
+        r = read_pri(&pri, pri_buf, NULL);
+        if (r) return conn_close(c);
+
+        bury_ct++; /* stats */
+
+        j = remove_reserved_job(c, id);
+
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+
+        j->pri = pri;
+        bury_job(j);
+        reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
     case OP_STATS:
         /* don't allow trailing garbage */

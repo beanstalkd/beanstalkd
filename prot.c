@@ -14,6 +14,8 @@ static pq ready_q;
 
 /* Doubly-linked list of waiting connections. */
 static struct conn wait_queue = { &wait_queue, &wait_queue, 0 };
+static struct job graveyard = { &graveyard, &graveyard, 0 };
+static unsigned int buried_ct = 0;
 
 static int
 waiting_conn_p()
@@ -83,6 +85,14 @@ enqueue_job(job j)
 }
 
 void
+bury_job(job j)
+{
+    job_insert(&graveyard, j);
+    buried_ct++;
+    j->state = JOB_STATE_BURIED;
+}
+
+void
 enqueue_waiting_conn(conn c)
 {
     conn_insert(&wait_queue, c);
@@ -98,6 +108,12 @@ unsigned int
 get_ready_job_ct()
 {
     return pq_used(ready_q);
+}
+
+unsigned int
+get_buried_job_ct()
+{
+    return buried_ct;
 }
 
 void

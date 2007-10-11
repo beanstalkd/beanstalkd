@@ -8,6 +8,7 @@
 #define JOB_STATE_INVALID 0
 #define JOB_STATE_READY 1
 #define JOB_STATE_RESERVED 2
+#define JOB_STATE_BURIED 3
 
 typedef struct job *job;
 

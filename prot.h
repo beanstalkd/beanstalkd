@@ -22,10 +22,12 @@ void reply_job(conn c, job j, const char *word);
 void enqueue_waiting_conn(conn c);
 
 int enqueue_job(job j);
+void bury_job(job j);
 void process_queue();
 
 job peek_job(unsigned long long int id);
 
 unsigned int get_ready_job_ct();
+unsigned int get_buried_job_ct();
 
 #endif /*prot_h*/
