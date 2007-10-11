@@ -113,6 +113,17 @@ kick_job()
     return 1;
 }
 
+static job
+find_buried_job(unsigned long long int id)
+{
+    job j;
+
+    for (j = graveyard.next; j != &graveyard; j = j->next) {
+        if (j->id == id) return j;
+    }
+    return NULL;
+}
+
 void
 enqueue_waiting_conn(conn c)
 {
@@ -122,7 +133,9 @@ enqueue_waiting_conn(conn c)
 job
 peek_job(unsigned long long int id)
 {
-    return pq_find(ready_q, id) ? : find_reserved_job(id);
+    return pq_find(ready_q, id) ? :
+           find_reserved_job(id) ? :
+           find_buried_job(id);
 }
 
 unsigned int
