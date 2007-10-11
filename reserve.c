@@ -43,9 +43,13 @@ soonest_job(conn c)
 void
 enqueue_reserved_jobs(conn c)
 {
+    int r;
+    job j;
+
     while (job_list_any_p(&c->reserved_jobs)) {
-        enqueue_job(job_remove(c->reserved_jobs.next));
-        /* TODO bury this job if enqueue_job() fails */
+        j = job_remove(c->reserved_jobs.next);
+        r = enqueue_job(j);
+        if (!r) bury_job(j);
         cur_reserved_ct--;
         if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
     }
