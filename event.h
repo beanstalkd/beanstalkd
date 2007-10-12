@@ -4,6 +4,7 @@
 #define event_h
 
 #include <sys/types.h>
+#include <sys/time.h>
 #include <event.h>
 
 typedef void(*evh)(int, short, void *);
