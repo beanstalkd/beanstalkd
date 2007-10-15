@@ -85,9 +85,10 @@ enqueue_job(job j)
     int r;
 
     r = pq_give(ready_q, j);
+    if (!r) return 0;
     j->state = JOB_STATE_READY;
-    if (r) return process_queue(), 1;
-    return 0;
+    process_queue();
+    return 1;
 }
 
 void
