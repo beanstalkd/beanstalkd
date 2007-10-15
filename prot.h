@@ -9,6 +9,8 @@
 /* space for 16 Mi jobs */
 #define HEAP_SIZE 16 * 1024 * 1024
 
+#define URGENT_THRESHOLD 1024
+
 /* measured in seconds */
 #define RESERVATION_TIMEOUT 120
 
@@ -30,5 +32,6 @@ job peek_job(unsigned long long int id);
 
 unsigned int get_ready_job_ct();
 unsigned int get_buried_job_ct();
+unsigned int get_urgent_job_ct();
 
 #endif /*prot_h*/

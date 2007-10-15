@@ -45,6 +45,7 @@
 #define CMD_JOBSTATS_LEN CONSTSTRLEN(CMD_JOBSTATS)
 
 #define STATS_FMT "---\n" \
+    "current-jobs-urgent: %d\n" \
     "current-jobs-ready: %d\n" \
     "current-jobs-reserved: %d\n" \
     "current-jobs-buried: %d\n" \

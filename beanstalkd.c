@@ -180,6 +180,7 @@ static int
 fmt_stats(char *buf, size_t size, void *x)
 {
     return snprintf(buf, size, STATS_FMT,
+            get_urgent_job_ct(),
             get_ready_job_ct(),
             get_reserved_job_ct(),
             get_buried_job_ct(),

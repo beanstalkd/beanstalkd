@@ -15,7 +15,7 @@ static pq ready_q;
 /* Doubly-linked list of waiting connections. */
 static struct conn wait_queue = { &wait_queue, &wait_queue, 0 };
 static struct job graveyard = { &graveyard, &graveyard, 0 };
-static unsigned int buried_ct = 0;
+static unsigned int buried_ct = 0, urgent_ct = 0;
 
 static int
 waiting_conn_p()
@@ -75,6 +75,7 @@ process_queue()
     while (waiting_conn_p()) {
         j = pq_take(ready_q);
         if (!j) return;
+        if (j->pri < URGENT_THRESHOLD) urgent_ct--;
         reserve_job(next_waiting_conn(), j);
     }
 }
@@ -87,6 +88,7 @@ enqueue_job(job j)
     r = pq_give(ready_q, j);
     if (!r) return 0;
     j->state = JOB_STATE_READY;
+    if (j->pri < URGENT_THRESHOLD) urgent_ct++;
     process_queue();
     return 1;
 }
@@ -149,6 +151,12 @@ unsigned int
 get_buried_job_ct()
 {
     return buried_ct;
+}
+
+unsigned int
+get_urgent_job_ct()
+{
+    return urgent_ct;
 }
 
 void
