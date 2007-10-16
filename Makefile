@@ -1,7 +1,6 @@
 program := beanstalkd
-export CFLAGS := -g -pg -Wall -Werror
-#export CFLAGS := -O2 -Wall -Werror
-export LDFLAGS := -pg -levent
+export CFLAGS := -O2 -Wall -Werror
+export LDFLAGS := -levent
 
 sources := $(shell ls *.c | fgrep -v $(program))
 objects := $(sources:.c=.o)
@@ -9,6 +8,12 @@ tests := $(sources:%=tests/test_%)
 
 all: $(program)
 
+debug: export CFLAGS := -g -pg -Wall -Werror
+debug: export LDFLAGS := -pg -levent
+debug: all
+
+check: export CFLAGS := -g -pg -Wall -Werror
+debug: export LDFLAGS := -pg -levent
 check: tests/cutcheck $(objects)
 	./tests/cutcheck
 	@echo
@@ -28,7 +33,7 @@ clean:
 	rm -f $(program) *.o .*.d tests/*.o tests/cutcheck* core gmon.out
 
 # .DELETE_ON_ERROR:
-.PHONY: all check clean
+.PHONY: all debug check clean
 
 # This tells make how to generate dependency files
 .%.d: %.c
