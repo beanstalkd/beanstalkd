@@ -25,12 +25,6 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
 
 static void
-drop_root()
-{
-    /* pass */
-}
-
-static void
 daemonize()
 {
     /* pass */
@@ -623,7 +617,6 @@ main(int argc, char **argv)
     listen_socket = make_server_socket(HOST, PORT);
     if (listen_socket == -1) warn("make_server_socket()"), exit(111);
 
-    drop_root();
     prot_init();
     daemonize();
     event_init();
