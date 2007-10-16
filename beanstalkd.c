@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "conn.h"
 #include "net.h"
@@ -25,9 +27,36 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
 
 static void
+nullfd(int fd, int flags)
+{
+    int r;
+
+    close(fd);
+    r = open("/dev/null", flags);
+    if (r != fd) perror("open(\"/dev/null\")"), exit(1);
+}
+
+static void
+dfork()
+{
+    pid_t p;
+
+    p = fork();
+    if (p == -1) exit(1);
+    if (p) exit(0);
+}
+
+static void
 daemonize()
 {
-    /* pass */
+    chdir("/");
+    nullfd(0, O_RDONLY);
+    nullfd(1, O_WRONLY);
+    nullfd(2, O_WRONLY);
+    umask(0);
+    dfork();
+    setsid();
+    dfork();
 }
 
 static void
