@@ -17,7 +17,7 @@
 #include "prot.h"
 #include "reserve.h"
 
-/* job body cannot be greater than this */
+/* job body cannot be greater than this many bytes long */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
