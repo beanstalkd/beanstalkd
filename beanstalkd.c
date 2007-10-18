@@ -235,8 +235,10 @@ fmt_job_stats(char *buf, size_t size, void *jp)
             job_state(j),
             (unsigned int) (t - j->creation),
             (unsigned int) (j->deadline - t),
-            j->timeout_ct);
-
+            j->timeout_ct,
+            j->release_ct,
+            j->bury_ct,
+            j->kick_ct);
 }
 
 static void
@@ -398,6 +400,7 @@ dispatch_cmd(conn c)
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->pri = pri;
+        j->release_ct++;
         r = enqueue_job(j);
         if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
 

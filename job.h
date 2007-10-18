@@ -20,6 +20,9 @@ struct job {
     time_t creation;
     time_t deadline;
     unsigned int timeout_ct;
+    unsigned int release_ct;
+    unsigned int bury_ct;
+    unsigned int kick_ct;
     char state;
     char body[];
 };

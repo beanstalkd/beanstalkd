@@ -71,6 +71,9 @@
     "age: %d\n" \
     "time-left: %d\n" \
     "timeouts: %d\n" \
+    "releases: %d\n" \
+    "buries: %d\n" \
+    "kicks: %d\n" \
     "\r\n"
 
 #endif /*beanstalk_h*/

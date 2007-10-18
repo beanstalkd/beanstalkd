@@ -99,6 +99,7 @@ bury_job(job j)
     job_insert(&graveyard, j);
     buried_ct++;
     j->state = JOB_STATE_BURIED;
+    j->bury_ct++;
 }
 
 /* return the number of jobs successfully kicked */
@@ -111,6 +112,7 @@ kick_job()
     if (!buried_job_p()) return 0;
     j = job_remove(graveyard.next);
     buried_ct--;
+    j->kick_ct++;
     r = enqueue_job(j);
     if (!r) return bury_job(j), 0;
     return 1;
