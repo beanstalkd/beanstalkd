@@ -13,7 +13,7 @@ debug: export LDFLAGS := -pg -levent
 debug: all
 
 check: export CFLAGS := -g -pg -Wall -Werror
-debug: export LDFLAGS := -pg -levent
+check: export LDFLAGS := -pg -levent
 check: tests/cutcheck $(objects)
 	./tests/cutcheck
 	@echo
