@@ -116,6 +116,12 @@ kick_job()
     return 1;
 }
 
+job
+peek_buried_job()
+{
+    return buried_job_p() ? graveyard.next : NULL;
+}
+
 static job
 find_buried_job(unsigned long long int id)
 {

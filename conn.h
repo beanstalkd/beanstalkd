@@ -21,7 +21,7 @@
 
 #define OP_UNKNOWN -1
 #define OP_PUT 0
-#define OP_PEEK 1
+#define OP_PEEKJOB 1
 #define OP_RESERVE 2
 #define OP_DELETE 3
 #define OP_RELEASE 4
@@ -29,6 +29,7 @@
 #define OP_KICK 6
 #define OP_STATS 7
 #define OP_JOBSTATS 8
+#define OP_PEEK 9
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1

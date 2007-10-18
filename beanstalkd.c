@@ -114,6 +114,7 @@ which_cmd(conn c)
 {
 #define TEST_CMD(s,c,o) if (strncmp((s), (c), CONSTSTRLEN(c)) == 0) return (o);
     TEST_CMD(c->cmd, CMD_PUT, OP_PUT);
+    TEST_CMD(c->cmd, CMD_PEEKJOB, OP_PEEKJOB);
     TEST_CMD(c->cmd, CMD_PEEK, OP_PEEK);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
@@ -329,8 +330,20 @@ dispatch_cmd(conn c)
 
         break;
     case OP_PEEK:
+        /* don't allow trailing garbage */
+        if (c->cmd_len != CMD_PEEK_LEN + 2) return conn_close(c);
+
+        peek_ct++; /* stats */
+
+        j = job_copy(peek_buried_job());
+
+        if (j) return reply_job(c, j, MSG_FOUND);
+
+        reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        break;
+    case OP_PEEKJOB:
         errno = 0;
-        id = strtoull(c->cmd + CMD_PEEK_LEN, &end_buf, 10);
+        id = strtoull(c->cmd + CMD_PEEKJOB_LEN, &end_buf, 10);
         if (errno) return conn_close(c);
 
         peek_ct++; /* stats */
