@@ -168,6 +168,7 @@ enqueue_incoming_job(conn c)
 
     /* we have a complete job, so let's stick it in the pqueue */
     r = enqueue_job(j);
+    put_ct++; /* stats */
 
     if (r) return reply(c, MSG_INSERTED, MSG_INSERTED_LEN, STATE_SENDWORD);
 
@@ -320,7 +321,6 @@ dispatch_cmd(conn c)
         /* don't allow trailing garbage */
         if (end_buf[0] != '\0') return conn_close(c);
 
-        put_ct++; /* stats */
         conn_set_producer(c);
 
         c->in_job = make_job(pri, body_size + 2);
@@ -335,29 +335,27 @@ dispatch_cmd(conn c)
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_PEEK_LEN + 2) return conn_close(c);
 
-        peek_ct++; /* stats */
-
         j = job_copy(peek_buried_job());
 
-        if (j) return reply_job(c, j, MSG_FOUND);
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        peek_ct++; /* stats */
+        reply_job(c, j, MSG_FOUND);
         break;
     case OP_PEEKJOB:
         errno = 0;
         id = strtoull(c->cmd + CMD_PEEKJOB_LEN, &end_buf, 10);
         if (errno) return conn_close(c);
 
-        peek_ct++; /* stats */
-
         /* So, peek is annoying, because some other connection might free the
          * job while we are still trying to write it out. So we copy it and
          * then free the copy when it's done sending. */
         j = job_copy(peek_job(id));
 
-        if (j) return reply_job(c, j, MSG_FOUND);
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        peek_ct++; /* stats */
+        reply_job(c, j, MSG_FOUND);
         break;
     case OP_RESERVE:
         /* don't allow trailing garbage */
@@ -375,12 +373,11 @@ dispatch_cmd(conn c)
         id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10);
         if (errno) return conn_close(c);
 
-        delete_ct++; /* stats */
-
         j = remove_reserved_job(c, id);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
+        delete_ct++; /* stats */
         free(j);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
@@ -393,14 +390,13 @@ dispatch_cmd(conn c)
         r = read_pri(&pri, pri_buf, NULL);
         if (r) return conn_close(c);
 
-        release_ct++; /* stats */
-
         j = remove_reserved_job(c, id);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->pri = pri;
         j->release_ct++;
+        release_ct++; /* stats */
         r = enqueue_job(j);
         if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
 
@@ -415,13 +411,12 @@ dispatch_cmd(conn c)
         r = read_pri(&pri, pri_buf, NULL);
         if (r) return conn_close(c);
 
-        bury_ct++; /* stats */
-
         j = remove_reserved_job(c, id);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->pri = pri;
+        bury_ct++; /* stats */
         bury_job(j);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
@@ -454,10 +449,10 @@ dispatch_cmd(conn c)
         id = strtoull(c->cmd + CMD_JOBSTATS_LEN, &end_buf, 10);
         if (errno) return conn_close(c);
 
-        stats_ct++; /* stats */
-
         j = peek_job(id);
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+
+        stats_ct++; /* stats */
         do_stats(c, fmt_job_stats, j);
         break;
     default:
