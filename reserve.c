@@ -66,7 +66,7 @@ has_reserved_this_job(conn c, job needle)
     return 0;
 }
 
-static job
+job
 find_reserved_job_in_conn(conn c, unsigned long long int id)
 {
     job j;

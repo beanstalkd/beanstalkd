@@ -13,6 +13,7 @@ void enqueue_reserved_jobs(conn c);
 int has_reserved_this_job(conn c, job j);
 job remove_reserved_job(conn c, unsigned long long int id);
 job remove_this_reserved_job(conn c, job j);
+job find_reserved_job_in_conn(conn c, unsigned long long int id);
 job find_reserved_job(unsigned long long int id);
 
 unsigned int get_reserved_job_ct();

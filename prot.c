@@ -138,7 +138,20 @@ find_buried_job(unsigned long long int id)
 void
 enqueue_waiting_conn(conn c)
 {
-    conn_insert(&wait_queue, c);
+    conn_insert(&wait_queue, conn_remove(c) ? : c);
+}
+
+static job
+find_reserved_job_in_wait_queue(unsigned long long int id)
+{
+    job j;
+    conn c;
+
+    for (c = wait_queue.next; c != &wait_queue; c = c->next) {
+        j = find_reserved_job_in_conn(c, id);
+        if (j) return j;
+    }
+    return NULL;
 }
 
 job
@@ -146,6 +159,7 @@ peek_job(unsigned long long int id)
 {
     return pq_find(ready_q, id) ? :
            find_reserved_job(id) ? :
+           find_reserved_job_in_wait_queue(id) ? :
            find_buried_job(id);
 }
 
