@@ -8,7 +8,7 @@ tests := $(sources:%=tests/test_%)
 
 all: $(program)
 
-debug: export CFLAGS := -g -pg -Wall -Werror
+debug: export CFLAGS := -g -pg -Wall -Werror -DDEBUG
 debug: export LDFLAGS := -pg -levent
 debug: all
 

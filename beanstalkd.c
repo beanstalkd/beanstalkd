@@ -26,6 +26,7 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
 
+#ifndef DEBUG
 static void
 nullfd(int fd, int flags)
 {
@@ -58,6 +59,7 @@ daemonize()
     setsid();
     dfork();
 }
+#endif /*DEBUG*/
 
 static void
 set_sig_handlers()
@@ -658,7 +660,9 @@ main(int argc, char **argv)
     if (listen_socket == -1) warn("make_server_socket()"), exit(111);
 
     prot_init();
+#ifndef DEBUG
     daemonize();
+#endif
     event_init();
     set_sig_handlers();
 
