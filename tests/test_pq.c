@@ -111,6 +111,32 @@ __CUT__pq_test_fifo_property()
     ASSERT(j == j3c, "j3c should come out third.");
 }
 
+#define HOW_MANY 20
+void
+__CUT__pq_test_many_jobs()
+{
+    unsigned int last_pri;
+    int r, i;
+    job j;
+
+    q = make_pq(HOW_MANY);
+
+    for (i = 0; i < HOW_MANY; i++) {
+        j = make_job(1 + rand() % 8192, 0);
+        ASSERT(!!j, "allocation");
+        r = pq_give(q, j);
+        ASSERT(r, "insert should succeed");
+    }
+
+    last_pri = 0;
+    for (i = 0; i < HOW_MANY; i++) {
+        j = pq_take(q);
+        /*printf("j->pri=%d last_pri=%d\n", j->pri, last_pri);*/
+        ASSERT(j->pri >= last_pri, "should come out in order.");
+        last_pri = j->pri;
+    }
+}
+
 void
 __CUT__pq_test_find_match()
 {
