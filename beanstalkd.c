@@ -22,6 +22,8 @@
 /* job body cannot be greater than this many bytes long */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
+static int drain_mode = 0;
+
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
@@ -62,6 +64,12 @@ daemonize()
 #endif /*DEBUG*/
 
 static void
+enter_drain_mode(int sig)
+{
+    drain_mode = 1;
+}
+
+static void
 set_sig_handlers()
 {
     int r;
@@ -74,6 +82,10 @@ set_sig_handlers()
 
     r = sigaction(SIGPIPE, &sa, 0);
     if (r == -1) perror("sigaction(SIGPIPE)"), exit(111);
+
+    sa.sa_handler = enter_drain_mode;
+    r = sigaction(SIGUSR1, &sa, 0);
+    if (r == -1) perror("sigaction(SIGUSR1)"), exit(111);
 }
 
 static void
@@ -312,6 +324,8 @@ dispatch_cmd(conn c)
 
     switch (type) {
     case OP_PUT:
+        if (drain_mode) return conn_close(c);
+
         r = read_pri(&pri, c->cmd + 4, &size_buf);
         if (r) return conn_close(c);
 
