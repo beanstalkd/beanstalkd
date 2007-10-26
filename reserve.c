@@ -66,7 +66,7 @@ has_reserved_this_job(conn c, job needle)
     return 0;
 }
 
-job
+static job
 find_reserved_job_in_conn(conn c, unsigned long long int id)
 {
     job j;
@@ -94,16 +94,22 @@ remove_this_reserved_job(conn c, job j)
 }
 
 job
-find_reserved_job(unsigned long long int id)
+find_reserved_job_in_list(conn list, unsigned long long int id)
 {
     job j;
     conn c;
 
-    for (c = running.next; c != &running; c = c->next) {
+    for (c = list->next; c != list; c = c->next) {
         j = find_reserved_job_in_conn(c, id);
         if (j) return j;
     }
     return NULL;
+}
+
+job
+find_reserved_job(unsigned long long int id)
+{
+    return find_reserved_job_in_list(&running, id);
 }
 
 unsigned int
