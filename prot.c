@@ -15,7 +15,7 @@ static pq ready_q;
 /* Doubly-linked list of waiting connections. */
 static struct conn wait_queue = { &wait_queue, &wait_queue, 0 };
 static struct job graveyard = { &graveyard, &graveyard, 0 };
-static unsigned int buried_ct = 0, urgent_ct = 0;
+static unsigned int buried_ct = 0, urgent_ct = 0, waiting_ct = 0;
 
 static int
 waiting_conn_p()
@@ -64,6 +64,7 @@ reply_job(conn c, job j, const char *word)
 static conn
 next_waiting_conn()
 {
+    waiting_ct--;
     return conn_remove(wait_queue.next);
 }
 
@@ -138,6 +139,7 @@ find_buried_job(unsigned long long int id)
 void
 enqueue_waiting_conn(conn c)
 {
+    waiting_ct++;
     conn_insert(&wait_queue, conn_remove(c) ? : c);
 }
 
@@ -179,6 +181,12 @@ unsigned int
 get_urgent_job_ct()
 {
     return urgent_ct;
+}
+
+int
+count_cur_waiting()
+{
+    return waiting_ct;
 }
 
 void

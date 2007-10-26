@@ -63,6 +63,7 @@
     "current-connections: %d\n" \
     "current-producers: %d\n" \
     "current-workers: %d\n" \
+    "current-waiting: %d\n" \
     "\r\n"
 
 #define JOB_STATS_FMT "---\n" \

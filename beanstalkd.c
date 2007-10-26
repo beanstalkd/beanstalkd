@@ -222,7 +222,8 @@ fmt_stats(char *buf, size_t size, void *x)
             timeout_ct,
             count_cur_conns(),
             count_cur_producers(),
-            count_cur_workers());
+            count_cur_workers(),
+            count_cur_waiting());
 
 }
 

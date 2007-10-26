@@ -34,5 +34,6 @@ job peek_buried_job();
 unsigned int get_ready_job_ct();
 unsigned int get_buried_job_ct();
 unsigned int get_urgent_job_ct();
+int count_cur_waiting();
 
 #endif /*prot_h*/
