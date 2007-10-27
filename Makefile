@@ -1,4 +1,5 @@
 program := beanstalkd
+rel_ver := $(shell ./rel-ver.sh)
 export CFLAGS := -O2 -Wall -Werror
 export LDFLAGS := -levent
 
@@ -29,11 +30,14 @@ tests/cutcheck.c: $(tests)
 
 tests/cutcheck: tests/cutcheck.o $(objects) $(tests:.c=.o)
 
+pkg:
+	./pkg.sh $(program) $(rel_ver) $(program)-$(rel_ver).tar.gz
+
 clean:
 	rm -f $(program) *.o .*.d tests/*.o tests/cutcheck* core gmon.out
 
 # .DELETE_ON_ERROR:
-.PHONY: all debug check clean
+.PHONY: all debug check pkg clean
 
 # This tells make how to generate dependency files
 .%.d: %.c
