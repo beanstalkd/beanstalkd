@@ -47,34 +47,34 @@
 #define CMD_JOBSTATS_LEN CONSTSTRLEN(CMD_JOBSTATS)
 
 #define STATS_FMT "---\n" \
-    "current-jobs-urgent: %d\n" \
-    "current-jobs-ready: %d\n" \
-    "current-jobs-reserved: %d\n" \
-    "current-jobs-buried: %d\n" \
-    "cmd-put: %lld\n" \
-    "cmd-peek: %lld\n" \
-    "cmd-reserve: %lld\n" \
-    "cmd-delete: %lld\n" \
-    "cmd-release: %lld\n" \
-    "cmd-bury: %lld\n" \
-    "cmd-kick: %lld\n" \
-    "cmd-stats: %lld\n" \
-    "job-timeouts: %lld\n" \
-    "current-connections: %d\n" \
-    "current-producers: %d\n" \
-    "current-workers: %d\n" \
-    "current-waiting: %d\n" \
+    "current-jobs-urgent: %u\n" \
+    "current-jobs-ready: %u\n" \
+    "current-jobs-reserved: %u\n" \
+    "current-jobs-buried: %u\n" \
+    "cmd-put: %llu\n" \
+    "cmd-peek: %llu\n" \
+    "cmd-reserve: %llu\n" \
+    "cmd-delete: %llu\n" \
+    "cmd-release: %llu\n" \
+    "cmd-bury: %llu\n" \
+    "cmd-kick: %llu\n" \
+    "cmd-stats: %llu\n" \
+    "job-timeouts: %llu\n" \
+    "current-connections: %u\n" \
+    "current-producers: %u\n" \
+    "current-workers: %u\n" \
+    "current-waiting: %u\n" \
     "\r\n"
 
 #define JOB_STATS_FMT "---\n" \
-    "id: %lld\n" \
+    "id: %llu\n" \
     "state: %s\n" \
-    "age: %d\n" \
-    "time-left: %d\n" \
-    "timeouts: %d\n" \
-    "releases: %d\n" \
-    "buries: %d\n" \
-    "kicks: %d\n" \
+    "age: %u\n" \
+    "time-left: %u\n" \
+    "timeouts: %u\n" \
+    "releases: %u\n" \
+    "buries: %u\n" \
+    "kicks: %u\n" \
     "\r\n"
 
 #endif /*beanstalk_h*/
