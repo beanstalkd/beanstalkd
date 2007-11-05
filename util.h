@@ -1,11 +1,16 @@
 #ifndef util_h
 #define util_h
 
+#include <err.h>
+
 #define min(a,b) ((a)<(b)?(a):(b))
 
-int warn(const char *s);
-
 void v();
+
+#define twarn(fmt, args...) warn("%s:%d in %s: " fmt, \
+                                 __FILE__, __LINE__, __func__, ##args)
+#define twarnx(fmt, args...) warnx("%s:%d in %s: " fmt, \
+                                   __FILE__, __LINE__, __func__, ##args)
 
 #ifdef DEBUG
 #define dprintf(fmt, args...) fprintf(stderr, fmt, ##args)

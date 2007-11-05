@@ -14,7 +14,7 @@ allocate_job(int body_size)
     job j;
 
     j = malloc(sizeof(struct job) + body_size);
-    if (!j) return warn("OOM"), NULL;
+    if (!j) return twarnx("OOM"), NULL;
 
     j->state = JOB_STATE_INVALID;
     j->creation = time(NULL);
@@ -31,7 +31,7 @@ make_job(unsigned int pri, int body_size)
     job j;
 
     j = allocate_job(body_size);
-    if (!j) return warn("OOM"), NULL;
+    if (!j) return twarnx("OOM"), NULL;
 
     j->id = next_id++;
     j->pri = pri;
@@ -47,7 +47,7 @@ job_copy(job j)
     if (!j) return NULL;
 
     n = malloc(sizeof(struct job) + j->body_size);
-    if (!n) return warn("OOM"), NULL;
+    if (!n) return twarnx("OOM"), NULL;
 
     n->id = j->id;
     n->pri = j->pri;

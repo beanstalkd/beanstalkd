@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <errno.h>
 
 #include "conn.h"
 #include "net.h"
@@ -97,7 +98,7 @@ conn_set_evq(conn c, const int events, evh handler)
     if (has_reserved_job(c)) tv.tv_sec = soonest_job(c)->deadline - time(NULL);
 
     r = event_add(&c->evq, has_reserved_job(c) ? &tv : NULL);
-    if (r == -1) return -1;
+    if (r == -1) return twarn("event_add() err %d", errno), -1;
 
     return 0;
 }

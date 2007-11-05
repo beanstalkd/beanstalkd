@@ -36,7 +36,7 @@ nullfd(int fd, int flags)
 
     close(fd);
     r = open("/dev/null", flags);
-    if (r != fd) perror("open(\"/dev/null\")"), exit(1);
+    if (r != fd) twarn("open(\"/dev/null\")"), exit(1);
 }
 
 static void
@@ -78,14 +78,14 @@ set_sig_handlers()
     sa.sa_handler = SIG_IGN;
     sa.sa_flags = 0;
     r = sigemptyset(&sa.sa_mask);
-    if (r == -1) perror("sigemptyset()"), exit(111);
+    if (r == -1) twarn("sigemptyset()"), exit(111);
 
     r = sigaction(SIGPIPE, &sa, 0);
-    if (r == -1) perror("sigaction(SIGPIPE)"), exit(111);
+    if (r == -1) twarn("sigaction(SIGPIPE)"), exit(111);
 
     sa.sa_handler = enter_drain_mode;
     r = sigaction(SIGUSR1, &sa, 0);
-    if (r == -1) perror("sigaction(SIGUSR1)"), exit(111);
+    if (r == -1) twarn("sigaction(SIGUSR1)"), exit(111);
 }
 
 static void
@@ -95,7 +95,7 @@ check_err(conn c, const char *s)
     if (errno == EINTR) return;
     if (errno == EWOULDBLOCK) return;
 
-    perror(s);
+    warn("%s:%d in %s: %s", __FILE__, __LINE__, __func__, s);
     conn_close(c);
     return;
 }
@@ -209,7 +209,7 @@ wait_for_job(conn c)
 
     /* this conn is waiting, but we want to know if they hang up */
     r = conn_update_evq(c, EV_READ | EV_PERSIST);
-    if (r == -1) return warn("update events failed"), conn_close(c);
+    if (r == -1) return twarnx("update events failed"), conn_close(c);
 
     c->state = STATE_WAIT;
     enqueue_waiting_conn(c);
@@ -270,13 +270,13 @@ do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
 
     /* now actually format the stats data */
     r = fmt(c->out_job->body, stats_len, data);
-    if (r != stats_len) return warn("snprintf inconsistency"), conn_close(c);
+    if (r != stats_len) return twarnx("snprintf inconsistency"), conn_close(c);
     c->out_job->body[stats_len - 1] = '\n'; /* patch up sprintf's output */
 
     c->out_job_sent = 0;
 
     r = snprintf(c->reply_buf, LINE_BUF_SIZE, "OK %d\r\n", stats_len - 2);
-    if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
+    if (r >= LINE_BUF_SIZE) return twarnx("truncated reply"), conn_close(c);
 
     reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
 }
@@ -449,7 +449,7 @@ dispatch_cmd(conn c)
 
         r = snprintf(c->reply_buf, LINE_BUF_SIZE, "KICKED %u\r\n", i);
         /* can't happen */
-        if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
+        if (r >= LINE_BUF_SIZE) return twarnx("truncated reply"), conn_close(c);
 
         reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDWORD);
         break;
@@ -491,7 +491,7 @@ reset_conn(conn c)
     int r;
 
     r = conn_update_evq(c, EV_READ | EV_PERSIST);
-    if (r == -1) return warn("update events failed"), conn_close(c);
+    if (r == -1) return twarnx("update events failed"), conn_close(c);
 
     /* was this a peek or stats command? */
     if (!has_reserved_this_job(c, c->out_job)) free(c->out_job);
@@ -605,7 +605,7 @@ h_conn_timeout(conn c)
         j->timeout_ct++;
         enqueue_job(remove_this_reserved_job(c, j));
         r = conn_update_evq(c, c->evq.ev_events);
-        if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
+        if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
     }
 }
 
@@ -616,7 +616,7 @@ static void
 h_conn(const int fd, const short which, conn c)
 {
     if (fd != c->fd) {
-        warn("Argh! event fd doesn't match conn fd.");
+        twarnx("Argh! event fd doesn't match conn fd.");
         close(fd);
         return conn_close(c);
     }
@@ -648,21 +648,22 @@ h_accept(const int fd, const short which, struct event *ev)
     addrlen = sizeof addr;
     cfd = accept(fd, &addr, &addrlen);
     if (cfd == -1) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) perror("accept()");
+        if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
         return;
     }
 
     flags = fcntl(cfd, F_GETFL, 0);
-    if (flags < 0) return perror("getting flags"), close(cfd), v();
+    if (flags < 0) return twarn("getting flags"), close(cfd), v();
 
     r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
-    if (r < 0) return perror("setting O_NONBLOCK"), close(cfd), v();
+    if (r < 0) return twarn("setting O_NONBLOCK"), close(cfd), v();
 
     c = make_conn(cfd, STATE_WANTCOMMAND);
-    if (!c) return warn("make_conn() failed"), close(cfd), v();
+    if (!c) return twarnx("make_conn() failed"), close(cfd), v();
 
+    dprintf("accepted conn, fd=%d\n", cfd);
     r = conn_set_evq(c, EV_READ | EV_PERSIST, (evh) h_conn);
-    if (r == -1) return warn("conn_set_evq() failed"), close(cfd), v();
+    if (r == -1) return twarnx("conn_set_evq() failed"), close(cfd), v();
 }
 
 int
@@ -672,7 +673,7 @@ main(int argc, char **argv)
     struct event listen_evq;
 
     listen_socket = make_server_socket(HOST, PORT);
-    if (listen_socket == -1) warn("make_server_socket()"), exit(111);
+    if (listen_socket == -1) twarnx("make_server_socket()"), exit(111);
 
     prot_init();
 #ifndef DEBUG

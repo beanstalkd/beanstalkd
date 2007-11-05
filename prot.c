@@ -35,7 +35,7 @@ reply(conn c, char *line, int len, int state)
     int r;
 
     r = conn_update_evq(c, EV_WRITE | EV_PERSIST);
-    if (r == -1) return warn("conn_update_evq() failed"), conn_close(c);
+    if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
 
     c->reply = line;
     c->reply_len = len;
@@ -56,7 +56,7 @@ reply_job(conn c, job j, const char *word)
                  word, j->id, j->pri, j->body_size - 2);
 
     /* can't happen */
-    if (r >= LINE_BUF_SIZE) return warn("truncated reply"), conn_close(c);
+    if (r >= LINE_BUF_SIZE) return twarnx("truncated reply"), conn_close(c);
 
     return reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
 }
