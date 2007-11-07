@@ -14,7 +14,7 @@
 /* Doubly-linked list of free connections. */
 static struct conn pool = { &pool, &pool, 0 };
 
-int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
+static int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
 
 static conn
 conn_alloc()
@@ -160,9 +160,7 @@ conn_close(conn c)
     /* was this a peek or stats command? */
     if (!has_reserved_this_job(c, c->out_job)) free(c->out_job);
 
-    if (has_reserved_job(c)) enqueue_reserved_jobs(c);
     c->in_job = c->out_job = NULL;
-
 
     if (c->type & CONN_TYPE_PRODUCER) cur_producer_ct--; /* stats */
     if (c->type & CONN_TYPE_WORKER) cur_worker_ct--; /* stats */
@@ -172,5 +170,7 @@ conn_close(conn c)
     unbrake(NULL);
     remove_waiting_conn(c);
     conn_remove(c);
+    if (has_reserved_job(c)) enqueue_reserved_jobs(c);
+
     conn_free(c);
 }
