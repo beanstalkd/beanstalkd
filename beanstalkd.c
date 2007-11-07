@@ -213,8 +213,8 @@ enqueue_incoming_job(conn c)
 
     if (r) return reply(c, MSG_INSERTED, MSG_INSERTED_LEN, STATE_SENDWORD);
 
-    free(j); /* the job didn't go in the queue, so it goes bye bye */
-    reply(c, MSG_NOT_INSERTED, MSG_NOT_INSERTED_LEN, STATE_SENDWORD);
+    bury_job(j); /* there was no room in the queue, so it gets buried */
+    reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
 }
 
 static void
@@ -451,8 +451,8 @@ dispatch_cmd(conn c)
         r = enqueue_job(j);
         if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
 
-        free(j); /* the job didn't go in the queue, so it goes bye bye */
-        reply(c, MSG_NOT_RELEASED, MSG_NOT_RELEASED_LEN, STATE_SENDWORD);
+        bury_job(j); /* there was no room in the queue, so it gets buried */
+        reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
     case OP_BURY:
         errno = 0;
