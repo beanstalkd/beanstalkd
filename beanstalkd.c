@@ -89,6 +89,31 @@ set_sig_handlers()
     if (r == -1) twarn("sigaction(SIGUSR1)"), exit(111);
 }
 
+/* This is a workaround for a mystifying workaround in libevent's epoll
+ * implementation. The epoll_init() function creates an epoll fd with space to
+ * handle RLIMIT_NOFILE - 1 fds, accompanied by the following puzzling comment:
+ * "Solaris is somewhat retarded - it's important to drop backwards
+ * compatibility when making changes. So, don't dare to put rl.rlim_cur here."
+ * This is presumably to work around a bug in Solaris, but it has the
+ * unfortunate side-effect of causing epoll_ctl() (and, therefore, event_add())
+ * to fail for a valid fd if we have hit the limit of open fds. That makes it
+ * hard to provide reasonable behavior in that situation. So, let's reduce the
+ * real value of RLIMIT_NOFILE by one, after epoll_init() has run. */
+static void
+nudge_fd_limit()
+{
+    int r;
+    struct rlimit rl;
+
+    r = getrlimit(RLIMIT_NOFILE, &rl);
+    if (r != 0) twarn("getrlimit(RLIMIT_NOFILE)"), exit(2);
+
+    rl.rlim_cur--;
+
+    r = setrlimit(RLIMIT_NOFILE, &rl);
+    if (r != 0) twarn("setrlimit(RLIMIT_NOFILE)"), exit(2);
+}
+
 static void
 check_err(conn c, const char *s)
 {
@@ -682,6 +707,7 @@ main(int argc, char **argv)
 #endif
     event_init();
     set_sig_handlers();
+    nudge_fd_limit();
 
     unbrake((evh) h_accept);
 
