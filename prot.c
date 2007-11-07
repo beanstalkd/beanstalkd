@@ -61,11 +61,13 @@ reply_job(conn c, job j, const char *word)
     return reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
 }
 
-static conn
-next_waiting_conn()
+conn
+remove_waiting_conn(conn c)
 {
+    if (!(c->type & CONN_TYPE_WAITING)) return NULL;
+    c->type &= ~CONN_TYPE_WAITING;
     waiting_ct--;
-    return conn_remove(wait_queue.next);
+    return conn_remove(c);
 }
 
 void
@@ -77,7 +79,7 @@ process_queue()
         j = pq_take(ready_q);
         if (!j) return;
         if (j->pri < URGENT_THRESHOLD) urgent_ct--;
-        reserve_job(next_waiting_conn(), j);
+        reserve_job(remove_waiting_conn(wait_queue.next), j);
     }
 }
 
@@ -140,6 +142,7 @@ void
 enqueue_waiting_conn(conn c)
 {
     waiting_ct++;
+    c->type |= CONN_TYPE_WAITING;
     conn_insert(&wait_queue, conn_remove(c) ? : c);
 }
 

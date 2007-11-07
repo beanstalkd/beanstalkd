@@ -34,6 +34,7 @@
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1
 #define CONN_TYPE_WORKER 2
+#define CONN_TYPE_WAITING 4
 
 typedef struct conn *conn;
 

@@ -170,6 +170,7 @@ conn_close(conn c)
     cur_conn_ct--; /* stats */
 
     unbrake(NULL);
+    remove_waiting_conn(c);
     conn_remove(c);
     conn_free(c);
 }

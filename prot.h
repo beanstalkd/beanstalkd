@@ -21,6 +21,7 @@ void prot_init();
 void reply(conn c, char *line, int len, int state);
 void reply_job(conn c, job j, const char *word);
 
+conn remove_waiting_conn(conn c);
 void enqueue_waiting_conn(conn c);
 
 int enqueue_job(job j);

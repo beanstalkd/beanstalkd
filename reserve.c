@@ -14,7 +14,6 @@ reserve_job(conn c, job j)
 {
     j->deadline = time(NULL) + RESERVATION_TIMEOUT;
     cur_reserved_ct++; /* stats */
-    conn_remove(c);
     conn_insert(&running, c);
     j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
