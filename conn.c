@@ -169,6 +169,7 @@ conn_close(conn c)
 
     cur_conn_ct--; /* stats */
 
+    unbrake(NULL);
     conn_remove(c);
     conn_free(c);
 }

@@ -1,9 +1,14 @@
 /* net.c - stupid boilerplate shit that I shouldn't have to write */
 
 #include <stdio.h>
+#include <errno.h>
 
 #include "net.h"
 #include "util.h"
+
+static int listen_socket = -1;
+static struct event listen_evq;
+static evh accept_handler;
 
 int
 make_server_socket(int host, int port)
@@ -38,6 +43,39 @@ make_server_socket(int host, int port)
     r = listen(fd, 1024);
     if (r == -1) return twarn("listen()"), close(fd), -1;
 
-    return fd;
+    return listen_socket = fd;
+}
+
+void
+brake()
+{
+    int r;
+
+    twarnx("too many connections; putting on the brakes");
+
+    r = event_del(&listen_evq);
+    if (r == -1) twarn("event_del()");
+
+    r = listen(listen_socket, 0);
+    if (r == -1) twarn("listen()");
+}
+
+void
+unbrake(evh h)
+{
+    int r;
+
+    twarnx("releasing the brakes");
+
+    accept_handler = h ? : accept_handler;
+    event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST,
+              accept_handler, &listen_evq);
+
+    errno = 0;
+    r = event_add(&listen_evq, NULL);
+    if (r == -1) twarn("event_add()");
+
+    r = listen(listen_socket, 1024);
+    if (r == -1) twarn("listen()");
 }
 

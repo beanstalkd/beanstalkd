@@ -13,4 +13,7 @@
 
 int make_server_socket(int host, int port);
 
+void brake();
+void unbrake(evh h);
+
 #endif /*net_h*/

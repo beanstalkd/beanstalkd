@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 
 #include "conn.h"
 #include "net.h"
@@ -649,6 +650,7 @@ h_accept(const int fd, const short which, struct event *ev)
     cfd = accept(fd, &addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
+        if (errno == EMFILE) brake();
         return;
     }
 
@@ -659,21 +661,20 @@ h_accept(const int fd, const short which, struct event *ev)
     if (r < 0) return twarn("setting O_NONBLOCK"), close(cfd), v();
 
     c = make_conn(cfd, STATE_WANTCOMMAND);
-    if (!c) return twarnx("make_conn() failed"), close(cfd), v();
+    if (!c) return twarnx("make_conn() failed"), close(cfd), brake();
 
     dprintf("accepted conn, fd=%d\n", cfd);
     r = conn_set_evq(c, EV_READ | EV_PERSIST, (evh) h_conn);
-    if (r == -1) return twarnx("conn_set_evq() failed"), close(cfd), v();
+    if (r == -1) return twarnx("conn_set_evq() failed"), close(cfd), brake();
 }
 
 int
 main(int argc, char **argv)
 {
-    int listen_socket;
-    struct event listen_evq;
+    int r;
 
-    listen_socket = make_server_socket(HOST, PORT);
-    if (listen_socket == -1) twarnx("make_server_socket()"), exit(111);
+    r = make_server_socket(HOST, PORT);
+    if (r == -1) twarnx("make_server_socket()"), exit(111);
 
     prot_init();
 #ifndef DEBUG
@@ -682,9 +683,9 @@ main(int argc, char **argv)
     event_init();
     set_sig_handlers();
 
-    event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST, (evh) h_accept, &listen_evq);
-    event_add(&listen_evq, NULL);
+    unbrake((evh) h_accept);
 
     event_dispatch();
+    twarnx("got here for some reason");
     return 0;
 }
