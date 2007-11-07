@@ -23,6 +23,7 @@
 /* job body cannot be greater than this many bytes long */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
+static time_t start_time;
 static int drain_mode = 0;
 
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
@@ -241,6 +242,12 @@ wait_for_job(conn c)
     enqueue_waiting_conn(c);
 }
 
+static unsigned int
+uptime()
+{
+    return time(NULL) - start_time;
+}
+
 static int
 fmt_stats(char *buf, size_t size, void *x)
 {
@@ -261,7 +268,8 @@ fmt_stats(char *buf, size_t size, void *x)
             count_cur_conns(),
             count_cur_producers(),
             count_cur_workers(),
-            count_cur_waiting());
+            count_cur_waiting(),
+            uptime());
 
 }
 
@@ -697,6 +705,8 @@ int
 main(int argc, char **argv)
 {
     int r;
+
+    start_time = time(NULL);
 
     r = make_server_socket(HOST, PORT);
     if (r == -1) twarnx("make_server_socket()"), exit(111);

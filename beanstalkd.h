@@ -64,6 +64,7 @@
     "current-producers: %u\n" \
     "current-workers: %u\n" \
     "current-waiting: %u\n" \
+    "uptime: %u\n" \
     "\r\n"
 
 #define JOB_STATS_FMT "---\n" \
