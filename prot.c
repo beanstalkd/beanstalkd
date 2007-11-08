@@ -11,6 +11,7 @@
 #include "reserve.h"
 
 static pq ready_q;
+static pq delay_q;
 
 /* Doubly-linked list of waiting connections. */
 static struct conn wait_queue = { &wait_queue, &wait_queue, 0 };
@@ -84,14 +85,20 @@ process_queue()
 }
 
 int
-enqueue_job(job j)
+enqueue_job(job j, unsigned int delay)
 {
     int r;
 
-    r = pq_give(ready_q, j);
-    if (!r) return 0;
-    j->state = JOB_STATE_READY;
-    if (j->pri < URGENT_THRESHOLD) urgent_ct++;
+    if (delay) {
+        r = pq_give(delay_q, j);
+        if (!r) return 0;
+        j->state = JOB_STATE_DELAY;
+    } else {
+        r = pq_give(ready_q, j);
+        if (!r) return 0;
+        j->state = JOB_STATE_READY;
+        if (j->pri < URGENT_THRESHOLD) urgent_ct++;
+    }
     process_queue();
     return 1;
 }
@@ -116,7 +123,7 @@ kick_job()
     j = job_remove(graveyard.next);
     buried_ct--;
     j->kick_ct++;
-    r = enqueue_job(j);
+    r = enqueue_job(j, 0);
     if (!r) return bury_job(j), 0;
     return 1;
 }
@@ -162,6 +169,12 @@ get_ready_job_ct()
 }
 
 unsigned int
+get_delayed_job_ct()
+{
+    return pq_used(delay_q);
+}
+
+unsigned int
 get_buried_job_ct()
 {
     return buried_ct;
@@ -179,8 +192,33 @@ count_cur_waiting()
     return waiting_ct;
 }
 
+static int
+job_pri_cmp(job a, job b)
+{
+    if (a->pri == b->pri) {
+        /* we can't just subtract because id has too many bits */
+        if (a->id > b->id) return 1;
+        if (a->id < b->id) return -1;
+        return 0;
+    }
+    return a->pri - b->pri;
+}
+
+static int
+job_delay_cmp(job a, job b)
+{
+    if (a->delay == b->delay) {
+        /* we can't just subtract because id has too many bits */
+        if (a->id > b->id) return 1;
+        if (a->id < b->id) return -1;
+        return 0;
+    }
+    return a->delay - b->delay;
+}
+
 void
 prot_init()
 {
-    ready_q = make_pq(HEAP_SIZE);
+    ready_q = make_pq(HEAP_SIZE, job_pri_cmp);
+    delay_q = make_pq(HEAP_SIZE, job_delay_cmp);
 }

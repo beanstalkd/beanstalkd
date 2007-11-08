@@ -9,6 +9,7 @@
 #define JOB_STATE_READY 1
 #define JOB_STATE_RESERVED 2
 #define JOB_STATE_BURIED 3
+#define JOB_STATE_DELAY 4
 
 typedef struct job *job;
 
@@ -31,7 +32,7 @@ struct job {
 job allocate_job(int body_size);
 job make_job(unsigned int pri, unsigned int delay, int body_size);
 
-int job_cmp(job a, job b);
+typedef int(*job_cmp_fn)(job, job);
 
 job job_copy(job j);
 

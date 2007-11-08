@@ -6,7 +6,7 @@
 #include "pq.h"
 
 pq
-make_pq(unsigned int size)
+make_pq(unsigned int size, job_cmp_fn cmp)
 {
     pq q;
 
@@ -15,6 +15,7 @@ make_pq(unsigned int size)
 
     q->size = size;
     q->used = 0;
+    q->cmp = cmp;
 
     return q;
 }
@@ -36,7 +37,7 @@ swap(pq q, unsigned int a, unsigned int b)
 static int
 cmp(pq q, unsigned int a, unsigned int b)
 {
-    return job_cmp(q->heap[a], q->heap[b]);
+    return q->cmp(q->heap[a], q->heap[b]);
 }
 
 static void

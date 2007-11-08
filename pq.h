@@ -8,11 +8,12 @@
 typedef struct pq {
     unsigned int size;
     unsigned int used;
+    job_cmp_fn cmp;
     job heap[];
 } *pq;
 
 /* make a fixed-size priority queue of the given size */
-pq make_pq(unsigned int size);
+pq make_pq(unsigned int size, job_cmp_fn cmp);
 
 /* return 1 if the job was inserted, else 0 */
 int pq_give(pq q, job j);

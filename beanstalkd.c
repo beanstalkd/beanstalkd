@@ -208,7 +208,7 @@ enqueue_incoming_job(conn c)
     if (memcmp(j->body + j->body_size - 2, "\r\n", 2)) return conn_close(c);
 
     /* we have a complete job, so let's stick it in the pqueue */
-    r = enqueue_job(j);
+    r = enqueue_job(j, j->delay);
     put_ct++; /* stats */
 
     if (r) return reply(c, MSG_INSERTED, MSG_INSERTED_LEN, STATE_SENDWORD);
@@ -255,6 +255,7 @@ fmt_stats(char *buf, size_t size, void *x)
             get_urgent_job_ct(),
             get_ready_job_ct(),
             get_reserved_job_ct(),
+            get_delayed_job_ct(),
             get_buried_job_ct(),
             put_ct,
             peek_ct,
@@ -464,7 +465,7 @@ dispatch_cmd(conn c)
         j->delay = delay;
         j->release_ct++;
         release_ct++; /* stats */
-        r = enqueue_job(j);
+        r = enqueue_job(j, delay);
         if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
 
         bury_job(j); /* there was no room in the queue, so it gets buried */
@@ -653,7 +654,7 @@ h_conn_timeout(conn c)
         if (j->deadline > time(NULL)) return;
         timeout_ct++; /* stats */
         j->timeout_ct++;
-        enqueue_job(remove_this_reserved_job(c, j));
+        enqueue_job(remove_this_reserved_job(c, j), 0);
         r = conn_update_evq(c, c->evq.ev_events);
         if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
     }

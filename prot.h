@@ -24,7 +24,7 @@ void reply_job(conn c, job j, const char *word);
 conn remove_waiting_conn(conn c);
 void enqueue_waiting_conn(conn c);
 
-int enqueue_job(job j);
+int enqueue_job(job j, unsigned int delay);
 void bury_job(job j);
 int kick_job();
 void process_queue();
@@ -33,6 +33,7 @@ job peek_job(unsigned long long int id);
 job peek_buried_job();
 
 unsigned int get_ready_job_ct();
+unsigned int get_delayed_job_ct();
 unsigned int get_buried_job_ct();
 unsigned int get_urgent_job_ct();
 int count_cur_waiting();

@@ -58,24 +58,13 @@ job_copy(job j)
     return n;
 }
 
-int
-job_cmp(job a, job b)
-{
-    if (a->pri == b->pri) {
-        /* we can't just subtract because id has too many bits */
-        if (a->id > b->id) return 1;
-        if (a->id < b->id) return -1;
-        return 0;
-    }
-    return a->pri - b->pri;
-}
-
 const char *
 job_state(job j)
 {
     if (j->state == JOB_STATE_READY) return "ready";
     if (j->state == JOB_STATE_RESERVED) return "reserved";
     if (j->state == JOB_STATE_BURIED) return "buried";
+    if (j->state == JOB_STATE_DELAY) return "delay";
     return "invalid";
 }
 

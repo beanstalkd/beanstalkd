@@ -46,6 +46,7 @@
     "current-jobs-urgent: %u\n" \
     "current-jobs-ready: %u\n" \
     "current-jobs-reserved: %u\n" \
+    "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
     "cmd-put: %llu\n" \
     "cmd-peek: %llu\n" \
