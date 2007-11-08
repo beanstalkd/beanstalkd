@@ -338,14 +338,22 @@ read_pri(unsigned int *pri, const char *buf, char **end)
     return 0;
 }
 
+/* Read a delay value from the given buffer and place it in delay.
+ * The interface and behavior are the same as in read_pri(). */
+static int
+read_delay(unsigned int *delay, const char *buf, char **end)
+{
+    return read_pri(delay, buf, end);
+}
+
 static void
 dispatch_cmd(conn c)
 {
     int r, count, i;
     job j;
     char type;
-    char *size_buf, *pri_buf, *end_buf;
-    unsigned int pri, body_size;
+    char *size_buf, *delay_buf, *pri_buf, *end_buf;
+    unsigned int pri, delay, body_size;
     unsigned long long int id;
 
     /* NUL-terminate this string so we can use strtol and friends */
@@ -360,7 +368,10 @@ dispatch_cmd(conn c)
     case OP_PUT:
         if (drain_mode) return conn_close(c);
 
-        r = read_pri(&pri, c->cmd + 4, &size_buf);
+        r = read_pri(&pri, c->cmd + 4, &delay_buf);
+        if (r) return conn_close(c);
+
+        r = read_delay(&delay, delay_buf, &size_buf);
         if (r) return conn_close(c);
 
         errno = 0;
@@ -374,7 +385,7 @@ dispatch_cmd(conn c)
 
         conn_set_producer(c);
 
-        c->in_job = make_job(pri, body_size + 2);
+        c->in_job = make_job(pri, delay, body_size + 2);
 
         fill_extra_data(c);
 
@@ -438,7 +449,10 @@ dispatch_cmd(conn c)
         id = strtoull(c->cmd + CMD_RELEASE_LEN, &pri_buf, 10);
         if (errno) return conn_close(c);
 
-        r = read_pri(&pri, pri_buf, NULL);
+        r = read_pri(&pri, pri_buf, &delay_buf);
+        if (r) return conn_close(c);
+
+        r = read_delay(&delay, delay_buf, NULL);
         if (r) return conn_close(c);
 
         j = remove_reserved_job(c, id);
@@ -446,6 +460,7 @@ dispatch_cmd(conn c)
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->pri = pri;
+        j->delay = delay;
         j->release_ct++;
         release_ct++; /* stats */
         r = enqueue_job(j);

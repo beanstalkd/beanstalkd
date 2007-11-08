@@ -26,7 +26,7 @@ allocate_job(int body_size)
 }
 
 job
-make_job(unsigned int pri, int body_size)
+make_job(unsigned int pri, unsigned int delay, int body_size)
 {
     job j;
 
@@ -35,6 +35,7 @@ make_job(unsigned int pri, int body_size)
 
     j->id = next_id++;
     j->pri = pri;
+    j->delay = delay;
 
     return j;
 }
