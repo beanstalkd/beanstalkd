@@ -284,6 +284,7 @@ fmt_job_stats(char *buf, size_t size, void *jp)
             j->id,
             job_state(j),
             (unsigned int) (t - j->creation),
+            j->delay,
             (unsigned int) (j->deadline - t),
             j->timeout_ct,
             j->release_ct,

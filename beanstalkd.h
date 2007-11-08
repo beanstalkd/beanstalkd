@@ -67,6 +67,7 @@
     "id: %llu\n" \
     "state: %s\n" \
     "age: %u\n" \
+    "delay: %u\n" \
     "time-left: %u\n" \
     "timeouts: %u\n" \
     "releases: %u\n" \
