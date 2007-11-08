@@ -104,6 +104,13 @@ pq_take(pq q)
 }
 
 job
+pq_peek(pq q)
+{
+    if (q->used == 0) return NULL;
+    return q->heap[0];
+}
+
+job
 pq_find(pq q, unsigned long long int id)
 {
     unsigned int i;

@@ -55,13 +55,13 @@ job_pri_cmp(job a, job b)
 int
 job_delay_cmp(job a, job b)
 {
-    if (a->delay == b->delay) {
+    if (a->deadline == b->deadline) {
         /* we can't just subtract because id has too many bits */
         if (a->id > b->id) return 1;
         if (a->id < b->id) return -1;
         return 0;
     }
-    return a->delay - b->delay;
+    return a->deadline - b->deadline;
 }
 
 job

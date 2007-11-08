@@ -9,6 +9,8 @@
 static int listen_socket = -1;
 static struct event listen_evq;
 static evh accept_handler;
+static time_t main_deadline = 0;
+static int brakes_are_on = 1;
 
 int
 make_server_socket(int host, int port)
@@ -51,6 +53,8 @@ brake()
 {
     int r;
 
+    if (brakes_are_on) return;
+    brakes_are_on = 1;
     twarnx("too many connections; putting on the brakes");
 
     r = event_del(&listen_evq);
@@ -65,17 +69,27 @@ unbrake(evh h)
 {
     int r;
 
+    if (!brakes_are_on) return;
+    brakes_are_on = 0;
     twarnx("releasing the brakes");
 
     accept_handler = h ? : accept_handler;
     event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST,
               accept_handler, &listen_evq);
 
-    errno = 0;
-    r = event_add(&listen_evq, NULL);
-    if (r == -1) twarn("event_add()");
+    set_main_timeout(main_deadline);
 
     r = listen(listen_socket, 1024);
     if (r == -1) twarn("listen()");
 }
 
+void
+set_main_timeout(time_t deadline)
+{
+    int r;
+    struct timeval tv = {deadline - time(NULL), 0};
+
+    main_deadline = deadline;
+    r = event_add(&listen_evq, deadline ? &tv : NULL);
+    if (r == -1) twarn("event_add()");
+}

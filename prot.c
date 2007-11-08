@@ -9,6 +9,7 @@
 #include "conn.h"
 #include "util.h"
 #include "reserve.h"
+#include "net.h"
 
 static pq ready_q;
 static pq delay_q;
@@ -90,9 +91,11 @@ enqueue_job(job j, unsigned int delay)
     int r;
 
     if (delay) {
+        j->deadline = time(NULL) + delay;
         r = pq_give(delay_q, j);
         if (!r) return 0;
         j->state = JOB_STATE_DELAY;
+        set_main_timeout(pq_peek(delay_q)->deadline);
     } else {
         r = pq_give(ready_q, j);
         if (!r) return 0;
@@ -101,6 +104,18 @@ enqueue_job(job j, unsigned int delay)
     }
     process_queue();
     return 1;
+}
+
+job
+delay_q_peek()
+{
+    return pq_peek(delay_q);
+}
+
+job
+delay_q_take()
+{
+    return pq_take(delay_q);
 }
 
 void
@@ -157,6 +172,7 @@ job
 peek_job(unsigned long long int id)
 {
     return pq_find(ready_q, id) ? :
+           pq_find(delay_q, id) ? :
            find_reserved_job(id) ? :
            find_reserved_job_in_list(&wait_queue, id) ? :
            find_buried_job(id);

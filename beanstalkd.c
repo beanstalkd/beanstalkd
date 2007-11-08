@@ -689,12 +689,32 @@ h_conn(const int fd, const short which, conn c)
 }
 
 static void
+h_delay()
+{
+    int r;
+    job j;
+    time_t t;
+
+    t = time(NULL);
+    while ((j = delay_q_peek())) {
+        if (j->deadline > t) break;
+        j = delay_q_take();
+        r = enqueue_job(j, 0);
+        if (!r) bury_job(j); /* there was no room in the queue, so bury it */
+    }
+
+    set_main_timeout((j = delay_q_peek()) ? j->deadline : 0);
+}
+
+static void
 h_accept(const int fd, const short which, struct event *ev)
 {
     conn c;
     int cfd, flags, r;
     socklen_t addrlen;
     struct sockaddr addr;
+
+    if (which == EV_TIMEOUT) return h_delay();
 
     addrlen = sizeof addr;
     cfd = accept(fd, &addr, &addrlen);

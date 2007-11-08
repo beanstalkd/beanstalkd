@@ -25,6 +25,8 @@ conn remove_waiting_conn(conn c);
 void enqueue_waiting_conn(conn c);
 
 int enqueue_job(job j, unsigned int delay);
+job delay_q_peek();
+job delay_q_take();
 void bury_job(job j);
 int kick_job();
 void process_queue();

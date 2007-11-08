@@ -15,5 +15,6 @@ int make_server_socket(int host, int port);
 
 void brake();
 void unbrake(evh h);
+void set_main_timeout(time_t deadline);
 
 #endif /*net_h*/
