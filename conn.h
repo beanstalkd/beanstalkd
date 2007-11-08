@@ -13,10 +13,8 @@
 #define STATE_WAIT 4
 
 /* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
- * MUST be enough to hold the longest possible reply line, which is currently
- * "RESERVED 18446744073709551615 4294967295 65535\r\n". Note, this depends on
- * the value of JOB_DATA_SIZE_LIMIT, but conservatively we will assume that the
- * bytes entry can be up to 10 characters. */
+ * MUST be enough to hold the longest possible command or reply line, which is
+ * currently "release 18446744073709551615 4294967295 4294967295\r\n". */
 #define LINE_BUF_SIZE 54
 
 #define OP_UNKNOWN -1
