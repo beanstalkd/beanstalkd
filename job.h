@@ -33,6 +33,8 @@ job allocate_job(int body_size);
 job make_job(unsigned int pri, unsigned int delay, int body_size);
 
 typedef int(*job_cmp_fn)(job, job);
+int job_pri_cmp(job a, job b);
+int job_delay_cmp(job a, job b);
 
 job job_copy(job j);
 

@@ -192,30 +192,6 @@ count_cur_waiting()
     return waiting_ct;
 }
 
-static int
-job_pri_cmp(job a, job b)
-{
-    if (a->pri == b->pri) {
-        /* we can't just subtract because id has too many bits */
-        if (a->id > b->id) return 1;
-        if (a->id < b->id) return -1;
-        return 0;
-    }
-    return a->pri - b->pri;
-}
-
-static int
-job_delay_cmp(job a, job b)
-{
-    if (a->delay == b->delay) {
-        /* we can't just subtract because id has too many bits */
-        if (a->id > b->id) return 1;
-        if (a->id < b->id) return -1;
-        return 0;
-    }
-    return a->delay - b->delay;
-}
-
 void
 prot_init()
 {
