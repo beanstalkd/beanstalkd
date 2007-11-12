@@ -127,6 +127,14 @@ bury_job(job j)
     j->bury_ct++;
 }
 
+static job
+remove_this_buried_job(job j)
+{
+    j = job_remove(j);
+    if (j) buried_ct--;
+    return j;
+}
+
 /* return the number of jobs successfully kicked */
 int
 kick_job()
@@ -135,8 +143,7 @@ kick_job()
     job j;
 
     if (!buried_job_p()) return 0;
-    j = job_remove(graveyard.next);
-    buried_ct--;
+    j = remove_this_buried_job(graveyard.next);
     j->kick_ct++;
     r = enqueue_job(j, 0);
     if (!r) return bury_job(j), 0;
@@ -158,6 +165,12 @@ find_buried_job(unsigned long long int id)
         if (j->id == id) return j;
     }
     return NULL;
+}
+
+job
+remove_buried_job(unsigned long long int id)
+{
+    return remove_this_buried_job(find_buried_job(id));
 }
 
 void

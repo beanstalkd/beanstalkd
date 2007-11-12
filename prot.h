@@ -33,6 +33,7 @@ void process_queue();
 
 job peek_job(unsigned long long int id);
 job peek_buried_job();
+job remove_buried_job(unsigned long long int id);
 
 unsigned int get_ready_job_ct();
 unsigned int get_delayed_job_ct();

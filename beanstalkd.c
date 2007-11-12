@@ -447,7 +447,7 @@ dispatch_cmd(conn c)
         id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10);
         if (errno) return conn_close(c);
 
-        j = remove_reserved_job(c, id);
+        j = remove_reserved_job(c, id) ? : remove_buried_job(id);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
