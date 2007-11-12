@@ -123,3 +123,8 @@ job_insert(job head, job j)
     head->prev = j;
 }
 
+unsigned long long int
+total_jobs()
+{
+    return next_id - 1;
+}

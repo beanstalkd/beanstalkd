@@ -44,4 +44,6 @@ int job_list_any_p(job head);
 job job_remove(job j);
 void job_insert(job head, job j);
 
+unsigned long long int total_jobs();
+
 #endif /*job_h*/

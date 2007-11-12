@@ -19,6 +19,7 @@
 #include "util.h"
 #include "prot.h"
 #include "reserve.h"
+#include "version.h"
 
 /* job body cannot be greater than this many bytes long */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
@@ -251,12 +252,15 @@ uptime()
 static int
 fmt_stats(char *buf, size_t size, void *x)
 {
+    struct rusage ru = {{0, 0}, {0, 0}};
+    getrusage(RUSAGE_SELF, &ru); /* don't care if it fails */
     return snprintf(buf, size, STATS_FMT,
             get_urgent_job_ct(),
             get_ready_job_ct(),
             get_reserved_job_ct(),
             get_delayed_job_ct(),
             get_buried_job_ct(),
+            HEAP_SIZE,
             put_ct,
             peek_ct,
             reserve_ct,
@@ -266,10 +270,16 @@ fmt_stats(char *buf, size_t size, void *x)
             kick_ct,
             stats_ct,
             timeout_ct,
+            total_jobs(),
             count_cur_conns(),
             count_cur_producers(),
             count_cur_workers(),
             count_cur_waiting(),
+            count_tot_conns(),
+            getpid(),
+            VERSION,
+            (int) ru.ru_utime.tv_sec, (int) ru.ru_utime.tv_usec,
+            (int) ru.ru_stime.tv_sec, (int) ru.ru_stime.tv_usec,
             uptime());
 
 }

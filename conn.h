@@ -74,6 +74,7 @@ conn conn_remove(conn c);
 void conn_insert(conn head, conn c);
 
 int count_cur_conns();
+unsigned int count_tot_conns();
 int count_cur_producers();
 int count_cur_workers();
 

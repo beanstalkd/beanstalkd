@@ -15,6 +15,7 @@
 static struct conn pool = { &pool, &pool, 0 };
 
 static int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
+static unsigned int tot_conn_ct = 0;
 
 static conn
 conn_alloc()
@@ -48,7 +49,9 @@ make_conn(int fd, char start_state)
     j = &c->reserved_jobs;
     j->prev = j->next = j;
 
-    cur_conn_ct++; /* stats */
+    /* stats */
+    cur_conn_ct++;
+    tot_conn_ct++;
 
     return c;
 }
@@ -73,6 +76,12 @@ int
 count_cur_conns()
 {
     return cur_conn_ct;
+}
+
+unsigned int
+count_tot_conns()
+{
+    return tot_conn_ct;
 }
 
 int

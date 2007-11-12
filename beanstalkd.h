@@ -48,6 +48,7 @@
     "current-jobs-reserved: %u\n" \
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
+    "limit-max-jobs-ready: %u\n" \
     "cmd-put: %llu\n" \
     "cmd-peek: %llu\n" \
     "cmd-reserve: %llu\n" \
@@ -57,10 +58,16 @@
     "cmd-kick: %llu\n" \
     "cmd-stats: %llu\n" \
     "job-timeouts: %llu\n" \
+    "total-jobs: %llu\n" \
     "current-connections: %u\n" \
     "current-producers: %u\n" \
     "current-workers: %u\n" \
     "current-waiting: %u\n" \
+    "total-connections: %u\n" \
+    "pid: %u\n" \
+    "version: %s\n" \
+    "rusage-utime: %d.%06d\n" \
+    "rusage-stime: %d.%06d\n" \
     "uptime: %u\n" \
     "\r\n"
 
