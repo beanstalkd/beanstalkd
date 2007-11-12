@@ -664,7 +664,8 @@ h_conn_timeout(conn c)
         if (j->deadline > time(NULL)) return;
         timeout_ct++; /* stats */
         j->timeout_ct++;
-        enqueue_job(remove_this_reserved_job(c, j), 0);
+        r = enqueue_job(remove_this_reserved_job(c, j), 0);
+        if (!r) bury_job(j); /* there was no room in the queue, so bury it */
         r = conn_update_evq(c, c->evq.ev_events);
         if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
     }
