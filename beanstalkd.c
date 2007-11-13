@@ -409,7 +409,7 @@ dispatch_cmd(conn c)
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_PEEK_LEN + 2) return conn_close(c);
 
-        j = job_copy(peek_buried_job());
+        j = job_copy(peek_buried_job() ? : delay_q_peek());
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
