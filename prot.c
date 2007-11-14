@@ -145,17 +145,57 @@ kick_buried_job()
     j = remove_this_buried_job(graveyard.next);
     j->kick_ct++;
     r = enqueue_job(j, 0);
-    if (!r) return bury_job(j), 0;
-    return 1;
+    if (r) return 1;
+
+    /* ready_q is full, so bury it */
+    bury_job(j);
+    return 0;
+}
+
+static int
+kick_delayed_job()
+{
+    int r;
+    job j;
+
+    if (get_delayed_job_ct() < 1) return 0;
+    j = delay_q_take();
+    j->kick_ct++;
+    r = enqueue_job(j, 0);
+    if (r) return 1;
+
+    /* ready_q is full, so delay it again */
+    r = enqueue_job(j, j->delay);
+    if (r) return 0;
+
+    /* last resort */
+    bury_job(j);
+    return 0;
 }
 
 /* return the number of jobs successfully kicked */
-unsigned int
-kick_jobs(unsigned int n)
+static unsigned int
+kick_buried_jobs(unsigned int n)
 {
     unsigned int i;
     for (i = 0; (i < n) && kick_buried_job(); ++i);
     return i;
+}
+
+/* return the number of jobs successfully kicked */
+static unsigned int
+kick_delayed_jobs(unsigned int n)
+{
+    unsigned int i;
+    for (i = 0; (i < n) && kick_delayed_job(); ++i);
+    return i;
+}
+
+unsigned int
+kick_jobs(unsigned int n)
+{
+    if (buried_job_p()) return kick_buried_jobs(n);
+    return kick_delayed_jobs(n);
 }
 
 job
