@@ -28,7 +28,7 @@ int enqueue_job(job j, unsigned int delay);
 job delay_q_peek();
 job delay_q_take();
 void bury_job(job j);
-int kick_job();
+unsigned int kick_jobs(unsigned int n);
 void process_queue();
 
 job peek_job(unsigned long long int id);

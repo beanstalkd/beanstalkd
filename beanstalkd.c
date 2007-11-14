@@ -361,7 +361,8 @@ read_delay(unsigned int *delay, const char *buf, char **end)
 static void
 dispatch_cmd(conn c)
 {
-    int r, count, i;
+    int r, i;
+    unsigned int count;
     job j;
     char type;
     char *size_buf, *delay_buf, *pri_buf, *end_buf;
@@ -506,7 +507,7 @@ dispatch_cmd(conn c)
 
         kick_ct++; /* stats */
 
-        for (i = 0; (i < count) && kick_job(); i++);
+        i = kick_jobs(count);
 
         r = snprintf(c->reply_buf, LINE_BUF_SIZE, "KICKED %u\r\n", i);
         /* can't happen */

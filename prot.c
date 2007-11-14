@@ -135,9 +135,8 @@ remove_this_buried_job(job j)
     return j;
 }
 
-/* return the number of jobs successfully kicked */
-int
-kick_job()
+static int
+kick_buried_job()
 {
     int r;
     job j;
@@ -148,6 +147,15 @@ kick_job()
     r = enqueue_job(j, 0);
     if (!r) return bury_job(j), 0;
     return 1;
+}
+
+/* return the number of jobs successfully kicked */
+unsigned int
+kick_jobs(unsigned int n)
+{
+    unsigned int i;
+    for (i = 0; (i < n) && kick_buried_job(); ++i);
+    return i;
 }
 
 job
