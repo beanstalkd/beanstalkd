@@ -202,11 +202,11 @@ enqueue_incoming_job(conn c)
     int r;
     job j = c->in_job;
 
-    c->in_job = NULL; /* the connection no longer owns this job */
-    c->in_job_read = 0;
-
     /* check if the trailer is present and correct */
     if (memcmp(j->body + j->body_size - 2, "\r\n", 2)) return conn_close(c);
+
+    c->in_job = NULL; /* the connection no longer owns this job */
+    c->in_job_read = 0;
 
     /* we have a complete job, so let's stick it in the pqueue */
     r = enqueue_job(j, j->delay);
