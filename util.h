@@ -13,9 +13,9 @@ void v();
                                    __FILE__, __LINE__, __func__, ##args)
 
 #ifdef DEBUG
-#define dprintf(fmt, args...) fprintf(stderr, fmt, ##args)
+#define dprintf(fmt, args...) ((void) fprintf(stderr, fmt, ##args))
 #else
-#define dprintf(fmt, ...) (0)
+#define dprintf(fmt, ...) ((void) 0)
 #endif
 
 #endif /*util_h*/
