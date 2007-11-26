@@ -290,7 +290,7 @@ check_err(conn c, const char *s)
     if (errno == EINTR) return;
     if (errno == EWOULDBLOCK) return;
 
-    warn("%s:%d in %s: %s", __FILE__, __LINE__, __func__, s);
+    twarn("%s", s);
     conn_close(c);
     return;
 }

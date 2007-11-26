@@ -37,7 +37,7 @@ make_conn(int fd, char start_state)
     conn c;
 
     c = conn_alloc();
-    if (!c) return warn("OOM"), NULL;
+    if (!c) return twarn("OOM"), NULL;
 
     c->fd = fd;
     c->state = start_state;
