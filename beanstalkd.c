@@ -2,9 +2,7 @@
 
 #include <signal.h>
 #include <stdlib.h>
-#ifndef DEBUG
 #include <sys/stat.h>
-#endif
 #include <sys/resource.h>
 
 #include "net.h"
@@ -12,7 +10,8 @@
 #include "util.h"
 #include "prot.h"
 
-#ifndef DEBUG
+static int detach = 0;
+
 static void
 nullfd(int fd, int flags)
 {
@@ -45,7 +44,6 @@ daemonize()
     setsid();
     dfork();
 }
-#endif /*DEBUG*/
 
 static void
 set_sig_handlers()
@@ -101,9 +99,7 @@ main(int argc, char **argv)
     r = make_server_socket(HOST, PORT);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
 
-#ifndef DEBUG
-    daemonize();
-#endif
+    if (detach) daemonize();
     event_init();
     set_sig_handlers();
     nudge_fd_limit();
