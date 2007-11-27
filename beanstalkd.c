@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 
@@ -13,6 +14,7 @@
 
 static char *me;
 static int detach = 0;
+static int port = 11300;
 
 static void
 nullfd(int fd, int flags)
@@ -92,9 +94,9 @@ nudge_fd_limit()
 }
 
 static void
-usage(char *arg)
+usage(char *msg, char *arg)
 {
-    if (arg) warnx("unknown option: %s", arg);
+    if (arg) warnx("%s: %s", msg, arg);
     fprintf(stderr, "Use: %s [-d] [-h]\n"
             "\n"
             "Options:\n"
@@ -104,22 +106,40 @@ usage(char *arg)
     exit(arg ? 5 : 0);
 }
 
+static int
+parse_port(char *portstr)
+{
+    int port;
+    char *end;
+
+    errno = 0;
+    port = strtol(portstr, &end, 10);
+    if (end == portstr) usage("invalid port", portstr);
+    if (end[0] != 0) usage("invalid port", portstr);
+    if (errno) usage("invalid port", portstr);
+
+   return port;
+}
+
 static void
 opts(int argc, char **argv)
 {
     int i;
 
     for (i = 1; i < argc; ++i) {
-        if (argv[i][0] != '-') usage(argv[i]);
-        if (argv[i][1] == 0 || argv[i][2] != 0) usage(argv[i]);
+        if (argv[i][0] != '-') usage("unknown option", argv[i]);
+        if (argv[i][1] == 0 || argv[i][2] != 0) usage("unknown option",argv[i]);
         switch (argv[i][1]) {
             case 'd':
                 detach = 1;
                 break;
+            case 'p':
+                port = parse_port(argv[++i]);
+                break;
             case 'h':
-                usage(NULL);
+                usage(NULL, NULL);
             default:
-                usage(argv[i]);
+                usage("unknown option", argv[i]);
         }
     }
 }
@@ -134,7 +154,7 @@ main(int argc, char **argv)
 
     prot_init();
 
-    r = make_server_socket(HOST, PORT);
+    r = make_server_socket(HOST, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
 
     if (detach) daemonize();
