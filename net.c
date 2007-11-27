@@ -13,7 +13,7 @@ static time_t main_deadline = 0;
 static int brakes_are_on = 1;
 
 int
-make_server_socket(int host, int port)
+make_server_socket(struct in_addr host_addr, int port)
 {
     int fd, flags, r;
     struct linger linger = {0, 0};
@@ -38,7 +38,7 @@ make_server_socket(int host, int port)
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = htonl(host);
+    addr.sin_addr = host_addr;
     r = bind(fd, (struct sockaddr *) &addr, sizeof addr);
     if (r == -1) return twarn("bind()"), close(fd), -1;
 

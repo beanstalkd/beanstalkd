@@ -6,6 +6,9 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "net.h"
 #include "beanstalkd.h"
@@ -15,6 +18,7 @@
 static char *me;
 static int detach = 0;
 static int port = 11300;
+static struct in_addr host_addr = { INADDR_ANY };
 
 static void
 nullfd(int fd, int flags)
@@ -101,6 +105,8 @@ usage(char *msg, char *arg)
             "\n"
             "Options:\n"
             " -d  detach\n"
+            " -l  listen on address\n"
+            " -p  listen on port\n"
             " -h  show this help\n",
             me);
     exit(arg ? 5 : 0);
@@ -121,6 +127,18 @@ parse_port(char *portstr)
    return port;
 }
 
+static struct in_addr
+parse_host(char *hoststr)
+{
+    int r;
+    struct in_addr addr;
+
+    r = inet_aton(hoststr, &addr);
+    if (!r) usage("invalid address", hoststr);
+
+    return addr;
+}
+
 static void
 opts(int argc, char **argv)
 {
@@ -135,6 +153,9 @@ opts(int argc, char **argv)
                 break;
             case 'p':
                 port = parse_port(argv[++i]);
+                break;
+            case 'l':
+                host_addr = parse_host(argv[++i]);
                 break;
             case 'h':
                 usage(NULL, NULL);
@@ -154,7 +175,7 @@ main(int argc, char **argv)
 
     prot_init();
 
-    r = make_server_socket(HOST, port);
+    r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
 
     if (detach) daemonize();

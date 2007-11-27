@@ -11,7 +11,7 @@
 #include "event.h"
 #include "conn.h"
 
-int make_server_socket(int host, int port);
+int make_server_socket(struct in_addr host_addr, int port);
 
 void brake();
 void unbrake(evh h);
