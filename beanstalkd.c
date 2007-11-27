@@ -1,6 +1,7 @@
 /* beanstalk - fast, general-purpose work queue */
 
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
@@ -10,6 +11,7 @@
 #include "util.h"
 #include "prot.h"
 
+static char *me;
 static int detach = 0;
 
 static void
@@ -89,10 +91,45 @@ nudge_fd_limit()
     if (r != 0) twarn("setrlimit(RLIMIT_NOFILE)"), exit(2);
 }
 
+static void
+usage(int err)
+{
+    fprintf(stderr, "Use: %s [-d] [-h]\n"
+            "\n"
+            "Options:\n"
+            " -d  detach\n"
+            " -h  show this help\n",
+            me);
+    exit(err);
+}
+
+static void
+opts(int argc, char **argv)
+{
+    int i;
+
+    for (i = 1; i < argc; ++i) {
+        if (argv[i][0] != '-') usage(5);
+        switch (argv[i][1]) {
+            case 'd':
+                detach = 1;
+                break;
+            case 'h':
+                usage(0);
+            default:
+                warnx("unknown option: %s", argv[i]);
+                usage(5);
+        }
+    }
+}
+
 int
 main(int argc, char **argv)
 {
     int r;
+
+    me = argv[0];
+    opts(argc, argv);
 
     prot_init();
 
