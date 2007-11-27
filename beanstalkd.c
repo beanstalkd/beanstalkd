@@ -92,15 +92,16 @@ nudge_fd_limit()
 }
 
 static void
-usage(int err)
+usage(char *arg)
 {
+    if (arg) warnx("unknown option: %s", arg);
     fprintf(stderr, "Use: %s [-d] [-h]\n"
             "\n"
             "Options:\n"
             " -d  detach\n"
             " -h  show this help\n",
             me);
-    exit(err);
+    exit(arg ? 5 : 0);
 }
 
 static void
@@ -109,16 +110,16 @@ opts(int argc, char **argv)
     int i;
 
     for (i = 1; i < argc; ++i) {
-        if (argv[i][0] != '-') usage(5);
+        if (argv[i][0] != '-') usage(argv[i]);
+        if (argv[i][1] == 0 || argv[i][2] != 0) usage(argv[i]);
         switch (argv[i][1]) {
             case 'd':
                 detach = 1;
                 break;
             case 'h':
-                usage(0);
+                usage(NULL);
             default:
-                warnx("unknown option: %s", argv[i]);
-                usage(5);
+                usage(argv[i]);
         }
     }
 }
