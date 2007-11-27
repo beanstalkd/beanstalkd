@@ -104,10 +104,10 @@ usage(char *msg, char *arg)
     fprintf(stderr, "Use: %s [-d] [-h]\n"
             "\n"
             "Options:\n"
-            " -d  detach\n"
-            " -l  listen on address\n"
-            " -p  listen on port\n"
-            " -h  show this help\n",
+            " -d       detach\n"
+            " -l ADDR  listen on address\n"
+            " -p PORT  listen on port\n"
+            " -h       show this help\n",
             me);
     exit(arg ? 5 : 0);
 }
