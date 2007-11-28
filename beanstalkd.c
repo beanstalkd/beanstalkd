@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 
 #include "net.h"
-#include "beanstalkd.h"
 #include "util.h"
 #include "prot.h"
 
