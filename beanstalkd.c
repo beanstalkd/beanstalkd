@@ -53,6 +53,13 @@ daemonize()
     dfork();
 }
 
+void
+exit_cleanly(int sig)
+{
+    exit(0);
+}
+
+
 static void
 set_sig_handlers()
 {
@@ -70,6 +77,10 @@ set_sig_handlers()
     sa.sa_handler = enter_drain_mode;
     r = sigaction(SIGUSR1, &sa, 0);
     if (r == -1) twarn("sigaction(SIGUSR1)"), exit(111);
+
+    sa.sa_handler = exit_cleanly;
+    r = sigaction(SIGINT, &sa, 0);
+    if (r == -1) twarn("sigaction(SIGINT)"), exit(111);
 }
 
 /* This is a workaround for a mystifying workaround in libevent's epoll
