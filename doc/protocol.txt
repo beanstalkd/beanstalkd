@@ -1,136 +1,326 @@
 = Beanstalk Protocol =
 
-Here is version 1 of the protocol. Still subject to change as we implement it. More info can be found in #547, #541, and #495.
+Protocol
+--------
 
-== Producer Command ==
+[describe the protocol]
 
-=== put ===
+All integers in the protocol are formatted in decimal and (unless otherwise
+indicated) nonnegative.
 
-Command line format:
+If the client violates the protocol (such as by sending a request that is not
+well-formed or a command that does not exist) or if the server has a serious
+error that prevents it from continuing service to the current client, the
+server will close the connection.
 
-{{{
-put <pri> <bytes>\r\n<data>\r\n
-}}}
+Commands
+--------
 
-Responses:
+Commands can be grouped in to three rough categories.
 
-{{{
-INSERTED\r\n
-}}}
-{{{
-NOT_INSERTED\r\n
-}}}
+The producer command, "put", places a job into the queue. The client sends a
+command line followed by the job body (as an unstructured block of data). It
+expects one line of response indicating success or failure.
 
-== Worker Commands ==
+Consumer commands (there are four: "reserve", "delete", "release", and "bury")
+are used by a worker process to consume jobs from the queue in order to run
+them.
 
-=== reserve ===
+The other commands are designed for administrators or utilities to inspect and
+manipulate the server.
 
-{{{
+Lifecycle
+---------
+
+[describe the job lifecycle]
+
+
+
+
+
+Here is a picture:
+
+
+   put with delay               release with delay
+  ----------------> [DELAYED] <------------.
+                        |                   |
+                        | (time passes)     |
+                        |                   |
+   put                  v     reserve       |       delete
+  ---------------->  [READY] ---------> [RESERVED] --------> *poof*
+                       ^  ^                |  |
+                       |   \  release      |  |
+                       |    `-------------'   |
+                       |                      |
+                       | kick                 |
+                       |                      |
+                       |       bury           |
+                    [BURIED] <---------------'
+
+
+
+
+
+
+
+
+
+Producer Command
+----------------
+
+The producer command "put" starts with a command line followed by the job body:
+
+put <pri> <delay> <bytes>\r\n
+<data>\r\n
+
+It inserts a job into the queue.
+
+ - <pri> is an integer < 2**32.
+
+ - <delay> is an integer number of seconds to wait before putting the job in
+   the ready queue. The job will be in the "delayed" state during this time.
+  
+ - <bytes> is an integer (currently must be < 2**16) indicating the size of
+   the job body, not including the trailing "\r\n".
+
+ - <data> is the job body -- a sequence of bytes of length <bytes> from the
+   previous line.
+
+After sending the command line and body, the client waits for a reply, which
+may be:
+
+ - "INSERTED\r\n" to indicate success.
+
+ - "BURIED\r\n" if the priority queue data structure is full.
+
+Worker Commands
+---------------
+
+The first worker command, "reserve", looks like this:
+
 reserve\r\n
-}}}
 
-There is only one possible response:
+This will return a newly-reserved job. If no job is available to be reserved,
+beanstalkd will wait to send a response until one becomes available. There is
+only one possible response in the form of a text line followed by the job body:
 
-{{{
-RESERVED <id> <pri> <bytes>\r\n<data>\r\n
-}}}
+RESERVED <id> <pri> <bytes>\r\n
+<data>\r\n
 
-This will return a newly-reserved job. If no job is available to be reserved, beanstalkd will wait to send a response until one becomes available.
+ - <id> is the job id -- an integer unique to this job in this instance of
+   beanstalkd.
 
-=== delete a job ===
+ - <pri> is the priority value set by the put, release, or bury commands.
 
-{{{
+ - <bytes> is an integer indicating the size of the job body, not including
+   the trailing "\r\n".
+
+ - <data> is the job body -- a sequence of bytes of length <bytes> from the
+   previous line.
+
+The delete command removes a job from the server entirely. It is normally used
+by the client when the job has successfully run to completion. It looks like
+this:
+
 delete <id>\r\n
-}}}
 
-   * "DELETED\r\n"
-   * "NOT_FOUND\r\n"
+ - <id> is the job id to delete.
 
-=== release ===
+The client then waits for one line of response, which may be:
 
-{{{
-release <id> <pri>\r\n
-}}}
+ - "DELETED\r\n" to indicate success.
 
-   * "RELEASED\r\n"
-   * "NOT_RELEASED\r\n"
-   * "NOT_FOUND\r\n"
+ - "NOT_FOUND\r\n" if the job does not exist or is not either reserved by the
+   client or buried.
 
-=== bury ===
+The release command puts a reserved job back into the ready queue (and marks
+its state as "ready") to be run by any client. It is normally used when the job
+fails because of a transitory error. It looks like this:
 
-{{{
+release <id> <pri> <delay>\r\n
+
+ - <id> is the job id to release.
+
+ - <pri> is a new priority to assign to the job.
+
+ - <delay> is an integer number of seconds to wait before putting the job in
+   the ready queue. The job will be in the "delayed" state during this time.
+
+The client expects one line of response, which may be:
+
+ - "RELEASED\r\n" to indicate success.
+
+ - "BURIED\r\n" if the priority queue data structure is full.
+
+ - "NOT_FOUND\r\n" if the job does not exist or is not reserved by the client.
+
+The bury command puts a job into the "buried" state. See the "Lifecycle"
+section for an explanation. It looks like this:
+
 bury <id> <pri>\r\n
-}}}
 
-   * "BURIED\r\n"
-   * "NOT_FOUND\r\n"
+ - <id> is the job id to release.
 
-== Admin Commands ==
+ - <pri> is a new priority to assign to the job.
 
-=== peek ===
+There are two possible responses:
 
-{{{
-peek\r\n
-}}}
+ - "BURIED\r\n" to indicate success.
 
-Will return the next job in the list of buried jobs, if any.
+ - "NOT_FOUND\r\n" if the job does not exist or is not reserved by the client.
 
-   * FOUND <id> <pri> <bytes>\r\n<data>\r\n
-   * "NOT_FOUND\r\n"
+Other Commands
+--------------
 
-=== peek (any job) ===
+The peek command lets the client inspect a job in the system. Its format:
 
-{{{
-peek <id>\r\n
-}}}
+peek[ <id>]\r\n
 
-Will return the specified job if it exists.
+If <id> is not given, peek will show the next job in the list of buried jobs,
+if any.
 
-   * FOUND <id> <pri> <bytes>\r\n<data>\r\n
-   * "NOT_FOUND\r\n"
+ - <id> is the job id to show, if given.
 
-=== kick ===
+There are two possible responses, either a single line:
 
-{{{
-kick <count>\r\n
-}}}
+ - "NOT_FOUND\r\n" if the requested job doesn't exist or there are no buried
+   jobs.
 
-   * "KICKED <count>\n\n"
+Or a line followed by a chunk of data, if the command was successful:
 
-=== stats ===
+FOUND <id> <pri> <bytes>\r\n
+<data>\r\n
 
-{{{
-stats\r\n
-}}}
+ - <id> is the job id.
 
-   * OK <bytes>\r\n followed by a yaml file of stats values:
-     * current ready job count
-     * current reserved job count
-     * current buried job count
-     * put command count
-     * peek command count
-     * reserve command count
-     * delete command count
-     * release command count
-     * bury command count
-     * kick command count
-     * stats command count
-     * timeout count (should be reserve - done - current reserved job count)
-     * current connection count
-     * current worker count
-     * current producer count
+ - <pri> is the job's priority.
 
-=== stats (for a job) ===
+ - <bytes> is an integer indicating the size of the job body, not including
+   the trailing "\r\n".
 
-{{{
-stats <id>\r\n
-}}}
+ - <data> is the job body -- a sequence of bytes of length <bytes> from the
+   previous line.
 
-    * OK <bytes>\r\n followed by a yaml file of stats values:
-      * job id
-      * ready or reserved or buried
-      * age
-      * time-left (meaningless if job is not in reserved state)
-      * timeout count
-    * "NOT_FOUND\r\n"
+The kick command moves jobs into the ready queue. If there are any buried jobs,
+it will only kick buried jobs. Otherwise it will kick delayed jobs. It looks
+like:
+
+kick <bound>\r\n
+
+ - <bound> is an integer upper bound on the number of jobs to kick. The server
+   will kick no more than this many jobs.
+
+The response is of the form
+
+KICKED <count>\r\n
+
+ - <count> is an integer indicating the number of jobs actually kicked.
+
+The stats command gives statistical information. If a job id is given, the
+respense will contain information about that job if it exists. Otherwise stats
+will return information about the system as a whole. Its form is:
+
+stats[ <id>]\r\n
+
+If a job id is given, the response may be:
+
+  - "NOT_FOUND\r\n" if the job does not exist.
+
+Otherwise the server will respond:
+
+OK <bytes>\r\n
+<data>\r\n
+
+ - <bytes> is the size of the following data section in bytes.
+
+ - <data> is a sequence of bytes of length is a YAML file with statistical information as a dictionary.
+ - <data> a sequence of bytes of length <bytes> from the previous line.
+
+Stats format
+
+The stats data is a YAML file representing a single dictionary of strings to
+scalars.
+
+ - The stats dict for a job contains these keys:
+
+   - "id" is the job id
+
+   - "state" is "ready" or "delayed" or "reserved" or "buried"
+
+   - "age" is the time in seconds since the put command that created this job.
+
+   - "time-left" is the number of seconds left until the server puts this job
+     into the ready queue. This number is only meaningful if the job is
+     reserved or delayed.
+
+   - "timeouts" is the number of times this job has timed out during a
+     reservation.
+
+   - "releases" is the number of times a client has released this job from a
+     reservation.
+
+   - "buries" is the number of times this job has been buried.
+
+   - "kicks" is the number of times this job has been kicked.
+
+ - The stats dict for the system contains these keys:
+
+   - "current-jobs-urgent" is the number of ready jobs with priority < 1024.
+
+   - "current-jobs-ready" is the number of jobs in the ready queue.
+
+   - "current-jobs-reserved" is the number of jobs reserved by all clients.
+
+   - "current-jobs-delayed" is the number of delayed jobs.
+
+   - "current-jobs-buried" is the number of buried jobs.
+
+   - "limit-max-jobs-ready" is the total capacity of the ready queue. Once this
+     many jobs are ready, any additional jobs will be buried.
+
+   - "cmd-put" is the cumulative number of put commands.
+
+   - "cmd-peek" is the cumulative number of peek commands.
+
+   - "cmd-reserve" is the cumulative number of reserve commands.
+
+   - "cmd-delete" is the cumulative number of delete commands.
+
+   - "cmd-release" is the cumulative number of release commands.
+
+   - "cmd-bury" is the cumulative number of bury commands.
+
+   - "cmd-kick" is the cumulative number of kick commands.
+
+   - "cmd-stats" is the cumulative number of stats commands.
+
+   - "job-timeouts" is the cumulative count of times a job has timed out.
+
+   - "total-jobs" is the cumulative count of jobs created.
+
+   - "current-connections" is the number of currently open connections.
+
+   - "current-producers" is the number of open connections that have each
+     issued at least one put command.
+
+   - "current-workers" is the number of open connections that have each issued
+     at least one reserve command.
+
+   - "current-waiting" is the number of open connections that have issued a
+     reserve command but not yet received a response.
+
+   - "total-connections" is the cumulative count of connections.
+
+   - "pid" is the process id of the server.
+
+   - "version" is the version string of the server.
+
+   - "rusage-utime" is the accumulated user CPU time of this process in seconds
+     and microseconds.
+
+   - "rusage-stime" is the accumulated system CPU time of this process in
+     seconds and microseconds.
+
+   - "uptime" is the number of seconds since this server started running.
+
 
