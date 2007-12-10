@@ -1,0 +1,13 @@
+Protocol
+--------
+Better error signalling (i.e. don't just disconnect)
+Replication
+Peek random job
+
+Server
+------
+Runtime verbosity switch
+Dynamically-sized heaps
+Weak hash table for job lookup
+Persistence
+Speed profiling

@@ -1,0 +1,5 @@
+This is beanstalkd, a fast, general-purpose work queue.
+
+See http://xph.us/softwark/beanstalkd/ for general info.
+
+See doc/protocol.txt for details of the on-the-wire protocol.
