@@ -30,7 +30,7 @@ Job Lifecycle
 -------------
 
 A job in beanstalk gets created by a client with the "put" command. During its
-life it can be in one of four states: "ready", "reserved", "delay", or
+life it can be in one of four states: "ready", "reserved", "delayed", or
 "buried". After the put command, a job typically starts out ready. It waits in
 the ready queue until a worker comes along and runs the "reserve" command. If
 this job is next in the queue, it will be reserved for the worker. The worker

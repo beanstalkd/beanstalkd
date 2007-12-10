@@ -108,7 +108,7 @@ enqueue_job(job j, unsigned int delay)
         j->deadline = time(NULL) + delay;
         r = pq_give(delay_q, j);
         if (!r) return 0;
-        j->state = JOB_STATE_DELAY;
+        j->state = JOB_STATE_DELAYED;
         set_main_timeout(pq_peek(delay_q)->deadline);
     } else {
         r = pq_give(ready_q, j);
