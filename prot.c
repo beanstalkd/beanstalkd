@@ -32,6 +32,21 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
 
+#ifdef DEBUG
+static const char * op_names[] = {
+    "<unknown>",
+    CMD_PUT,
+    CMD_PEEKJOB,
+    CMD_RESERVE,
+    CMD_DELETE,
+    CMD_RELEASE,
+    CMD_BURY,
+    CMD_KICK,
+    CMD_STATS,
+    CMD_JOBSTATS,
+    CMD_PEEK,
+};
+#endif
 
 static int
 waiting_conn_p()
@@ -543,6 +558,7 @@ dispatch_cmd(conn c)
     if (strlen(c->cmd) != c->cmd_len - 2) return conn_close(c);
 
     type = which_cmd(c);
+    dprintf("got %s command: \"%s\"\n", op_names[(int) type], c->cmd);
 
     switch (type) {
     case OP_PUT:

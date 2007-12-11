@@ -17,17 +17,17 @@
  * currently "release 18446744073709551615 4294967295 4294967295\r\n". */
 #define LINE_BUF_SIZE 54
 
-#define OP_UNKNOWN -1
-#define OP_PUT 0
-#define OP_PEEKJOB 1
-#define OP_RESERVE 2
-#define OP_DELETE 3
-#define OP_RELEASE 4
-#define OP_BURY 5
-#define OP_KICK 6
-#define OP_STATS 7
-#define OP_JOBSTATS 8
-#define OP_PEEK 9
+#define OP_UNKNOWN 0
+#define OP_PUT 1
+#define OP_PEEKJOB 2
+#define OP_RESERVE 3
+#define OP_DELETE 4
+#define OP_RELEASE 5
+#define OP_BURY 6
+#define OP_KICK 7
+#define OP_STATS 8
+#define OP_JOBSTATS 9
+#define OP_PEEK 10
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1
