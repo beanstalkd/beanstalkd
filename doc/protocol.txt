@@ -110,8 +110,12 @@ A process that wants to consume jobs from the queue uses "reserve", "delete",
 reserve\r\n
 
 This will return a newly-reserved job. If no job is available to be reserved,
-beanstalkd will wait to send a response until one becomes available. There is
-only one possible response in the form of a text line followed by the job body:
+beanstalkd will wait to send a response until one becomes available. Once a job
+is reserved for the client, the client has 120 seconds to run the job before
+the job times out, when the server will put the job back into the ready queue.
+
+There is only one possible response in the form of a text line followed by the
+job body:
 
 RESERVED <id> <pri> <bytes>\r\n
 <data>\r\n
@@ -142,7 +146,8 @@ The client then waits for one line of response, which may be:
  - "DELETED\r\n" to indicate success.
 
  - "NOT_FOUND\r\n" if the job does not exist or is not either reserved by the
-   client or buried.
+   client or buried. This could happen if the job timed out before the client
+   sent the delete command.
 
 The release command puts a reserved job back into the ready queue (and marks
 its state as "ready") to be run by any client. It is normally used when the job
@@ -265,7 +270,8 @@ scalars.
 
    - "time-left" is the number of seconds left until the server puts this job
      into the ready queue. This number is only meaningful if the job is
-     reserved or delayed.
+     reserved or delayed. If the job is reserved and this amount of time
+     elapses before its state changes, it is considered to have timed out.
 
    - "timeouts" is the number of times this job has timed out during a
      reservation.
