@@ -236,7 +236,7 @@ KICKED <count>\r\n
  - <count> is an integer indicating the number of jobs actually kicked.
 
 The stats command gives statistical information. If a job id is given, the
-respense will contain information about that job if it exists. Otherwise stats
+response will contain information about that job if it exists. Otherwise stats
 will return information about the system as a whole. Its form is:
 
 stats[ <id>]\r\n
@@ -252,8 +252,8 @@ OK <bytes>\r\n
 
  - <bytes> is the size of the following data section in bytes.
 
- - <data> is a sequence of bytes of length is a YAML file with statistical information as a dictionary.
- - <data> a sequence of bytes of length <bytes> from the previous line.
+ - <data> is a sequence of bytes of length <bytes> from the previous line. It
+   is a YAML file with statistical information represented a dictionary.
 
 Stats format
 
