@@ -111,12 +111,12 @@ static void
 usage(char *msg, char *arg)
 {
     if (arg) warnx("%s: %s", msg, arg);
-    fprintf(stderr, "Use: %s [-d] [-h]\n"
+    fprintf(stderr, "Use: %s [-d] [-l ADDR] [-p PORT] [-h]\n"
             "\n"
             "Options:\n"
             " -d       detach\n"
-            " -l ADDR  listen on address\n"
-            " -p PORT  listen on port\n"
+            " -l ADDR  listen on address (default is 0.0.0.0)\n"
+            " -p PORT  listen on port (default is 11300)\n"
             " -h       show this help\n",
             me);
     exit(arg ? 5 : 0);
