@@ -18,9 +18,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/resource.h>
+#include <sys/uio.h>
 
 #include "prot.h"
 #include "pq.h"
