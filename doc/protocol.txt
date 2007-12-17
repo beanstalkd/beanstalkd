@@ -4,9 +4,11 @@ Protocol
 --------
 
 The beanstalk protocol runs over TCP using ASCII encoding. Clients connect,
-send commands and data, wait for responses, and close the connection. All
-integers in the protocol are formatted in decimal and (unless otherwise
-indicated) nonnegative.
+send commands and data, wait for responses, and close the connection. For each
+connection, the server processes commands serially in the order in which they
+were received and sends responses in the same order. All integers in the
+protocol are formatted in decimal and (unless otherwise indicated)
+nonnegative.
 
 If a client violates the protocol (such as by sending a request that is not
 well-formed or a command that does not exist) or if the server has a serious
