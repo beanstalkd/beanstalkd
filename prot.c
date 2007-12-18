@@ -410,7 +410,10 @@ enqueue_incoming_job(conn c)
     r = enqueue_job(j, j->delay);
     put_ct++; /* stats */
 
-    if (r) return reply(c, MSG_INSERTED, MSG_INSERTED_LEN, STATE_SENDWORD);
+    if (r) {
+        r = snprintf(c->reply_buf, LINE_BUF_SIZE, MSG_INSERTED_FMT, j->id);
+        return reply(c, c->reply_buf, r, STATE_SENDWORD);
+    }
 
     bury_job(j); /* there was no room in the queue, so it gets buried */
     reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);

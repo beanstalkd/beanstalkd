@@ -99,7 +99,9 @@ It inserts a job into the queue.
 After sending the command line and body, the client waits for a reply, which
 may be:
 
- - "INSERTED\r\n" to indicate success.
+ - "INSERTED <id>\r\n" to indicate success.
+
+   - <id> is the integer id of the new job
 
  - "BURIED\r\n" if the priority queue data structure is full.
 
