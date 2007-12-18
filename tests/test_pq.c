@@ -13,11 +13,11 @@ __CUT_BRINGUP__pq()
     /* When CUT 3.0 comes out it will fix this design flaw. For now we will
      * just leak some queues during test. */
     /*q = make_pq(2, job_pri_cmp);*/
-    j1 = make_job(1, 0, 0);
-    j2 = make_job(2, 0, 0);
-    j3a = make_job(3, 0, 0);
-    j3b = make_job(3, 0, 0);
-    j3c = make_job(3, 0, 0);
+    j1 = make_job(1, 0, 1, 0);
+    j2 = make_job(2, 0, 1, 0);
+    j3a = make_job(3, 0, 1, 0);
+    j3b = make_job(3, 0, 1, 0);
+    j3c = make_job(3, 0, 1, 0);
     /*ASSERT(!!q, "Allocation should work");*/
     ASSERT(!!j1, "Allocation should work");
     ASSERT(!!j2, "Allocation should work");
@@ -122,7 +122,7 @@ __CUT__pq_test_many_jobs()
     q = make_pq(HOW_MANY, job_pri_cmp);
 
     for (i = 0; i < HOW_MANY; i++) {
-        j = make_job(1 + rand() % 8192, 0, 0);
+        j = make_job(1 + rand() % 8192, 0, 1, 0);
         ASSERT(!!j, "allocation");
         r = pq_give(q, j);
         ASSERT(r, "insert should succeed");

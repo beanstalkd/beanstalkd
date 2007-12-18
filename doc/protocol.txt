@@ -78,7 +78,7 @@ Producer Command
 The "put" command is for any process that wants to insert a job into the queue.
 It comprises a command line followed by the job body:
 
-put <pri> <delay> <bytes>\r\n
+put <pri> <delay> <ttr> <bytes>\r\n
 <data>\r\n
 
 It inserts a job into the queue.
@@ -89,6 +89,11 @@ It inserts a job into the queue.
 
  - <delay> is an integer number of seconds to wait before putting the job in
    the ready queue. The job will be in the "delayed" state during this time.
+
+ - <ttr> -- time to run -- is an integer number of seconds to allow a worker
+   to run this job. This time is counted from the moment a worker reserves
+   this job. If the worker does not delete, release, or bury the job within
+   <ttr> seconds, the job will time out and the server will release the job.
   
  - <bytes> is an integer (currently must be < 2**16) indicating the size of
    the job body, not including the trailing "\r\n".
@@ -115,8 +120,9 @@ reserve\r\n
 
 This will return a newly-reserved job. If no job is available to be reserved,
 beanstalkd will wait to send a response until one becomes available. Once a job
-is reserved for the client, the client has 120 seconds to run the job before
+is reserved for the client, the client has limited time to run the job before
 the job times out, when the server will put the job back into the ready queue.
+The time available can be found by asking the server for the job's stats.
 
 There is only one possible response in the form of a text line followed by the
 job body:

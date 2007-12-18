@@ -14,7 +14,7 @@ __CUT__job_test_creation()
 {
     job j;
 
-    j = make_job(1, 0, 0);
+    j = make_job(1, 0, 1, 0);
     ASSERT(j->pri == 1, "priority should match");
 }
 
@@ -23,8 +23,8 @@ __CUT__job_test_cmp_pris()
 {
     job a, b;
 
-    a = make_job(1, 0, 0);
-    b = make_job(1 << 27, 0, 0);
+    a = make_job(1, 0, 1, 0);
+    b = make_job(1 << 27, 0, 1, 0);
 
     ASSERT(job_pri_cmp(a, b) < 0, "should be a < b");
 }
@@ -34,8 +34,8 @@ __CUT__job_test_cmp_ids()
 {
     job a, b;
 
-    a = make_job(1, 0, 0);
-    b = make_job(1, 0, 0);
+    a = make_job(1, 0, 1, 0);
+    b = make_job(1, 0, 1, 0);
 
     b->id <<= 49;
     ASSERT(job_pri_cmp(a, b) < 0, "should be a < b");

@@ -29,9 +29,6 @@
 
 #define URGENT_THRESHOLD 1024
 
-/* measured in seconds */
-#define RESERVATION_TIMEOUT 120
-
 #define MSG_RESERVED "RESERVED"
 
 #define CMD_PUT "put "
@@ -101,6 +98,7 @@
     "state: %s\n" \
     "age: %u\n" \
     "delay: %u\n" \
+    "ttr: %u\n" \
     "time-left: %u\n" \
     "timeouts: %u\n" \
     "releases: %u\n" \

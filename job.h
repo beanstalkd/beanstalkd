@@ -34,6 +34,7 @@ struct job {
     unsigned long long int id;
     unsigned int pri;
     unsigned int delay;
+    unsigned int ttr;
     int body_size;
     time_t creation;
     time_t deadline;
@@ -46,7 +47,8 @@ struct job {
 };
 
 job allocate_job(int body_size);
-job make_job(unsigned int pri, unsigned int delay, int body_size);
+job make_job(unsigned int pri, unsigned int delay, unsigned int ttr,
+        int body_size);
 
 typedef int(*job_cmp_fn)(job, job);
 int job_pri_cmp(job a, job b);

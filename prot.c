@@ -491,6 +491,14 @@ read_delay(unsigned int *delay, const char *buf, char **end)
     return read_pri(delay, buf, end);
 }
 
+/* Read a timeout value from the given buffer and place it in ttr.
+ * The interface and behavior are the same as in read_pri(). */
+static int
+read_ttr(unsigned int *ttr, const char *buf, char **end)
+{
+    return read_pri(ttr, buf, end);
+}
+
 static void
 wait_for_job(conn c)
 {
@@ -540,6 +548,7 @@ fmt_job_stats(char *buf, size_t size, void *jp)
             job_state(j),
             (unsigned int) (t - j->creation),
             j->delay,
+            j->ttr,
             (unsigned int) (j->deadline - t),
             j->timeout_ct,
             j->release_ct,
@@ -566,8 +575,8 @@ dispatch_cmd(conn c)
     unsigned int count;
     job j;
     char type;
-    char *size_buf, *delay_buf, *pri_buf, *end_buf;
-    unsigned int pri, delay, body_size;
+    char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf;
+    unsigned int pri, delay, ttr, body_size;
     unsigned long long int id;
 
     /* NUL-terminate this string so we can use strtol and friends */
@@ -586,7 +595,10 @@ dispatch_cmd(conn c)
         r = read_pri(&pri, c->cmd + 4, &delay_buf);
         if (r) return conn_close(c);
 
-        r = read_delay(&delay, delay_buf, &size_buf);
+        r = read_delay(&delay, delay_buf, &ttr_buf);
+        if (r) return conn_close(c);
+
+        r = read_ttr(&ttr, ttr_buf, &size_buf);
         if (r) return conn_close(c);
 
         errno = 0;
@@ -600,7 +612,7 @@ dispatch_cmd(conn c)
 
         conn_set_producer(c);
 
-        c->in_job = make_job(pri, delay, body_size + 2);
+        c->in_job = make_job(pri, delay, ttr, body_size + 2);
 
         fill_extra_data(c);
 

@@ -28,7 +28,7 @@ static struct conn running = { &running, &running, 0 };
 void
 reserve_job(conn c, job j)
 {
-    j->deadline = time(NULL) + RESERVATION_TIMEOUT;
+    j->deadline = time(NULL) + j->ttr;
     cur_reserved_ct++; /* stats */
     conn_insert(&running, c);
     j->state = JOB_STATE_RESERVED;
