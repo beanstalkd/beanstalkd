@@ -1,19 +1,20 @@
 program := beanstalkd
-export CFLAGS := -O2 -Wall -Werror
-export LDFLAGS := -levent
+export CFLAGS := $(LDFLAGS) -Wall -Werror
+export LDFLAGS := $(LDFLAGS) -levent
 
 sources := $(shell ls *.c | fgrep -v $(program))
 objects := $(sources:.c=.o)
 tests := $(sources:%=tests/test_%)
 
+all: export CFLAGS := $(CFLAGS) -O2
 all: $(program)
 
-debug: export CFLAGS := -g -pg -Wall -Werror -DDEBUG
-debug: export LDFLAGS := -pg -levent
-debug: all
+debug: export CFLAGS := $(CFLAGS) -g -pg -DDEBUG
+debug: export LDFLAGS := $(LDFLAGS) -pg
+debug: $(program)
 
-check: export CFLAGS := -g -pg -Wall -Werror
-check: export LDFLAGS := -pg -levent
+check: export CFLAGS := $(CFLAGS) -g -pg
+check: export LDFLAGS := $(LDFLAGS) -pg -levent
 check: tests/cutcheck $(objects)
 	./tests/cutcheck
 	@echo
