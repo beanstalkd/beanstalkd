@@ -3,7 +3,6 @@ Protocol
 Better error signalling (i.e. don't just disconnect)
 Replication
 Peek random job
-Idempotent flag
 
 Server
 ------
