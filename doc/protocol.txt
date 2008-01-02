@@ -37,7 +37,7 @@ automatically. Here are the server error numbers and their meanings:
    The server cannot allocate more memory for the job. The client should try
    again later.
 
- - 1 reply buffer too small
+ - 1 internal error
 
    This indicates a bug in the server. It should never happen. If it does
    happen, please report it at http://groups.google.com/group/beanstalk-talk.

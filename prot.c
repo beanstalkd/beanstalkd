@@ -54,14 +54,14 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
 
 #define SERR_OOM 0
-#define SERR_REPLY_BUF_TOO_SMALL 1
+#define SERR_INTERNAL_ERROR 1
 
 /* Complete responses for the error conditions defined in SERR_*.
  * Feel free to change the contents of these strings (for example, a better
  * description) but not their order */
 static const char * serrs[] = {
     "SERVER_ERROR 0 out of memory\r\n",
-    "SERVER_ERROR 1 reply buffer too small\r\n",
+    "SERVER_ERROR 1 internal error\r\n",
 };
 
 #define CERR_BAD_FORMAT 0
@@ -140,7 +140,7 @@ reply_job(conn c, job j, const char *word)
                  word, j->id, j->pri, j->body_size - 2);
 
     /* can't happen */
-    if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_REPLY_BUF_TOO_SMALL);
+    if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
 
     return reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
 }
@@ -449,7 +449,7 @@ enqueue_incoming_job(conn c)
 
     if (r) {
         r = snprintf(c->reply_buf, LINE_BUF_SIZE, MSG_INSERTED_FMT, j->id);
-        if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_REPLY_BUF_TOO_SMALL);
+        if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
         return reply(c, c->reply_buf, r, STATE_SENDWORD);
     }
 
@@ -563,13 +563,13 @@ do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
 
     /* now actually format the stats data */
     r = fmt(c->out_job->body, stats_len, data);
-    if (r != stats_len) return twarnx("snprintf inconsistency"), conn_close(c);
+    if (r != stats_len) return reply_serr(c, SERR_INTERNAL_ERROR);
     c->out_job->body[stats_len - 1] = '\n'; /* patch up sprintf's output */
 
     c->out_job_sent = 0;
 
     r = snprintf(c->reply_buf, LINE_BUF_SIZE, "OK %d\r\n", stats_len - 2);
-    if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_REPLY_BUF_TOO_SMALL);
+    if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
 
     reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
 }
@@ -763,7 +763,7 @@ dispatch_cmd(conn c)
 
         r = snprintf(c->reply_buf, LINE_BUF_SIZE, "KICKED %u\r\n", i);
         /* can't happen */
-        if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_REPLY_BUF_TOO_SMALL);
+        if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
 
         reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDWORD);
         break;
