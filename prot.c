@@ -55,20 +55,20 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
 
 #define SERR_OOM 0
 
-/* Human-readable descriptions of the error conditions defined in SERR_*.
+/* Complete responses for the error conditions defined in SERR_*.
  * Feel free to change the contents of these strings (for example, a better
  * description) but not their order */
 static const char * serrs[] = {
-    "out of memory",
+    "SERVER_ERROR 0 out of memory\r\n",
 };
 
 #define CERR_BAD_FORMAT 0
 
-/* Human-readable descriptions of the error conditions defined in CERR_*.
+/* Complete responses for the error conditions defined in CERR_*.
  * Feel free to change the contents of these strings (for example, a better
  * description) but not their order */
 static const char * cerrs[] = {
-    "bad command line format",
+    "CLIENT_ERROR 0 bad command line format\r\n",
 };
 
 #ifdef DEBUG
@@ -100,7 +100,7 @@ buried_job_p()
 }
 
 static void
-reply(conn c, char *line, int len, int state)
+reply(conn c, const char *line, int len, int state)
 {
     int r;
 
@@ -117,15 +117,8 @@ reply(conn c, char *line, int len, int state)
 static void
 reply_err(conn c, const char *type, int errn, const char *msg)
 {
-    int r;
-
-    dprintf("sending error reply: %s %d %s\n", type, errn, msg);
-    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "%s %d %s\r\n", type, errn, msg);
-    if (r >= LINE_BUF_SIZE) {
-        twarnx("could not format error reply");
-        return conn_close(c);
-    }
-    return reply(c, c->reply_buf, r, STATE_SENDWORD);
+    dprintf("sending error reply: %s", msg);
+    return reply(c, msg, strlen(msg), STATE_SENDWORD);
 }
 
 #define reply_serr(c,e) (twarnx("server error: %d %s",(e),serrs[e]),\
@@ -900,7 +893,7 @@ h_conn_data(conn c)
     case STATE_SENDJOB:
         j = c->out_job;
 
-        iov[0].iov_base = c->reply + c->reply_sent;
+        iov[0].iov_base = (void *)(c->reply + c->reply_sent);
         iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
         iov[1].iov_base = j->body + c->out_job_sent;
         iov[1].iov_len = j->body_size - c->out_job_sent;

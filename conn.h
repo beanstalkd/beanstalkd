@@ -65,7 +65,7 @@ struct conn {
     char cmd[LINE_BUF_SIZE]; /* this string is NOT NUL-terminated */
     int cmd_len;
     int cmd_read;
-    char *reply;
+    const char *reply;
     int reply_len;
     int reply_sent;
     char reply_buf[LINE_BUF_SIZE]; /* this string IS NUL-terminated */
