@@ -36,6 +36,9 @@
 /* job body cannot be greater than this many bytes long */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
+#define MSG_SERVER_ERROR "SERVER_ERROR"
+#define MSG_CLIENT_ERROR "CLIENT_ERROR"
+
 static pq ready_q;
 static pq delay_q;
 
@@ -49,6 +52,24 @@ static time_t start_time;
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
+
+#define SERR_OOM 0
+
+/* Human-readable descriptions of the error conditions defined in SERR_*.
+ * Feel free to change the contents of these strings (for example, a better
+ * description) but not their order */
+static const char * serrs[] = {
+    "out of memory",
+};
+
+#define CERR_BAD_FORMAT 0
+
+/* Human-readable descriptions of the error conditions defined in CERR_*.
+ * Feel free to change the contents of these strings (for example, a better
+ * description) but not their order */
+static const char * cerrs[] = {
+    "bad command line format",
+};
 
 #ifdef DEBUG
 static const char * op_names[] = {
@@ -91,6 +112,25 @@ reply(conn c, char *line, int len, int state)
     c->reply_sent = 0;
     c->state = state;
 }
+
+/* will clobber c->reply_buf */
+static void
+reply_err(conn c, const char *type, int errn, const char *msg)
+{
+    int r;
+
+    dprintf("sending error reply: %s %d %s\n", type, errn, msg);
+    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "%s %d %s\r\n", type, errn, msg);
+    if (r >= LINE_BUF_SIZE) {
+        twarnx("could not format error reply");
+        return conn_close(c);
+    }
+    return reply(c, c->reply_buf, r, STATE_SENDWORD);
+}
+
+#define reply_serr(c,e) (twarnx("server error: %d %s",(e),serrs[e]),\
+                         reply_err((c),MSG_SERVER_ERROR,(e),serrs[e]))
+#define reply_cerr(c,e) (reply_err((c),MSG_CLIENT_ERROR,(e),cerrs[e]))
 
 void
 reply_job(conn c, job j, const char *word)
@@ -523,7 +563,7 @@ do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
     stats_len = fmt(NULL, 0, data);
 
     c->out_job = allocate_job(stats_len); /* fake job to hold stats data */
-    if (!c->out_job) return conn_close(c);
+    if (!c->out_job) return reply_serr(c, SERR_OOM);
 
     /* now actually format the stats data */
     r = fmt(c->out_job->body, stats_len, data);
@@ -585,7 +625,7 @@ dispatch_cmd(conn c)
     c->cmd[c->cmd_len - 2] = '\0';
 
     /* check for possible maliciousness */
-    if (strlen(c->cmd) != c->cmd_len - 2) return conn_close(c);
+    if (strlen(c->cmd) != c->cmd_len - 2) return reply_cerr(c, CERR_BAD_FORMAT);
 
     type = which_cmd(c);
     dprintf("got %s command: \"%s\"\n", op_names[(int) type], c->cmd);
