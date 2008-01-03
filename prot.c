@@ -69,6 +69,14 @@
 #define MSG_RELEASED_LEN CONSTSTRLEN(MSG_RELEASED)
 #define MSG_BURIED_LEN CONSTSTRLEN(MSG_BURIED)
 
+#define MSG_OUT_OF_MEMORY "OUT_OF_MEMORY\r\n"
+#define MSG_INTERNAL_ERROR "INTERNAL_ERROR\r\n"
+#define MSG_DRAINING "DRAINING\r\n"
+#define MSG_BAD_FORMAT "BAD_FORMAT\r\n"
+#define MSG_UNKNOWN_COMMAND "UNKNOWN_COMMAND\r\n"
+#define MSG_EXPECTED_CRLF "EXPECTED_CRLF\r\n"
+#define MSG_JOB_TOO_BIG "JOB_TOO_BIG\r\n"
+
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
     "current-jobs-ready: %u\n" \
@@ -125,34 +133,6 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
 
-#define SERR_OOM 0
-#define SERR_INTERNAL_ERROR 1
-#define SERR_DRAIN_MODE 2
-
-/* Complete responses for the error conditions defined in SERR_*.
- * Feel free to change the contents of these strings (for example, a better
- * description) but not their order */
-static const char * serrs[] = {
-    "SERVER_ERROR 0 out of memory\r\n",
-    "SERVER_ERROR 1 internal error\r\n",
-    "SERVER_ERROR 2 draining\r\n",
-};
-
-#define CERR_BAD_FORMAT 0
-#define CERR_UNKNOWN_COMMAND 1
-#define CERR_BAD_TRAILER 2
-#define CERR_JOB_TOO_BIG 3
-
-/* Complete responses for the error conditions defined in CERR_*.
- * Feel free to change the contents of these strings (for example, a better
- * description) but not their order */
-static const char * cerrs[] = {
-    "CLIENT_ERROR 0 bad command line format\r\n",
-    "CLIENT_ERROR 1 unknown command\r\n",
-    "CLIENT_ERROR 2 expected CR-LF after job body\r\n",
-    "CLIENT_ERROR 3 job too big\r\n",
-};
-
 #ifdef DEBUG
 static const char * op_names[] = {
     "<unknown>",
@@ -193,19 +173,13 @@ reply(conn c, const char *line, int len, int state)
     c->reply_len = len;
     c->reply_sent = 0;
     c->state = state;
+    dprintf("sending reply: %.*s", len, line);
 }
 
-/* will clobber c->reply_buf */
-static void
-reply_err(conn c, const char *msg)
-{
-    dprintf("sending error reply: %s", msg);
-    return reply(c, msg, strlen(msg), STATE_SENDWORD);
-}
+#define reply_msg(c,m) reply((c),(m),CONSTSTRLEN(m),STATE_SENDWORD)
 
-#define reply_serr(c,e) (twarnx("server error: %d %s",(e),serrs[e]),\
-                         reply_err((c),serrs[e]))
-#define reply_cerr(c,e) (reply_err((c),cerrs[e]))
+#define reply_serr(c,e) (twarnx("server error: %s",(e)),\
+                         reply_msg((c),(e)))
 
 static void
 reply_line(conn c, int state, const char *fmt, ...)
@@ -218,7 +192,7 @@ reply_line(conn c, int state, const char *fmt, ...)
     va_end(ap);
 
     /* Make sure the buffer was big enough. If not, we have a bug. */
-    if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
+    if (r >= LINE_BUF_SIZE) return reply_serr(c, MSG_INTERNAL_ERROR);
 
     return reply(c, c->reply_buf, r, state);
 }
@@ -532,7 +506,7 @@ enqueue_incoming_job(conn c)
     /* check if the trailer is present and correct */
     if (memcmp(j->body + j->body_size - 2, "\r\n", 2)) {
         free(j);
-        return reply_cerr(c, CERR_BAD_TRAILER);
+        return reply_msg(c, MSG_EXPECTED_CRLF);
     }
 
     /* we have a complete job, so let's stick it in the pqueue */
@@ -650,11 +624,11 @@ do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
     stats_len = fmt(NULL, 0, data);
 
     c->out_job = allocate_job(stats_len); /* fake job to hold stats data */
-    if (!c->out_job) return reply_serr(c, SERR_OOM);
+    if (!c->out_job) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
     /* now actually format the stats data */
     r = fmt(c->out_job->body, stats_len, data);
-    if (r != stats_len) return reply_serr(c, SERR_INTERNAL_ERROR);
+    if (r != stats_len) return reply_serr(c, MSG_INTERNAL_ERROR);
     c->out_job->body[stats_len - 1] = '\n'; /* patch up sprintf's output */
 
     c->out_job_sent = 0;
@@ -709,34 +683,36 @@ dispatch_cmd(conn c)
     c->cmd[c->cmd_len - 2] = '\0';
 
     /* check for possible maliciousness */
-    if (strlen(c->cmd) != c->cmd_len - 2) return reply_cerr(c, CERR_BAD_FORMAT);
+    if (strlen(c->cmd) != c->cmd_len - 2) {
+        return reply_msg(c, MSG_BAD_FORMAT);
+    }
 
     type = which_cmd(c);
     dprintf("got %s command: \"%s\"\n", op_names[(int) type], c->cmd);
 
     switch (type) {
     case OP_PUT:
-        if (drain_mode) return reply_serr(c, SERR_DRAIN_MODE);
+        if (drain_mode) return reply_serr(c, MSG_DRAINING);
 
         r = read_pri(&pri, c->cmd + 4, &delay_buf);
-        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         r = read_delay(&delay, delay_buf, &ttr_buf);
-        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         r = read_ttr(&ttr, ttr_buf, &size_buf);
-        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         errno = 0;
         body_size = strtoul(size_buf, &end_buf, 10);
-        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         if (body_size > JOB_DATA_SIZE_LIMIT) {
-            return reply_cerr(c, CERR_JOB_TOO_BIG);
+            return reply_msg(c, MSG_JOB_TOO_BIG);
         }
 
         /* don't allow trailing garbage */
-        if (end_buf[0] != '\0') return reply_cerr(c, CERR_BAD_FORMAT);
+        if (end_buf[0] != '\0') return reply_msg(c, MSG_BAD_FORMAT);
 
         conn_set_producer(c);
 
@@ -751,7 +727,7 @@ dispatch_cmd(conn c)
     case OP_PEEK:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_PEEK_LEN + 2) {
-            return reply_cerr(c, CERR_BAD_FORMAT);
+            return reply_msg(c, MSG_BAD_FORMAT);
         }
 
         j = job_copy(peek_buried_job() ? : delay_q_peek());
@@ -764,7 +740,7 @@ dispatch_cmd(conn c)
     case OP_PEEKJOB:
         errno = 0;
         id = strtoull(c->cmd + CMD_PEEKJOB_LEN, &end_buf, 10);
-        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         /* So, peek is annoying, because some other connection might free the
          * job while we are still trying to write it out. So we copy it and
@@ -779,7 +755,7 @@ dispatch_cmd(conn c)
     case OP_RESERVE:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_RESERVE_LEN + 2) {
-            return reply_cerr(c, CERR_BAD_FORMAT);
+            return reply_msg(c, MSG_BAD_FORMAT);
         }
 
         reserve_ct++; /* stats */
@@ -792,7 +768,7 @@ dispatch_cmd(conn c)
     case OP_DELETE:
         errno = 0;
         id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10);
-        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         j = remove_reserved_job(c, id) ? : remove_buried_job(id);
 
@@ -806,13 +782,13 @@ dispatch_cmd(conn c)
     case OP_RELEASE:
         errno = 0;
         id = strtoull(c->cmd + CMD_RELEASE_LEN, &pri_buf, 10);
-        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         r = read_pri(&pri, pri_buf, &delay_buf);
-        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         r = read_delay(&delay, delay_buf, NULL);
-        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         j = remove_reserved_job(c, id);
 
@@ -831,10 +807,10 @@ dispatch_cmd(conn c)
     case OP_BURY:
         errno = 0;
         id = strtoull(c->cmd + CMD_BURY_LEN, &pri_buf, 10);
-        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         r = read_pri(&pri, pri_buf, NULL);
-        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         j = remove_reserved_job(c, id);
 
@@ -849,9 +825,9 @@ dispatch_cmd(conn c)
         errno = 0;
         count = strtoul(c->cmd + CMD_KICK_LEN, &end_buf, 10);
         if (end_buf == c->cmd + CMD_KICK_LEN) {
-            return reply_cerr(c, CERR_BAD_FORMAT);
+            return reply_msg(c, MSG_BAD_FORMAT);
         }
-        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         kick_ct++; /* stats */
 
@@ -861,7 +837,7 @@ dispatch_cmd(conn c)
     case OP_STATS:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_STATS_LEN + 2) {
-            return reply_cerr(c, CERR_BAD_FORMAT);
+            return reply_msg(c, MSG_BAD_FORMAT);
         }
 
         stats_ct++; /* stats */
@@ -871,7 +847,7 @@ dispatch_cmd(conn c)
     case OP_JOBSTATS:
         errno = 0;
         id = strtoull(c->cmd + CMD_JOBSTATS_LEN, &end_buf, 10);
-        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         j = peek_job(id);
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
@@ -880,7 +856,7 @@ dispatch_cmd(conn c)
         do_stats(c, fmt_job_stats, j);
         break;
     default:
-        return reply_cerr(c, CERR_UNKNOWN_COMMAND);
+        return reply_msg(c, MSG_UNKNOWN_COMMAND);
     }
 }
 
@@ -955,7 +931,9 @@ h_conn_data(conn c)
         /* c->cmd_read > LINE_BUF_SIZE can't happen */
 
         /* command line too long? */
-        if (c->cmd_read == LINE_BUF_SIZE) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (c->cmd_read == LINE_BUF_SIZE) {
+            return reply_msg(c, MSG_BAD_FORMAT);
+        }
 
         /* otherwise we have an incomplete line, so just keep waiting */
         break;

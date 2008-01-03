@@ -12,64 +12,39 @@ nonnegative.
 
 If a client violates the protocol (such as by sending a request that is not
 well-formed or a command that does not exist) or if the server has an error,
-the server will reply with:
+the server will reply with one of the following error messages:
 
-CLIENT_ERROR <num> <desc>\r\n
+ - "OUT_OF_MEMORY\r\n" The server cannot allocate enough memory for the job.
+   The client should try again later.
 
-or:
+ - "INTERNAL_ERROR\r\n" This indicates a bug in the server. It should never
+   happen. If it does happen, please report it at
+   http://groups.google.com/group/beanstalk-talk.
 
-SERVER_ERROR <num> <desc>\r\n
+ - "DRAINING\r\n" This means that the server has been put into "drain mode"
+   and is no longer accepting new jobs. The client should try another server
+   or disconnect and try again later.
 
- - <num> is an integer identifying the error
+ - "BAD_FORMAT\r\n" The client sent a command line that was not well-formed.
+   This can happen if the line does not end with \r\n, if non-numeric
+   characters occur where an integer is expected, if the wrong number of
+   arguments are present, or if the command line is mal-formed in any other
+   way.
 
- - <desc> is a human-readable description of the error condition
+ - "UNKNOWN_COMMAND\r\n" The client sent a command that the server does not
+   know.
+
+ - "EXPECTED_CRLF\r\n" The job body must be followed by a CR-LF pair, that is,
+   "\r\n". These two bytes are not counted in the job size given by the client
+   in the put command line.
+
+ - "JOB_TOO_BIG\r\n" The client has requested to put a job with a body larger
+   than 2**16 bytes.
 
 These error responses will not be listed in this document for individual
 commands in the following sections, but they are implicitly included in the
 description of all commands. Clients should be prepared to receive an error
 response after any command.
-
-The numeric error identifier is intended to help clients handle certain errors
-automatically. Here are the server error numbers and their meanings:
-
- - 0 out of memory
-
-   The server cannot allocate more memory for the job. The client should try
-   again later.
-
- - 1 internal error
-
-   This indicates a bug in the server. It should never happen. If it does
-   happen, please report it at http://groups.google.com/group/beanstalk-talk.
-
- - 2 draining
-
-   This means that the server has been put into "drain mode" and is no longer
-   accepting new jobs. The client should try another server or disconnect and
-   try again later.
-
-Here are the client error numbers and their meanings:
-
- - 0 bad command line format
-
-   The client sent a command line that was not well-formed. This can happen if
-   the line does not end with \r\n, if non-numeric characters occur where an
-   integer is expected, if the wrong number of arguments are present, or if
-   the command line is mal-formed in any other way.
-
- - 1 unknown command
-
-   The client sent a command that the server does not know.
-
- - 2 expected CR-LF after job body
-
-   The job body must be followed by a CR-LF pair, that is, "\r\n". These two
-   bytes are not counted in the job size given by the client in the put
-   command line.
-
- - 3 job too big
-
-   The client has requested to put a job with a body larger than 2**16 bytes.
 
 As a last resort, if the server has a serious error that prevents it from
 continuing service to the current client, the server will close the
