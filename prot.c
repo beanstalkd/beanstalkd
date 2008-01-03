@@ -670,7 +670,9 @@ dispatch_cmd(conn c)
         break;
     case OP_PEEK:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_PEEK_LEN + 2) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (c->cmd_len != CMD_PEEK_LEN + 2) {
+            return reply_cerr(c, CERR_BAD_FORMAT);
+        }
 
         j = job_copy(peek_buried_job() ? : delay_q_peek());
 
@@ -696,7 +698,9 @@ dispatch_cmd(conn c)
         break;
     case OP_RESERVE:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_RESERVE_LEN + 2) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (c->cmd_len != CMD_RESERVE_LEN + 2) {
+            return reply_cerr(c, CERR_BAD_FORMAT);
+        }
 
         reserve_ct++; /* stats */
         conn_set_worker(c);
@@ -764,7 +768,9 @@ dispatch_cmd(conn c)
     case OP_KICK:
         errno = 0;
         count = strtoul(c->cmd + CMD_KICK_LEN, &end_buf, 10);
-        if (end_buf == c->cmd + CMD_KICK_LEN) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (end_buf == c->cmd + CMD_KICK_LEN) {
+            return reply_cerr(c, CERR_BAD_FORMAT);
+        }
         if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
 
         kick_ct++; /* stats */
@@ -779,7 +785,9 @@ dispatch_cmd(conn c)
         break;
     case OP_STATS:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_STATS_LEN + 2) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (c->cmd_len != CMD_STATS_LEN + 2) {
+            return reply_cerr(c, CERR_BAD_FORMAT);
+        }
 
         stats_ct++; /* stats */
 
@@ -879,7 +887,7 @@ h_conn_data(conn c)
     case STATE_WANTDATA:
         j = c->in_job;
 
-        r = read(c->fd, j->body + c->in_job_read, j->body_size - c->in_job_read);
+        r = read(c->fd, j->body + c->in_job_read, j->body_size -c->in_job_read);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
