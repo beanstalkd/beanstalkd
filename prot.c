@@ -591,6 +591,8 @@ fmt_stats(char *buf, size_t size, void *x)
  * Pri and end can be NULL. If they are both NULL, read_pri() will do the
  * conversion and return the status code but not update any values. This is an
  * easy way to check for errors.
+ * If end is NULL, read_pri will also check that the entire input string was
+ * consumed and return an error code otherwise.
  * Return 0 on success, or nonzero on failure.
  * If a failure occurs, pri and end are not modified. */
 static int
@@ -603,6 +605,7 @@ read_pri(unsigned int *pri, const char *buf, char **end)
     tpri = strtoul(buf, &tend, 10);
     if (tend == buf) return -1;
     if (errno && errno != ERANGE) return -1;
+    if (!end && tend[0] != '\0') return -1;
 
     if (pri) *pri = tpri;
     if (end) *end = tend;
