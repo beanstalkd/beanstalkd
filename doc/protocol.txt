@@ -61,6 +61,10 @@ Here are the client error numbers and their meanings:
    bytes are not counted in the job size given by the client in the put
    command line.
 
+ - 3 job too big
+
+   The client has requested to put a job with a body larger than 2**16 bytes.
+
 As a last resort, if the server has a serious error that prevents it from
 continuing service to the current client, the server will close the
 connection.

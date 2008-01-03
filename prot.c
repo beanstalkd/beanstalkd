@@ -67,6 +67,7 @@ static const char * serrs[] = {
 #define CERR_BAD_FORMAT 0
 #define CERR_UNKNOWN_COMMAND 1
 #define CERR_BAD_TRAILER 2
+#define CERR_JOB_TOO_BIG 3
 
 /* Complete responses for the error conditions defined in CERR_*.
  * Feel free to change the contents of these strings (for example, a better
@@ -75,6 +76,7 @@ static const char * cerrs[] = {
     "CLIENT_ERROR 0 bad command line format\r\n",
     "CLIENT_ERROR 1 unknown command\r\n",
     "CLIENT_ERROR 2 expected CR-LF after job body\r\n",
+    "CLIENT_ERROR 3 job too big\r\n",
 };
 
 #ifdef DEBUG
@@ -650,7 +652,9 @@ dispatch_cmd(conn c)
         body_size = strtoul(size_buf, &end_buf, 10);
         if (errno) return conn_close(c);
 
-        if (body_size > JOB_DATA_SIZE_LIMIT) return conn_close(c);
+        if (body_size > JOB_DATA_SIZE_LIMIT) {
+            return reply_cerr(c, CERR_JOB_TOO_BIG);
+        }
 
         /* don't allow trailing garbage */
         if (end_buf[0] != '\0') return conn_close(c);
