@@ -42,6 +42,12 @@ automatically. Here are the server error numbers and their meanings:
    This indicates a bug in the server. It should never happen. If it does
    happen, please report it at http://groups.google.com/group/beanstalk-talk.
 
+ - 2 draining
+
+   This means that the server has been put into "drain mode" and is no longer
+   accepting new jobs. The client should try another server or disconnect and
+   try again later.
+
 Here are the client error numbers and their meanings:
 
  - 0 bad command line format

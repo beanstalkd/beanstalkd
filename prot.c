@@ -55,6 +55,7 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
 
 #define SERR_OOM 0
 #define SERR_INTERNAL_ERROR 1
+#define SERR_DRAIN_MODE 2
 
 /* Complete responses for the error conditions defined in SERR_*.
  * Feel free to change the contents of these strings (for example, a better
@@ -62,6 +63,7 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
 static const char * serrs[] = {
     "SERVER_ERROR 0 out of memory\r\n",
     "SERVER_ERROR 1 internal error\r\n",
+    "SERVER_ERROR 2 draining\r\n",
 };
 
 #define CERR_BAD_FORMAT 0
@@ -637,7 +639,7 @@ dispatch_cmd(conn c)
 
     switch (type) {
     case OP_PUT:
-        if (drain_mode) return conn_close(c);
+        if (drain_mode) return reply_serr(c, SERR_DRAIN_MODE);
 
         r = read_pri(&pri, c->cmd + 4, &delay_buf);
         if (r) return conn_close(c);
