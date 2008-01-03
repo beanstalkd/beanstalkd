@@ -207,22 +207,31 @@ reply_err(conn c, const char *msg)
                          reply_err((c),serrs[e]))
 #define reply_cerr(c,e) (reply_err((c),cerrs[e]))
 
+static void
+reply_line(conn c, int state, const char *fmt, ...)
+{
+    int r;
+    va_list ap;
+
+    va_start(ap, fmt);
+    r = vsnprintf(c->reply_buf, LINE_BUF_SIZE, fmt, ap);
+    va_end(ap);
+
+    /* Make sure the buffer was big enough. If not, we have a bug. */
+    if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
+
+    return reply(c, c->reply_buf, r, state);
+}
+
 void
 reply_job(conn c, job j, const char *word)
 {
-    int r;
-
     /* tell this connection which job to send */
     c->out_job = j;
     c->out_job_sent = 0;
 
-    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "%s %llu %u %u\r\n",
-                 word, j->id, j->pri, j->body_size - 2);
-
-    /* can't happen */
-    if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
-
-    return reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
+    return reply_line(c, STATE_SENDJOB, "%s %llu %u %u\r\n",
+                      word, j->id, j->pri, j->body_size - 2);
 }
 
 conn
@@ -530,11 +539,7 @@ enqueue_incoming_job(conn c)
     r = enqueue_job(j, j->delay);
     put_ct++; /* stats */
 
-    if (r) {
-        r = snprintf(c->reply_buf, LINE_BUF_SIZE, MSG_INSERTED_FMT, j->id);
-        if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
-        return reply(c, c->reply_buf, r, STATE_SENDWORD);
-    }
+    if (r) return reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j->id);
 
     bury_job(j); /* there was no room in the queue, so it gets buried */
     reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
@@ -651,10 +656,7 @@ do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
 
     c->out_job_sent = 0;
 
-    r = snprintf(c->reply_buf, LINE_BUF_SIZE, "OK %d\r\n", stats_len - 2);
-    if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
-
-    reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDJOB);
+    return reply_line(c, STATE_SENDJOB, "OK %d\r\n", stats_len - 2);
 }
 
 static int
@@ -852,12 +854,7 @@ dispatch_cmd(conn c)
 
         i = kick_jobs(count);
 
-        r = snprintf(c->reply_buf, LINE_BUF_SIZE, "KICKED %u\r\n", i);
-        /* can't happen */
-        if (r >= LINE_BUF_SIZE) return reply_serr(c, SERR_INTERNAL_ERROR);
-
-        reply(c, c->reply_buf, strlen(c->reply_buf), STATE_SENDWORD);
-        break;
+        return reply_line(c, STATE_SENDWORD, "KICKED %u\r\n", i);
     case OP_STATS:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_STATS_LEN + 2) {
