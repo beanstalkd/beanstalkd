@@ -55,6 +55,12 @@ Here are the client error numbers and their meanings:
 
    The client sent a command that the server does not know.
 
+ - 2 expected CR-LF after job body
+
+   The job body must be followed by a CR-LF pair, that is, "\r\n". These two
+   bytes are not counted in the job size given by the client in the put
+   command line.
+
 As a last resort, if the server has a serious error that prevents it from
 continuing service to the current client, the server will close the
 connection.

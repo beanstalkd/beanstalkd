@@ -66,6 +66,7 @@ static const char * serrs[] = {
 
 #define CERR_BAD_FORMAT 0
 #define CERR_UNKNOWN_COMMAND 1
+#define CERR_BAD_TRAILER 2
 
 /* Complete responses for the error conditions defined in CERR_*.
  * Feel free to change the contents of these strings (for example, a better
@@ -73,6 +74,7 @@ static const char * serrs[] = {
 static const char * cerrs[] = {
     "CLIENT_ERROR 0 bad command line format\r\n",
     "CLIENT_ERROR 1 unknown command\r\n",
+    "CLIENT_ERROR 2 expected CR-LF after job body\r\n",
 };
 
 #ifdef DEBUG
@@ -439,11 +441,14 @@ enqueue_incoming_job(conn c)
     int r;
     job j = c->in_job;
 
-    /* check if the trailer is present and correct */
-    if (memcmp(j->body + j->body_size - 2, "\r\n", 2)) return conn_close(c);
-
     c->in_job = NULL; /* the connection no longer owns this job */
     c->in_job_read = 0;
+
+    /* check if the trailer is present and correct */
+    if (memcmp(j->body + j->body_size - 2, "\r\n", 2)) {
+        free(j);
+        return reply_cerr(c, CERR_BAD_TRAILER);
+    }
 
     /* we have a complete job, so let's stick it in the pqueue */
     r = enqueue_job(j, j->delay);
