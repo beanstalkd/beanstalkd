@@ -10,6 +10,19 @@ were received and sends responses in the same order. All integers in the
 protocol are formatted in decimal and (unless otherwise indicated)
 nonnegative.
 
+The protocol contains two kinds of data: text lines and unstructured chunks of
+data. Text lines are used for client commands and server responses. Chunks are
+used to transfer job bodies and stats information. Each job body is an opaque
+sequence of bytes. The server never inspects or modifies a job body and always
+sends it back in its original form. It is up to the clients to agree on a
+meaningful interpretation of job bodies.
+
+There is no command to close the connection -- the client may simply close the
+TCP connection when it no longer has use for the server. However, beanstalkd
+performs very well with a large number of open connections, so it is usually
+better for the client to keep its connection open and reuse it as much as
+possible. This also avoids the overhead of establishing new TCP connections.
+
 If a client violates the protocol (such as by sending a request that is not
 well-formed or a command that does not exist) or if the server has an error,
 the server will reply with one of the following error messages:
@@ -49,19 +62,6 @@ response after any command.
 As a last resort, if the server has a serious error that prevents it from
 continuing service to the current client, the server will close the
 connection.
-
-There is no command to close the connection -- the client may simply close the
-TCP connection when it no longer has use for the server. However, beanstalkd
-performs very well with a large number of open connections, so it is usually
-better for the client to keep its connection open and reuse it as much as
-possible. This also avoids the overhead of establishing new TCP connections.
-
-The beanstalk protocol contains two kinds of data: text lines and
-unstructured chunks of data. Text lines are used for client commands and server
-responses. Chunks are used to transfer job bodies and stats information. Each
-job body is an opaque sequence of bytes. The server never inspects or modifies
-a job body and always sends it back in its original form. It is up to the
-clients to agree on a meaningful interpretation of job bodies.
 
 Job Lifecycle
 -------------
