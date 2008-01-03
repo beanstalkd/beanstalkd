@@ -639,24 +639,24 @@ dispatch_cmd(conn c)
         if (drain_mode) return reply_serr(c, SERR_DRAIN_MODE);
 
         r = read_pri(&pri, c->cmd + 4, &delay_buf);
-        if (r) return conn_close(c);
+        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
 
         r = read_delay(&delay, delay_buf, &ttr_buf);
-        if (r) return conn_close(c);
+        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
 
         r = read_ttr(&ttr, ttr_buf, &size_buf);
-        if (r) return conn_close(c);
+        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
 
         errno = 0;
         body_size = strtoul(size_buf, &end_buf, 10);
-        if (errno) return conn_close(c);
+        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
 
         if (body_size > JOB_DATA_SIZE_LIMIT) {
             return reply_cerr(c, CERR_JOB_TOO_BIG);
         }
 
         /* don't allow trailing garbage */
-        if (end_buf[0] != '\0') return conn_close(c);
+        if (end_buf[0] != '\0') return reply_cerr(c, CERR_BAD_FORMAT);
 
         conn_set_producer(c);
 
@@ -670,7 +670,7 @@ dispatch_cmd(conn c)
         break;
     case OP_PEEK:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_PEEK_LEN + 2) return conn_close(c);
+        if (c->cmd_len != CMD_PEEK_LEN + 2) return reply_cerr(c, CERR_BAD_FORMAT);
 
         j = job_copy(peek_buried_job() ? : delay_q_peek());
 
@@ -682,7 +682,7 @@ dispatch_cmd(conn c)
     case OP_PEEKJOB:
         errno = 0;
         id = strtoull(c->cmd + CMD_PEEKJOB_LEN, &end_buf, 10);
-        if (errno) return conn_close(c);
+        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
 
         /* So, peek is annoying, because some other connection might free the
          * job while we are still trying to write it out. So we copy it and
@@ -696,7 +696,7 @@ dispatch_cmd(conn c)
         break;
     case OP_RESERVE:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_RESERVE_LEN + 2) return conn_close(c);
+        if (c->cmd_len != CMD_RESERVE_LEN + 2) return reply_cerr(c, CERR_BAD_FORMAT);
 
         reserve_ct++; /* stats */
         conn_set_worker(c);
@@ -708,7 +708,7 @@ dispatch_cmd(conn c)
     case OP_DELETE:
         errno = 0;
         id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10);
-        if (errno) return conn_close(c);
+        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
 
         j = remove_reserved_job(c, id) ? : remove_buried_job(id);
 
@@ -722,13 +722,13 @@ dispatch_cmd(conn c)
     case OP_RELEASE:
         errno = 0;
         id = strtoull(c->cmd + CMD_RELEASE_LEN, &pri_buf, 10);
-        if (errno) return conn_close(c);
+        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
 
         r = read_pri(&pri, pri_buf, &delay_buf);
-        if (r) return conn_close(c);
+        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
 
         r = read_delay(&delay, delay_buf, NULL);
-        if (r) return conn_close(c);
+        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
 
         j = remove_reserved_job(c, id);
 
@@ -747,10 +747,10 @@ dispatch_cmd(conn c)
     case OP_BURY:
         errno = 0;
         id = strtoull(c->cmd + CMD_BURY_LEN, &pri_buf, 10);
-        if (errno) return conn_close(c);
+        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
 
         r = read_pri(&pri, pri_buf, NULL);
-        if (r) return conn_close(c);
+        if (r) return reply_cerr(c, CERR_BAD_FORMAT);
 
         j = remove_reserved_job(c, id);
 
@@ -764,8 +764,8 @@ dispatch_cmd(conn c)
     case OP_KICK:
         errno = 0;
         count = strtoul(c->cmd + CMD_KICK_LEN, &end_buf, 10);
-        if (end_buf == c->cmd + CMD_KICK_LEN) return conn_close(c);
-        if (errno) return conn_close(c);
+        if (end_buf == c->cmd + CMD_KICK_LEN) return reply_cerr(c, CERR_BAD_FORMAT);
+        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
 
         kick_ct++; /* stats */
 
@@ -779,7 +779,7 @@ dispatch_cmd(conn c)
         break;
     case OP_STATS:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_STATS_LEN + 2) return conn_close(c);
+        if (c->cmd_len != CMD_STATS_LEN + 2) return reply_cerr(c, CERR_BAD_FORMAT);
 
         stats_ct++; /* stats */
 
@@ -788,7 +788,7 @@ dispatch_cmd(conn c)
     case OP_JOBSTATS:
         errno = 0;
         id = strtoull(c->cmd + CMD_JOBSTATS_LEN, &end_buf, 10);
-        if (errno) return conn_close(c);
+        if (errno) return reply_cerr(c, CERR_BAD_FORMAT);
 
         j = peek_job(id);
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
@@ -872,7 +872,7 @@ h_conn_data(conn c)
         /* c->cmd_read > LINE_BUF_SIZE can't happen */
 
         /* command line too long? */
-        if (c->cmd_read == LINE_BUF_SIZE) return conn_close(c);
+        if (c->cmd_read == LINE_BUF_SIZE) return reply_cerr(c, CERR_BAD_FORMAT);
 
         /* otherwise we have an incomplete line, so just keep waiting */
         break;
