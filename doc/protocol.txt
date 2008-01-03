@@ -46,7 +46,14 @@ Here are the client error numbers and their meanings:
 
  - 0 bad command line format
 
-   The client sent a command line that was not well-formed.
+   The client sent a command line that was not well-formed. This can happen if
+   the line does not end with \r\n, if non-numeric characters occur where an
+   integer is expected, if the wrong number of arguments are present, or if
+   the command line is mal-formed in any other way.
+
+ - 1 unknown command
+
+   The client sent a command that the server does not know.
 
 As a last resort, if the server has a serious error that prevents it from
 continuing service to the current client, the server will close the

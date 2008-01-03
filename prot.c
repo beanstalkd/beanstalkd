@@ -65,12 +65,14 @@ static const char * serrs[] = {
 };
 
 #define CERR_BAD_FORMAT 0
+#define CERR_UNKNOWN_COMMAND 1
 
 /* Complete responses for the error conditions defined in CERR_*.
  * Feel free to change the contents of these strings (for example, a better
  * description) but not their order */
 static const char * cerrs[] = {
     "CLIENT_ERROR 0 bad command line format\r\n",
+    "CLIENT_ERROR 1 unknown command\r\n",
 };
 
 #ifdef DEBUG
@@ -787,8 +789,7 @@ dispatch_cmd(conn c)
         do_stats(c, fmt_job_stats, j);
         break;
     default:
-        /* unknown command -- protocol error */
-        return conn_close(c);
+        return reply_cerr(c, CERR_UNKNOWN_COMMAND);
     }
 }
 
