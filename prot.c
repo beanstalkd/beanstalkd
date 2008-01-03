@@ -36,9 +36,6 @@
 /* job body cannot be greater than this many bytes long */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
 
-#define MSG_SERVER_ERROR "SERVER_ERROR"
-#define MSG_CLIENT_ERROR "CLIENT_ERROR"
-
 static pq ready_q;
 static pq delay_q;
 
@@ -125,15 +122,15 @@ reply(conn c, const char *line, int len, int state)
 
 /* will clobber c->reply_buf */
 static void
-reply_err(conn c, const char *type, int errn, const char *msg)
+reply_err(conn c, const char *msg)
 {
     dprintf("sending error reply: %s", msg);
     return reply(c, msg, strlen(msg), STATE_SENDWORD);
 }
 
 #define reply_serr(c,e) (twarnx("server error: %d %s",(e),serrs[e]),\
-                         reply_err((c),MSG_SERVER_ERROR,(e),serrs[e]))
-#define reply_cerr(c,e) (reply_err((c),MSG_CLIENT_ERROR,(e),cerrs[e]))
+                         reply_err((c),serrs[e]))
+#define reply_cerr(c,e) (reply_err((c),cerrs[e]))
 
 void
 reply_job(conn c, job j, const char *word)
