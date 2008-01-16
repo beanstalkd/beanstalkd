@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <sys/resource.h>
 #include <sys/uio.h>
+#include <stdarg.h>
 
 #include "prot.h"
 #include "pq.h"
