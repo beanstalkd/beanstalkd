@@ -63,6 +63,7 @@
 #define MSG_DELETED "DELETED\r\n"
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
+#define MSG_BURIED_FMT "BURIED %llu\r\n"
 #define MSG_INSERTED_FMT "INSERTED %llu\r\n"
 
 #define MSG_NOTFOUND_LEN CONSTSTRLEN(MSG_NOTFOUND)
@@ -517,7 +518,7 @@ enqueue_incoming_job(conn c)
     if (r) return reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j->id);
 
     bury_job(j); /* there was no room in the queue, so it gets buried */
-    reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
+    reply_line(c, STATE_SENDWORD, MSG_BURIED_FMT, j->id);
 }
 
 static unsigned int

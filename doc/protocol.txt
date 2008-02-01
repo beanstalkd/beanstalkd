@@ -143,7 +143,9 @@ may be:
 
    - <id> is the integer id of the new job
 
- - "BURIED\r\n" if the priority queue data structure is full.
+ - "BURIED <id>\r\n" if the priority queue data structure is full.
+
+   - <id> is the integer id of the new job
 
 Worker Commands
 ---------------
