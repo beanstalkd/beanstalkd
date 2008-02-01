@@ -25,12 +25,15 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <pwd.h>
 
 #include "net.h"
 #include "util.h"
 #include "prot.h"
 
-static char *me;
+static char *me, *user = NULL;
 static int detach = 0;
 static int port = 11300;
 static struct in_addr host_addr = { INADDR_ANY };
@@ -66,6 +69,23 @@ daemonize()
     dfork();
     setsid();
     dfork();
+}
+
+static void
+su(const char *user) {
+    int r;
+    struct passwd *pwent;
+
+    errno = 0;
+    pwent = getpwnam(user);
+    if (errno) twarn("getpwnam(\"%s\")", user), exit(32);
+    if (!pwent) twarnx("getpwnam(\"%s\"): no such user", user), exit(33);
+
+    r = setgid(pwent->pw_gid);
+    if (r == -1) twarn("setgid(%d \"%s\")", pwent->pw_gid, user), exit(34);
+
+    r = setuid(pwent->pw_uid);
+    if (r == -1) twarn("setuid(%d \"%s\")", pwent->pw_uid, user), exit(34);
 }
 
 void
@@ -133,6 +153,7 @@ usage(char *msg, char *arg)
             " -d       detach\n"
             " -l ADDR  listen on address (default is 0.0.0.0)\n"
             " -p PORT  listen on port (default is 11300)\n"
+            " -u USER  become user and group\n"
             " -h       show this help\n",
             me);
     exit(arg ? 5 : 0);
@@ -183,6 +204,9 @@ opts(int argc, char **argv)
             case 'l':
                 host_addr = parse_host(argv[++i]);
                 break;
+            case 'u':
+                user = argv[++i];
+                break;
             case 'h':
                 usage(NULL, NULL);
             default:
@@ -204,6 +228,7 @@ main(int argc, char **argv)
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
 
+    if (user) su(user);
     if (detach) daemonize();
     event_init();
     set_sig_handlers();
