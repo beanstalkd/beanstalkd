@@ -147,7 +147,7 @@ static void
 usage(char *msg, char *arg)
 {
     if (arg) warnx("%s: %s", msg, arg);
-    fprintf(stderr, "Use: %s [-d] [-l ADDR] [-p PORT] [-h]\n"
+    fprintf(stderr, "Use: %s [-d] [-l ADDR] [-p PORT] [-u USER] [-h]\n"
             "\n"
             "Options:\n"
             " -d       detach\n"
