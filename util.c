@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <unistd.h>
+/* util.c - util functions */
 
 /* Copyright (C) 2007 Keith Rarick and Philotic Inc.
 
@@ -17,7 +16,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "util.h"
+
+char *progname; /* defined as extern in util.h */
+
 void
 v()
 {
+}
+
+static void
+vwarnx(const char *err, const char *fmt, va_list args)
+{
+    fprintf(stderr, "%s: ", progname);
+    if (fmt) {
+        vfprintf(stderr, fmt, args);
+        if (err) fprintf(stderr, ": %s", strerror(errno));
+    }
+    fputc('\n', stderr);
+}
+
+void
+warn(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vwarnx(strerror(errno), fmt, args);
+    va_end(args);
+}
+
+void
+warnx(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vwarnx(NULL, fmt, args);
+    va_end(args);
 }

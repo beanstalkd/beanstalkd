@@ -1,3 +1,5 @@
+/* util.h - util functions */
+
 /* Copyright (C) 2007 Keith Rarick and Philotic Inc.
 
  * This program is free software: you can redistribute it and/or modify
@@ -17,11 +19,14 @@
 #ifndef util_h
 #define util_h
 
-#include <err.h>
-
 #define min(a,b) ((a)<(b)?(a):(b))
 
 void v();
+
+void warn(const char *fmt, ...);
+void warnx(const char *fmt, ...);
+
+extern char *progname;
 
 #define twarn(fmt, args...) warn("%s:%d in %s: " fmt, \
                                  __FILE__, __LINE__, __func__, ##args)

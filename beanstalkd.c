@@ -33,7 +33,7 @@
 #include "util.h"
 #include "prot.h"
 
-static char *me, *user = NULL;
+static char *user = NULL;
 static int detach = 0;
 static int port = 11300;
 static struct in_addr host_addr = { INADDR_ANY };
@@ -155,7 +155,7 @@ usage(char *msg, char *arg)
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
             " -h       show this help\n",
-            me);
+            progname);
     exit(arg ? 5 : 0);
 }
 
@@ -220,7 +220,7 @@ main(int argc, char **argv)
 {
     int r;
 
-    me = argv[0];
+    progname = argv[0];
     opts(argc, argv);
 
     prot_init();
