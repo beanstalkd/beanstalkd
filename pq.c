@@ -20,35 +20,39 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "tube.h" /* hack to make cpp happy */
 #include "pq.h"
 
-pq
-make_pq(unsigned int initial_cap, job_cmp_fn cmp)
+void
+pq_init(pq q, job_cmp_fn cmp)
 {
-    pq q;
+    if (!q) return;
 
-    q = malloc(sizeof(struct pq));
-    if (!q) return NULL;
-
-    q->cap = initial_cap;
+    q->cap = 0;
     q->used = 0;
     q->cmp = cmp;
-    q->heap = malloc(initial_cap * sizeof(job));
-    if (!q->heap) return free(q), NULL;
+    q->heap = NULL;
 
-    return q;
+    return;
+}
+
+void
+pq_clear(pq q)
+{
+    free(q->heap);
+    pq_init(q, q->cmp);
 }
 
 static void
 pq_grow(pq q)
 {
     job *nheap;
-    unsigned int ncap = q->cap << 1;
+    unsigned int ncap = q->cap << 1 ? : 1;
 
     nheap = malloc(ncap * sizeof(job));
     if (!nheap) return;
 
-    memcpy(nheap, q->heap, q->used * sizeof(job));
+    if (q->heap) memcpy(nheap, q->heap, q->used * sizeof(job));
     free(q->heap);
     q->heap = nheap;
     q->cap = ncap;

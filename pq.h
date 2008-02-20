@@ -19,17 +19,21 @@
 #ifndef q_h
 #define q_h
 
+typedef struct pq *pq;
+
 #include "job.h"
 
-typedef struct pq {
+struct pq {
     unsigned int cap;
     unsigned int used;
     job_cmp_fn cmp;
     job *heap;
-} *pq;
+};
 
-/* make a priority queue with initial capacity initial_cap */
-pq make_pq(unsigned int initial_cap, job_cmp_fn cmp);
+/* initialize a priority queue */
+void pq_init(pq q, job_cmp_fn cmp);
+
+void pq_clear(pq q);
 
 /* return 1 if the job was inserted, else 0 */
 int pq_give(pq q, job j);

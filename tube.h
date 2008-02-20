@@ -1,6 +1,6 @@
-/* prot.h - protocol implementation header */
+/* tube.h - tubes header */
 
-/* Copyright (C) 2007 Keith Rarick and Philotic Inc.
+/* Copyright (C) 2008 Keith Rarick and Philotic Inc.
 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,21 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef prot_h
-#define prot_h
+#ifndef tube_h
+#define tube_h
 
-#include "conn.h"
+typedef struct tube *tube;
 
-#define URGENT_THRESHOLD 1024
+#include "pq.h"
+#include "ms.h"
 
-void prot_init();
+#define MAX_TUBE_NAME_LEN 201
 
-conn remove_waiting_conn(conn c);
+struct tube {
+    unsigned int refs;
+    char name[MAX_TUBE_NAME_LEN];
+    struct pq ready, delay;
+    struct ms waiting; /* set of conns */
+};
 
-void enqueue_reserved_jobs(conn c);
+tube make_tube(const char *name);
+void tube_dref(tube t);
+void tube_iref(tube t);
+#define TUBE_ASSIGN(a,b) (tube_dref(a), (a) = (b), tube_iref(a))
 
-void enter_drain_mode(int sig);
-void h_accept(const int fd, const short which, struct event *ev);
-void prot_remove_tube(tube t);
-
-#endif /*prot_h*/
+#endif /*tube_h*/

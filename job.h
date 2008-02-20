@@ -21,13 +21,16 @@
 
 #include <time.h>
 
+typedef struct job *job;
+typedef int(*job_cmp_fn)(job, job);
+
+#include "tube.h"
+
 #define JOB_STATE_INVALID 0
 #define JOB_STATE_READY 1
 #define JOB_STATE_RESERVED 2
 #define JOB_STATE_BURIED 3
 #define JOB_STATE_DELAYED 4
-
-typedef struct job *job;
 
 struct job {
     job prev, next; /* linked list of jobs */
@@ -42,15 +45,16 @@ struct job {
     unsigned int release_ct;
     unsigned int bury_ct;
     unsigned int kick_ct;
+    tube tube;
     char state;
     char body[];
 };
 
 job allocate_job(int body_size);
 job make_job(unsigned int pri, unsigned int delay, unsigned int ttr,
-        int body_size);
+             int body_size, tube tube);
+void job_free(job j);
 
-typedef int(*job_cmp_fn)(job, job);
 int job_pri_cmp(job a, job b);
 int job_delay_cmp(job a, job b);
 

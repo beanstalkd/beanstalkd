@@ -42,17 +42,39 @@ static void
 conn_free(conn c)
 {
     c->fd = 0;
+    TUBE_ASSIGN(c->use, NULL);
     conn_insert(&pool, c);
 }
 
+static void
+inc(ms a, tube t, size_t i)
+{
+    tube_iref(t);
+}
+
+static void
+dec(ms a, tube t, size_t i)
+{
+    tube_dref(t);
+}
+
 conn
-make_conn(int fd, char start_state)
+make_conn(int fd, char start_state, tube use, tube watch)
 {
     job j;
     conn c;
 
     c = conn_alloc();
     if (!c) return twarn("OOM"), NULL;
+
+    ms_init(&c->watch, (ms_event_fn) inc, (ms_event_fn) dec);
+    if (!ms_append(&c->watch, watch)) {
+        conn_free(c);
+        return twarn("OOM"), NULL;
+    }
+
+    c->use = NULL; /* initialize */
+    TUBE_ASSIGN(c->use, use);
 
     c->fd = fd;
     c->state = start_state;
@@ -149,7 +171,7 @@ conn_update_evq(conn c, const int events)
     return conn_set_evq(c, events, c->evq.ev_callback);
 }
 
-int
+static int
 conn_list_any_p(conn head)
 {
     return head->next != head || head->prev != head;
@@ -209,10 +231,10 @@ conn_close(conn c)
 
     close(c->fd);
 
-    free(c->in_job);
+    job_free(c->in_job);
 
     /* was this a peek or stats command? */
-    if (!has_reserved_this_job(c, c->out_job)) free(c->out_job);
+    if (!has_reserved_this_job(c, c->out_job)) job_free(c->out_job);
 
     c->in_job = c->out_job = NULL;
 
@@ -225,6 +247,8 @@ conn_close(conn c)
     remove_waiting_conn(c);
     conn_remove(c);
     if (has_reserved_job(c)) enqueue_reserved_jobs(c);
+
+    ms_clear(&c->watch);
 
     conn_free(c);
 }

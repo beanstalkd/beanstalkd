@@ -20,7 +20,9 @@
 #define conn_h
 
 #include "event.h"
+#include "ms.h"
 #include "job.h"
+#include "tube.h"
 
 #define STATE_WANTCOMMAND 0
 #define STATE_WANTDATA 1
@@ -44,6 +46,9 @@
 #define OP_STATS 8
 #define OP_JOBSTATS 9
 #define OP_PEEK 10
+#define OP_USE 11
+#define OP_WATCH 12
+#define OP_IGNORE 13
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1
@@ -74,16 +79,17 @@ struct conn {
     job out_job;
     int out_job_sent;
     struct job reserved_jobs; /* doubly-linked list header */
+    tube use;
+    struct ms watch;
 };
 
-conn make_conn(int fd, char start_state);
+conn make_conn(int fd, char start_state, tube use, tube watch);
 
 int conn_set_evq(conn c, const int events, evh handler);
 int conn_update_evq(conn c, const int flags);
 
 void conn_close(conn c);
 
-int conn_list_any_p(conn head);
 conn conn_remove(conn c);
 void conn_insert(conn head, conn c);
 

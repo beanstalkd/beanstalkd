@@ -10,6 +10,12 @@ were received and sends responses in the same order. All integers in the
 protocol are formatted in decimal and (unless otherwise indicated)
 nonnegative.
 
+Names, in this protocol, are ASCII strings. They may contain letters (A-Z and
+a-z), numerals (0-9), hyphen ("-"), plus ("+"), slash ("/"), semicolon (";"),
+dot ("."), dollar-sign ("$"), and parentheses ("(" and ")"), but they may not
+begin with a hyphen. They are terminated by white space (either a space char or
+end of line). Each name must be at least one character long.
+
 The protocol contains two kinds of data: text lines and unstructured chunks of
 data. Text lines are used for client commands and server responses. Chunks are
 used to transfer job bodies and stats information. Each job body is an opaque
@@ -106,9 +112,23 @@ Here is a picture with more possibilities:
                         `--------> *poof*
 
 
+The system has one or more tubes. Each tube consists of a ready queue and a
+delay queue. Each job spends its entire life in one tube. Consumers can show
+interest in tubes by sending the "watch" command; they can show disinterest by
+sending the "ignore" command. This set of interesting tubes is said to be a
+consumer's "watch list". When a client reserves a job, it may come from any of
+the tubes in its watch list.
 
-Producer Command
-----------------
+When a client connects, its watch list is initially just the tube named
+"default". If it submits jobs without having sent a "use" command, they will
+live in the tube named "default".
+
+Tubes are created on demand whenever they are referenced. If a tube is empty
+(that is, it contains no ready, delayed, or buried jobs) and no client refers
+to it, it will be deleted.
+
+Producer Commands
+-----------------
 
 The "put" command is for any process that wants to insert a job into the queue.
 It comprises a command line followed by the job body:
@@ -116,7 +136,8 @@ It comprises a command line followed by the job body:
 put <pri> <delay> <ttr> <bytes>\r\n
 <data>\r\n
 
-It inserts a job into the queue.
+It inserts a job into the client's currently used tube (see the "use" command
+below).
 
  - <pri> is an integer < 2**32. Jobs with smaller priority values will be
    scheduled before jobs with larger priorities. The most urgent priority is 0;
@@ -149,6 +170,19 @@ may be:
    priority queue data structure.
 
    - <id> is the integer id of the new job
+
+The "use" command is for producers. Subsequent put commands will put jobs into
+the tube specified by this command. If no use command has been issued, jobs
+will be put into the tube named "default".
+
+use <tube>\r\n
+
+ - <tube> is a name at most 200 bytes. It specifies the tube to use. If the
+   tube does not exist, it will be created.
+
+The only reply is:
+
+USING\r\n
 
 Worker Commands
 ---------------
@@ -239,6 +273,36 @@ There are two possible responses:
 
  - "NOT_FOUND\r\n" if the job does not exist or is not reserved by the client.
 
+The "watch" command adds the named tube to the watch list for the current
+connection. A reserve command will take a job from any of the tubes in the
+watch list. For each new connection, the watch list initially consists of one
+tube, named "default".
+
+watch <tube>\r\n
+
+ - <tube> is a name at most 200 bytes. It specifies a tube to add to the watch
+   list.
+
+The reply is:
+
+WATCHING <count>\r\n
+
+ - <count> is the integer number of tubes currently in the watch list.
+
+The "ignore" command is for consumers. It removes the named tube from the
+watch list for the current connection.
+
+ignore <tube>\r\n
+
+The reply is one of:
+
+ - "WATCHING <count>\r\n" to indicate success.
+
+   - <count> is the integer number of tubes currently in the watch list.
+
+ - "NOT_IGNORED\r\n" if the client attempts to ignore the only tube in its
+   watch list.
+
 Other Commands
 --------------
 
@@ -315,6 +379,8 @@ scalars.
 
    - "id" is the job id
 
+   - "tube" is the name of the tube that contains this job
+
    - "state" is "ready" or "delayed" or "reserved" or "buried"
 
    - "age" is the time in seconds since the put command that created this job.
@@ -365,6 +431,8 @@ scalars.
    - "job-timeouts" is the cumulative count of times a job has timed out.
 
    - "total-jobs" is the cumulative count of jobs created.
+
+   - "current-tubes" is the number of currently-existing tubes.
 
    - "current-connections" is the number of currently open connections.
 

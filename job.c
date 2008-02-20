@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "job.h"
+#include "tube.h"
 #include "util.h"
 
 static unsigned long long int next_id = 1;
@@ -37,12 +38,14 @@ allocate_job(int body_size)
     j->timeout_ct = j->release_ct = j->bury_ct = j->kick_ct = 0;
     j->body_size = body_size;
     j->next = j->prev = j; /* not in a linked list */
+    j->tube = NULL;
 
     return j;
 }
 
 job
-make_job(unsigned int pri, unsigned int delay, unsigned int ttr, int body_size)
+make_job(unsigned int pri, unsigned int delay, unsigned int ttr, int body_size,
+         tube tube)
 {
     job j;
 
@@ -53,8 +56,16 @@ make_job(unsigned int pri, unsigned int delay, unsigned int ttr, int body_size)
     j->pri = pri;
     j->delay = delay;
     j->ttr = ttr;
+    TUBE_ASSIGN(j->tube, tube);
 
     return j;
+}
+
+void
+job_free(job j)
+{
+    if (j) TUBE_ASSIGN(j->tube, NULL);
+    free(j);
 }
 
 int
@@ -91,10 +102,9 @@ job_copy(job j)
     n = malloc(sizeof(struct job) + j->body_size);
     if (!n) return twarnx("OOM"), NULL;
 
-    n->id = j->id;
-    n->pri = j->pri;
-    n->body_size = j->body_size;
-    memcpy(n->body, j->body, j->body_size);
+    memcpy(n, j, sizeof(struct job) + j->body_size);
+    n->next = n->prev = n; /* not in a linked list */
+    TUBE_ASSIGN(n->tube, j->tube);
 
     return n;
 }

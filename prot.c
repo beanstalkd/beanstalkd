@@ -27,7 +27,9 @@
 
 #include "prot.h"
 #include "pq.h"
+#include "ms.h"
 #include "job.h"
+#include "tube.h"
 #include "conn.h"
 #include "util.h"
 #include "net.h"
@@ -35,6 +37,11 @@
 
 /* job body cannot be greater than this many bytes long */
 #define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
+
+#define NAME_CHARS \
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+    "abcdefghijklmnopqrstuvwxyz" \
+    "0123456789-+/;.$()"
 
 #define CMD_PUT "put "
 #define CMD_PEEK "peek"
@@ -46,6 +53,9 @@
 #define CMD_KICK "kick "
 #define CMD_STATS "stats"
 #define CMD_JOBSTATS "stats "
+#define CMD_USE "use "
+#define CMD_WATCH "watch "
+#define CMD_IGNORE "ignore "
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
@@ -58,6 +68,9 @@
 #define CMD_KICK_LEN CONSTSTRLEN(CMD_KICK)
 #define CMD_STATS_LEN CONSTSTRLEN(CMD_STATS)
 #define CMD_JOBSTATS_LEN CONSTSTRLEN(CMD_JOBSTATS)
+#define CMD_USE_LEN CONSTSTRLEN(CMD_USE)
+#define CMD_WATCH_LEN CONSTSTRLEN(CMD_WATCH)
+#define CMD_IGNORE_LEN CONSTSTRLEN(CMD_IGNORE)
 
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
@@ -67,11 +80,13 @@
 #define MSG_BURIED "BURIED\r\n"
 #define MSG_BURIED_FMT "BURIED %llu\r\n"
 #define MSG_INSERTED_FMT "INSERTED %llu\r\n"
+#define MSG_NOT_IGNORED "NOT_IGNORED\r\n"
 
 #define MSG_NOTFOUND_LEN CONSTSTRLEN(MSG_NOTFOUND)
 #define MSG_DELETED_LEN CONSTSTRLEN(MSG_DELETED)
 #define MSG_RELEASED_LEN CONSTSTRLEN(MSG_RELEASED)
 #define MSG_BURIED_LEN CONSTSTRLEN(MSG_BURIED)
+#define MSG_NOT_IGNORED_LEN CONSTSTRLEN(MSG_NOT_IGNORED)
 
 #define MSG_OUT_OF_MEMORY "OUT_OF_MEMORY\r\n"
 #define MSG_INTERNAL_ERROR "INTERNAL_ERROR\r\n"
@@ -97,6 +112,7 @@
     "cmd-stats: %llu\n" \
     "job-timeouts: %llu\n" \
     "total-jobs: %llu\n" \
+    "current-tubes: %u\n" \
     "current-connections: %u\n" \
     "current-producers: %u\n" \
     "current-workers: %u\n" \
@@ -111,6 +127,7 @@
 
 #define JOB_STATS_FMT "---\n" \
     "id: %llu\n" \
+    "tube: %s\n" \
     "state: %s\n" \
     "age: %u\n" \
     "delay: %u\n" \
@@ -122,13 +139,15 @@
     "kicks: %u\n" \
     "\r\n"
 
-static pq ready_q;
-static pq delay_q;
+static struct pq ready_q;
+static struct pq delay_q;
 
 /* Doubly-linked list of waiting connections. */
-static struct conn wait_queue = { &wait_queue, &wait_queue, 0 };
 static struct job graveyard = { &graveyard, &graveyard, 0 };
-static unsigned int buried_ct = 0, urgent_ct = 0, waiting_ct = 0;
+static unsigned int buried_ct = 0, ready_ct = 0, urgent_ct = 0, waiting_ct = 0;
+
+static tube default_tube;
+static struct ms tubes;
 
 static int drain_mode = 0;
 static time_t start_time;
@@ -155,14 +174,11 @@ static const char * op_names[] = {
     CMD_STATS,
     CMD_JOBSTATS,
     CMD_PEEK,
+    CMD_USE,
+    CMD_WATCH,
+    CMD_IGNORE,
 };
 #endif
-
-static int
-waiting_conn_p()
-{
-    return conn_list_any_p(&wait_queue);
-}
 
 static int
 buried_job_p()
@@ -220,10 +236,15 @@ reply_job(conn c, job j, const char *word)
 conn
 remove_waiting_conn(conn c)
 {
+    size_t i;
+
     if (!(c->type & CONN_TYPE_WAITING)) return NULL;
     c->type &= ~CONN_TYPE_WAITING;
     waiting_ct--;
-    return conn_remove(c);
+    for (i = 0; i < c->watch.used; i++) {
+        ms_remove(&((tube) c->watch.items[i])->waiting, c);
+    }
+    return c;
 }
 
 static void
@@ -237,16 +258,40 @@ reserve_job(conn c, job j)
     return reply_job(c, j, MSG_RESERVED);
 }
 
+static job
+next_eligible_job()
+{
+    tube t;
+    size_t i;
+    job j = NULL, candidate;
+
+    dprintf("tubes.used = %d\n", tubes.used);
+    for (i = 0; i < tubes.used; i++) {
+        t = tubes.items[i];
+        dprintf("for %s t->waiting.used=%d t->ready.used=%d\n",
+                t->name, t->waiting.used, t->ready.used);
+        if (t->waiting.used && t->ready.used) {
+            candidate = pq_peek(&t->ready);
+            if (!j || candidate->id < j->id) j = candidate;
+        }
+        dprintf("i = %d, tubes.used = %d\n", i, tubes.used);
+    }
+
+    return j;
+}
+
 static void
 process_queue()
 {
     job j;
 
-    while (waiting_conn_p()) {
-        j = pq_take(ready_q);
-        if (!j) return;
+    dprintf("processing queue\n");
+    while ((j = next_eligible_job())) {
+        dprintf("got eligible job %llu in %s\n", j->id, j->tube->name);
+        j = pq_take(&j->tube->ready);
+        ready_ct--;
         if (j->pri < URGENT_THRESHOLD) urgent_ct--;
-        reserve_job(remove_waiting_conn(wait_queue.next), j);
+        reserve_job(remove_waiting_conn(ms_take(&j->tube->waiting)), j);
     }
 }
 
@@ -257,14 +302,15 @@ enqueue_job(job j, unsigned int delay)
 
     if (delay) {
         j->deadline = time(NULL) + delay;
-        r = pq_give(delay_q, j);
+        r = pq_give(&delay_q, j);
         if (!r) return 0;
         j->state = JOB_STATE_DELAYED;
-        set_main_timeout(pq_peek(delay_q)->deadline);
+        set_main_timeout(pq_peek(&delay_q)->deadline);
     } else {
-        r = pq_give(ready_q, j);
+        r = pq_give(&j->tube->ready, j);
         if (!r) return 0;
         j->state = JOB_STATE_READY;
+        ready_ct++;
         if (j->pri < URGENT_THRESHOLD) urgent_ct++;
     }
     process_queue();
@@ -298,13 +344,13 @@ enqueue_reserved_jobs(conn c)
 static job
 delay_q_peek()
 {
-    return pq_peek(delay_q);
+    return pq_peek(&delay_q);
 }
 
 static job
 delay_q_take()
 {
-    return pq_take(delay_q);
+    return pq_take(&delay_q);
 }
 
 static job
@@ -327,7 +373,7 @@ kick_buried_job()
     r = enqueue_job(j, 0);
     if (r) return 1;
 
-    /* ready_q is full, so bury it */
+    /* ready queue is full, so bury it */
     bury_job(j);
     return 0;
 }
@@ -335,7 +381,7 @@ kick_buried_job()
 static unsigned int
 get_delayed_job_ct()
 {
-    return pq_used(delay_q);
+    return pq_used(&delay_q);
 }
 
 static int
@@ -350,7 +396,7 @@ kick_delayed_job()
     r = enqueue_job(j, 0);
     if (r) return 1;
 
-    /* ready_q is full, so delay it again */
+    /* ready queue is full, so delay it again */
     r = enqueue_job(j, j->delay);
     if (r) return 0;
 
@@ -410,9 +456,13 @@ remove_buried_job(unsigned long long int id)
 static void
 enqueue_waiting_conn(conn c)
 {
+    size_t i;
+
     waiting_ct++;
     c->type |= CONN_TYPE_WAITING;
-    conn_insert(&wait_queue, conn_remove(c) ? : c);
+    for (i = 0; i < c->watch.used; i++) {
+        ms_append(&((tube) c->watch.items[i])->waiting, c);
+    }
 }
 
 static job
@@ -446,19 +496,33 @@ find_reserved_job(unsigned long long int id)
 }
 
 static job
+peek_ready_job(unsigned long long int id)
+{
+
+    job j;
+    size_t i;
+
+    for (i = 0; i < tubes.used; i++) {
+        j = pq_find(&((tube) tubes.items[i])->ready, id);
+        if (j) return j;
+    }
+    return NULL;
+}
+
+/* TODO: make a global hashtable of jobs because this is slow */
+static job
 peek_job(unsigned long long int id)
 {
-    return pq_find(ready_q, id) ? :
-           pq_find(delay_q, id) ? :
+    return peek_ready_job(id) ? :
+           pq_find(&delay_q, id) ? :
            find_reserved_job(id) ? :
-           find_reserved_job_in_list(&wait_queue, id) ? :
            find_buried_job(id);
 }
 
 static unsigned int
 get_ready_job_ct()
 {
-    return pq_used(ready_q);
+    return ready_ct;
 }
 
 static unsigned int
@@ -528,6 +592,9 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_KICK, OP_KICK);
     TEST_CMD(c->cmd, CMD_JOBSTATS, OP_JOBSTATS);
     TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
+    TEST_CMD(c->cmd, CMD_USE, OP_USE);
+    TEST_CMD(c->cmd, CMD_WATCH, OP_WATCH);
+    TEST_CMD(c->cmd, CMD_IGNORE, OP_IGNORE);
     return OP_UNKNOWN;
 }
 
@@ -570,7 +637,7 @@ enqueue_incoming_job(conn c)
 
     /* check if the trailer is present and correct */
     if (memcmp(j->body + j->body_size - 2, "\r\n", 2)) {
-        free(j);
+        job_free(j);
         return reply_msg(c, MSG_EXPECTED_CRLF);
     }
 
@@ -612,6 +679,7 @@ fmt_stats(char *buf, size_t size, void *x)
             stats_ct,
             timeout_ct,
             total_jobs(),
+            tubes.used,
             count_cur_conns(),
             count_cur_producers(),
             count_cur_workers(),
@@ -710,6 +778,7 @@ fmt_job_stats(char *buf, size_t size, void *jp)
     t = time(NULL);
     return snprintf(buf, size, JOB_STATS_FMT,
             j->id,
+            j->tube->name,
             job_state(j),
             (unsigned int) (t - j->creation),
             j->delay,
@@ -749,6 +818,56 @@ remove_reserved_job(conn c, unsigned long long int id)
     return remove_this_reserved_job(c, find_reserved_job_in_conn(c, id));
 }
 
+static int
+name_is_ok(const char *name, size_t max)
+{
+    size_t len = strlen(name);
+    return len > 0 && len <= max &&
+        strspn(name, NAME_CHARS) == len && name[0] != '-';
+}
+
+static tube
+find_tube(const char *name)
+{
+    tube t;
+    size_t i;
+
+    for (i = 0; i < tubes.used; i++) {
+        t = tubes.items[i];
+        if (strncmp(t->name, name, MAX_TUBE_NAME_LEN) == 0) return t;
+    }
+    return NULL;
+}
+
+void
+prot_remove_tube(tube t)
+{
+    ms_remove(&tubes, t);
+}
+
+static tube
+make_and_insert_tube(const char *name)
+{
+    int r;
+    tube t = NULL;
+
+    t = make_tube(name);
+    if (!t) return NULL;
+
+    /* We want this global tube list to behave like "weak" refs, so don't
+     * increment the ref count. */
+    r = ms_append(&tubes, t);
+    if (!r) return tube_dref(t), NULL;
+
+    return t;
+}
+
+static tube
+find_or_make_tube(const char *name)
+{
+    return find_tube(name) ? : make_and_insert_tube(name);
+}
+
 static void
 dispatch_cmd(conn c)
 {
@@ -756,9 +875,10 @@ dispatch_cmd(conn c)
     unsigned int count;
     job j;
     char type;
-    char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf;
+    char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
     unsigned int pri, delay, ttr, body_size;
     unsigned long long int id;
+    tube t = NULL;
 
     /* NUL-terminate this string so we can use strtol and friends */
     c->cmd[c->cmd_len - 2] = '\0';
@@ -797,7 +917,7 @@ dispatch_cmd(conn c)
 
         conn_set_producer(c);
 
-        c->in_job = make_job(pri, delay, ttr ? : 1, body_size + 2);
+        c->in_job = make_job(pri, delay, ttr ? : 1, body_size + 2, c->use);
 
         fill_extra_data(c);
 
@@ -856,7 +976,7 @@ dispatch_cmd(conn c)
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         delete_ct++; /* stats */
-        free(j);
+        job_free(j);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
         break;
@@ -935,7 +1055,53 @@ dispatch_cmd(conn c)
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         stats_ct++; /* stats */
+
+        if (!j->tube) return reply_serr(c, MSG_INTERNAL_ERROR);
         do_stats(c, fmt_job_stats, j);
+        break;
+    case OP_USE:
+        name = c->cmd + CMD_USE_LEN;
+        if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
+
+        TUBE_ASSIGN(t, find_or_make_tube(name));
+        if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        TUBE_ASSIGN(c->use, t);
+        TUBE_ASSIGN(t, NULL);
+
+        reply_line(c, STATE_SENDWORD, "USING %s\r\n", c->use->name);
+        break;
+    case OP_WATCH:
+        name = c->cmd + CMD_WATCH_LEN;
+        if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
+
+        TUBE_ASSIGN(t, find_or_make_tube(name));
+        if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        r = 1;
+        if (!ms_contains(&c->watch, t)) r = ms_append(&c->watch, t);
+        TUBE_ASSIGN(t, NULL);
+        if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
+        break;
+    case OP_IGNORE:
+        name = c->cmd + CMD_IGNORE_LEN;
+        if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
+
+        t = NULL;
+        for (i = 0; i < c->watch.used; i++) {
+            t = c->watch.items[i];
+            if (strncmp(t->name, name, MAX_TUBE_NAME_LEN) == 0) break;
+            t = NULL;
+        }
+
+        if (t && c->watch.used < 2) return reply_msg(c, MSG_NOT_IGNORED);
+
+        if (t) ms_remove(&c->watch, t); /* may free t if refcount => 0 */
+        t = NULL;
+
+        reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
         break;
     default:
         return reply_msg(c, MSG_UNKNOWN_COMMAND);
@@ -983,7 +1149,7 @@ reset_conn(conn c)
     if (r == -1) return twarnx("update events failed"), conn_close(c);
 
     /* was this a peek or stats command? */
-    if (!has_reserved_this_job(c, c->out_job)) free(c->out_job);
+    if (!has_reserved_this_job(c, c->out_job)) job_free(c->out_job);
     c->out_job = NULL;
 
     c->reply_sent = 0; /* now that we're done, reset this */
@@ -1006,12 +1172,14 @@ h_conn_data(conn c)
         c->cmd_read += r; /* we got some bytes */
 
         c->cmd_len = cmd_len(c); /* find the EOL */
+        dprintf("cmd_len is %d\n", c->cmd_len);
 
         /* yay, complete command line */
         if (c->cmd_len) return do_cmd(c);
 
         /* c->cmd_read > LINE_BUF_SIZE can't happen */
 
+        dprintf("cmd_read is %d\n", c->cmd_read);
         /* command line too long? */
         if (c->cmd_read == LINE_BUF_SIZE) {
             return reply_msg(c, MSG_BAD_FORMAT);
@@ -1152,7 +1320,7 @@ h_accept(const int fd, const short which, struct event *ev)
     r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
     if (r < 0) return twarn("setting O_NONBLOCK"), close(cfd), v();
 
-    c = make_conn(cfd, STATE_WANTCOMMAND);
+    c = make_conn(cfd, STATE_WANTCOMMAND, default_tube, default_tube);
     if (!c) return twarnx("make_conn() failed"), close(cfd), brake();
 
     dprintf("accepted conn, fd=%d\n", cfd);
@@ -1164,6 +1332,11 @@ void
 prot_init()
 {
     start_time = time(NULL);
-    ready_q = make_pq(16, job_pri_cmp);
-    delay_q = make_pq(16, job_delay_cmp);
+    pq_init(&ready_q, job_pri_cmp);
+    pq_init(&delay_q, job_delay_cmp);
+
+    ms_init(&tubes, NULL, NULL);
+
+    TUBE_ASSIGN(default_tube, find_or_make_tube("default"));
+    if (!default_tube) twarnx("Out of memory during startup!");
 }
