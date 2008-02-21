@@ -25,7 +25,6 @@
 #include "net.h"
 #include "util.h"
 #include "prot.h"
-#include "reserve.h"
 
 /* Doubly-linked list of free connections. */
 static struct conn pool = { &pool, &pool, 0 };
@@ -112,6 +111,12 @@ count_cur_workers()
     return cur_worker_ct;
 }
 
+static int
+has_reserved_job(conn c)
+{
+    return job_list_any_p(&c->reserved_jobs);
+}
+
 int
 conn_set_evq(conn c, const int events, evh handler)
 {
@@ -171,6 +176,30 @@ conn_insert(conn head, conn c)
     c->next = head;
     head->prev->next = c;
     head->prev = c;
+}
+
+/* return the reserved job with the earliest deadline,
+ * or NULL if there's no reserved job */
+job
+soonest_job(conn c)
+{
+    job j, soonest = NULL;
+
+    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
+        if (j->deadline <= (soonest ? : j)->deadline) soonest = j;
+    }
+    return soonest;
+}
+
+int
+has_reserved_this_job(conn c, job needle)
+{
+    job j;
+
+    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
+        if (needle == j) return 1;
+    }
+    return 0;
 }
 
 void

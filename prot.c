@@ -30,7 +30,6 @@
 #include "job.h"
 #include "conn.h"
 #include "util.h"
-#include "reserve.h"
 #include "net.h"
 #include "version.h"
 
@@ -48,6 +47,8 @@
 #define CMD_STATS "stats"
 #define CMD_JOBSTATS "stats "
 
+#define CONSTSTRLEN(m) (sizeof(m) - 1)
+
 #define CMD_PEEK_LEN CONSTSTRLEN(CMD_PEEK)
 #define CMD_PEEKJOB_LEN CONSTSTRLEN(CMD_PEEKJOB)
 #define CMD_RESERVE_LEN CONSTSTRLEN(CMD_RESERVE)
@@ -60,6 +61,7 @@
 
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
+#define MSG_RESERVED "RESERVED"
 #define MSG_DELETED "DELETED\r\n"
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
@@ -134,6 +136,12 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
                      stats_ct = 0, timeout_ct = 0;
 
+static unsigned int cur_reserved_ct = 0;
+
+
+/* Doubly-linked list of connections with at least one reserved job. */
+static struct conn running = { &running, &running, 0 };
+
 #ifdef DEBUG
 static const char * op_names[] = {
     "<unknown>",
@@ -198,7 +206,7 @@ reply_line(conn c, int state, const char *fmt, ...)
     return reply(c, c->reply_buf, r, state);
 }
 
-void
+static void
 reply_job(conn c, job j, const char *word)
 {
     /* tell this connection which job to send */
@@ -219,6 +227,17 @@ remove_waiting_conn(conn c)
 }
 
 static void
+reserve_job(conn c, job j)
+{
+    j->deadline = time(NULL) + j->ttr;
+    cur_reserved_ct++; /* stats */
+    conn_insert(&running, c);
+    j->state = JOB_STATE_RESERVED;
+    job_insert(&c->reserved_jobs, j);
+    return reply_job(c, j, MSG_RESERVED);
+}
+
+static void
 process_queue()
 {
     job j;
@@ -231,7 +250,7 @@ process_queue()
     }
 }
 
-int
+static int
 enqueue_job(job j, unsigned int delay)
 {
     int r;
@@ -252,6 +271,30 @@ enqueue_job(job j, unsigned int delay)
     return 1;
 }
 
+static void
+bury_job(job j)
+{
+    job_insert(&graveyard, j);
+    buried_ct++;
+    j->state = JOB_STATE_BURIED;
+    j->bury_ct++;
+}
+
+void
+enqueue_reserved_jobs(conn c)
+{
+    int r;
+    job j;
+
+    while (job_list_any_p(&c->reserved_jobs)) {
+        j = job_remove(c->reserved_jobs.next);
+        r = enqueue_job(j, 0);
+        if (!r) bury_job(j);
+        cur_reserved_ct--;
+        if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
+    }
+}
+
 static job
 delay_q_peek()
 {
@@ -262,15 +305,6 @@ static job
 delay_q_take()
 {
     return pq_take(delay_q);
-}
-
-void
-bury_job(job j)
-{
-    job_insert(&graveyard, j);
-    buried_ct++;
-    j->state = JOB_STATE_BURIED;
-    j->bury_ct++;
 }
 
 static job
@@ -379,6 +413,36 @@ enqueue_waiting_conn(conn c)
     waiting_ct++;
     c->type |= CONN_TYPE_WAITING;
     conn_insert(&wait_queue, conn_remove(c) ? : c);
+}
+
+static job
+find_reserved_job_in_conn(conn c, unsigned long long int id)
+{
+    job j;
+
+    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
+        if (j->id == id) return j;
+    }
+    return NULL;
+}
+
+static job
+find_reserved_job_in_list(conn list, unsigned long long int id)
+{
+    job j;
+    conn c;
+
+    for (c = list->next; c != list; c = c->next) {
+        j = find_reserved_job_in_conn(c, id);
+        if (j) return j;
+    }
+    return NULL;
+}
+
+static job
+find_reserved_job(unsigned long long int id)
+{
+    return find_reserved_job_in_list(&running, id);
 }
 
 static job
@@ -535,7 +599,7 @@ fmt_stats(char *buf, size_t size, void *x)
     return snprintf(buf, size, STATS_FMT,
             get_urgent_job_ct(),
             get_ready_job_ct(),
-            get_reserved_job_ct(),
+            cur_reserved_ct,
             get_delayed_job_ct(),
             get_buried_job_ct(),
             put_ct,
@@ -667,6 +731,22 @@ maybe_enqueue_incoming_job(conn c)
 
     /* otherwise we have incomplete data, so just keep waiting */
     c->state = STATE_WANTDATA;
+}
+
+/* j can be NULL */
+static job
+remove_this_reserved_job(conn c, job j)
+{
+    j = job_remove(j);
+    if (j) cur_reserved_ct--;
+    if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
+    return j;
+}
+
+static job
+remove_reserved_job(conn c, unsigned long long int id)
+{
+    return remove_this_reserved_job(c, find_reserved_job_in_conn(c, id));
 }
 
 static void

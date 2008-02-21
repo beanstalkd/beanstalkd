@@ -76,8 +76,6 @@ struct conn {
     struct job reserved_jobs; /* doubly-linked list header */
 };
 
-void conn_init();
-
 conn make_conn(int fd, char start_state);
 
 int conn_set_evq(conn c, const int events, evh handler);
@@ -96,5 +94,8 @@ int count_cur_workers();
 
 void conn_set_producer(conn c);
 void conn_set_worker(conn c);
+
+job soonest_job(conn c);
+int has_reserved_this_job(conn c, job j);
 
 #endif /*conn_h*/

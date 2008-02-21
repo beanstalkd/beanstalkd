@@ -22,20 +22,13 @@
 #include "job.h"
 #include "conn.h"
 
-#define CONSTSTRLEN(m) (sizeof(m) - 1)
-
 #define URGENT_THRESHOLD 1024
-
-#define MSG_RESERVED "RESERVED"
 
 void prot_init();
 
-void reply_job(conn c, job j, const char *word);
-
 conn remove_waiting_conn(conn c);
 
-int enqueue_job(job j, unsigned int delay);
-void bury_job(job j);
+void enqueue_reserved_jobs(conn c);
 
 void enter_drain_mode(int sig);
 void h_accept(const int fd, const short which, struct event *ev);
