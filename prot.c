@@ -85,7 +85,6 @@
     "current-jobs-reserved: %u\n" \
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
-    "limit-max-jobs-ready: %u\n" \
     "cmd-put: %llu\n" \
     "cmd-peek: %llu\n" \
     "cmd-reserve: %llu\n" \
@@ -517,7 +516,8 @@ enqueue_incoming_job(conn c)
 
     if (r) return reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j->id);
 
-    bury_job(j); /* there was no room in the queue, so it gets buried */
+    /* out of memory trying to grow the queue, so it gets buried */
+    bury_job(j);
     reply_line(c, STATE_SENDWORD, MSG_BURIED_FMT, j->id);
 }
 
@@ -538,7 +538,6 @@ fmt_stats(char *buf, size_t size, void *x)
             get_reserved_job_ct(),
             get_delayed_job_ct(),
             get_buried_job_ct(),
-            HEAP_SIZE,
             put_ct,
             peek_ct,
             reserve_ct,
@@ -803,7 +802,8 @@ dispatch_cmd(conn c)
         r = enqueue_job(j, delay);
         if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
 
-        bury_job(j); /* there was no room in the queue, so it gets buried */
+        /* out of memory trying to grow the queue, so it gets buried */
+        bury_job(j);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
     case OP_BURY:
@@ -1084,6 +1084,6 @@ void
 prot_init()
 {
     start_time = time(NULL);
-    ready_q = make_pq(HEAP_SIZE, job_pri_cmp);
-    delay_q = make_pq(HEAP_SIZE, job_delay_cmp);
+    ready_q = make_pq(16, job_pri_cmp);
+    delay_q = make_pq(16, job_delay_cmp);
 }

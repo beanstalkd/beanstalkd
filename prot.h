@@ -24,9 +24,6 @@
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
-/* space for 16 Mi jobs */
-#define HEAP_SIZE 16 * 1024 * 1024
-
 #define URGENT_THRESHOLD 1024
 
 #define MSG_RESERVED "RESERVED"
