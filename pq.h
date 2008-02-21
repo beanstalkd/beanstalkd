@@ -22,14 +22,14 @@
 #include "job.h"
 
 typedef struct pq {
-    unsigned int size;
+    unsigned int cap;
     unsigned int used;
     job_cmp_fn cmp;
-    job heap[];
+    job *heap;
 } *pq;
 
-/* make a fixed-size priority queue of the given size */
-pq make_pq(unsigned int size, job_cmp_fn cmp);
+/* make a priority queue with initial capacity initial_cap */
+pq make_pq(unsigned int initial_cap, job_cmp_fn cmp);
 
 /* return 1 if the job was inserted, else 0 */
 int pq_give(pq q, job j);

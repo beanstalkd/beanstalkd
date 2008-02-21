@@ -18,22 +18,40 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "pq.h"
 
 pq
-make_pq(unsigned int size, job_cmp_fn cmp)
+make_pq(unsigned int initial_cap, job_cmp_fn cmp)
 {
     pq q;
 
-    q = malloc(sizeof(struct pq) + size * sizeof(job));
+    q = malloc(sizeof(struct pq));
     if (!q) return NULL;
 
-    q->size = size;
+    q->cap = initial_cap;
     q->used = 0;
     q->cmp = cmp;
+    q->heap = malloc(initial_cap * sizeof(job));
+    if (!q->heap) return free(q), NULL;
 
     return q;
+}
+
+static void
+pq_grow(pq q)
+{
+    job *nheap;
+    unsigned int ncap = q->cap << 1;
+
+    nheap = malloc(ncap * sizeof(job));
+    if (!nheap) return;
+
+    memcpy(nheap, q->heap, q->used * sizeof(job));
+    free(q->heap);
+    q->heap = nheap;
+    q->cap = ncap;
 }
 
 static void
@@ -98,7 +116,8 @@ pq_give(pq q, job j)
 {
     int k;
 
-    if (q->used >= q->size) return 0;
+    if (q->used >= q->cap) pq_grow(q);
+    if (q->used >= q->cap) return 0;
 
     k = q->used++;
     q->heap[k] = j;
