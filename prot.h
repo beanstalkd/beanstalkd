@@ -19,7 +19,6 @@
 #ifndef prot_h
 #define prot_h
 
-#include "job.h"
 #include "conn.h"
 
 #define URGENT_THRESHOLD 1024
