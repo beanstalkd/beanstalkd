@@ -9,3 +9,8 @@ To build beanstalkd, just type "make".
 To run unit tests, you must have CUT installed. Then type "make check".
 
 CUT can be found at http://sourceforge.net/projects/cut/.
+
+Known Bugs:
+
+ * Sending a line of exactly MAX_LINE_LENGTH chars (not including the trailing
+   "\r\n") will cause the server to hang up.
