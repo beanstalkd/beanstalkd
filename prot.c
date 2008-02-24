@@ -797,7 +797,7 @@ dispatch_cmd(conn c)
 
         conn_set_producer(c);
 
-        c->in_job = make_job(pri, delay, ttr, body_size + 2);
+        c->in_job = make_job(pri, delay, ttr ? : 1, body_size + 2);
 
         fill_extra_data(c);
 
