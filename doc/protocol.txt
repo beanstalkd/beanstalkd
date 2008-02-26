@@ -428,6 +428,9 @@ scalars.
 
    - "cmd-list-tubes" is the cumulative number of list-tubes commands.
 
+   - "cmd-list-watched-tubes" is the cumulative number of list-watched-tubes
+     commands.
+
    - "job-timeouts" is the cumulative count of times a job has timed out.
 
    - "total-jobs" is the cumulative count of jobs created.
@@ -459,7 +462,7 @@ scalars.
 
    - "uptime" is the number of seconds since this server started running.
 
-The list-tubes command returns a list of existing tubes. Its form is:
+The list-tubes command returns a list of all existing tubes. Its form is:
 
 list-tubes\r\n
 
@@ -471,5 +474,20 @@ OK <bytes>\r\n
  - <bytes> is the size of the following data section in bytes.
 
  - <data> is a sequence of bytes of length <bytes> from the previous line. It
-   is a YAML file containing tube names as a list of strings.
+   is a YAML file containing all tube names as a list of strings.
+
+The list-watched-tubes command returns a list tubes currently being watched by
+the client. Its form is:
+
+list-watched-tubes\r\n
+
+The response is:
+
+OK <bytes>\r\n
+<data>\r\n
+
+ - <bytes> is the size of the following data section in bytes.
+
+ - <data> is a sequence of bytes of length <bytes> from the previous line. It
+   is a YAML file containing watched tube names as a list of strings.
 

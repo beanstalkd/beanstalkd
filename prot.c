@@ -57,6 +57,7 @@
 #define CMD_WATCH "watch "
 #define CMD_IGNORE "ignore "
 #define CMD_LIST_TUBES "list-tubes"
+#define CMD_LIST_WATCHED_TUBES "list-watched-tubes"
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
@@ -73,6 +74,7 @@
 #define CMD_WATCH_LEN CONSTSTRLEN(CMD_WATCH)
 #define CMD_IGNORE_LEN CONSTSTRLEN(CMD_IGNORE)
 #define CMD_LIST_TUBES_LEN CONSTSTRLEN(CMD_LIST_TUBES)
+#define CMD_LIST_WATCHED_TUBES_LEN CONSTSTRLEN(CMD_LIST_WATCHED_TUBES)
 
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
@@ -113,6 +115,7 @@
     "cmd-kick: %llu\n" \
     "cmd-stats: %llu\n" \
     "cmd-list-tubes: %llu\n" \
+    "cmd-list-watched-tubes: %llu\n" \
     "job-timeouts: %llu\n" \
     "total-jobs: %llu\n" \
     "current-tubes: %u\n" \
@@ -157,7 +160,8 @@ static int drain_mode = 0;
 static time_t start_time;
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
-                     stats_ct = 0, timeout_ct = 0, list_tubes_ct = 0;
+                     stats_ct = 0, timeout_ct = 0, list_tubes_ct = 0,
+                     list_watched_tubes_ct = 0;
 
 static unsigned int cur_reserved_ct = 0;
 
@@ -182,6 +186,7 @@ static const char * op_names[] = {
     CMD_WATCH,
     CMD_IGNORE,
     CMD_LIST_TUBES,
+    CMD_LIST_WATCHED_TUBES,
 };
 #endif
 
@@ -601,6 +606,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_WATCH, OP_WATCH);
     TEST_CMD(c->cmd, CMD_IGNORE, OP_IGNORE);
     TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
+    TEST_CMD(c->cmd, CMD_LIST_WATCHED_TUBES, OP_LIST_WATCHED_TUBES);
     return OP_UNKNOWN;
 }
 
@@ -684,6 +690,7 @@ fmt_stats(char *buf, size_t size, void *x)
             kick_ct,
             stats_ct,
             list_tubes_ct,
+            list_watched_tubes_ct,
             timeout_ct,
             total_jobs(),
             tubes.used,
@@ -1105,6 +1112,15 @@ dispatch_cmd(conn c)
 
         list_tubes_ct++;
         do_list_tubes(c, &tubes);
+        break;
+    case OP_LIST_WATCHED_TUBES:
+        /* don't allow trailing garbage */
+        if (c->cmd_len != CMD_LIST_WATCHED_TUBES_LEN + 2) {
+            return reply_msg(c, MSG_BAD_FORMAT);
+        }
+
+        list_watched_tubes_ct++;
+        do_list_tubes(c, &c->watch);
         break;
     case OP_USE:
         name = c->cmd + CMD_USE_LEN;

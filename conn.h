@@ -50,6 +50,7 @@
 #define OP_WATCH 12
 #define OP_IGNORE 13
 #define OP_LIST_TUBES 14
+#define OP_LIST_WATCHED_TUBES 15
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1
