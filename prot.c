@@ -52,7 +52,7 @@
 #define CMD_BURY "bury "
 #define CMD_KICK "kick "
 #define CMD_STATS "stats"
-#define CMD_JOBSTATS "stats "
+#define CMD_JOBSTATS "stats-job "
 #define CMD_USE "use "
 #define CMD_WATCH "watch "
 #define CMD_IGNORE "ignore "
@@ -114,6 +114,7 @@
     "cmd-bury: %llu\n" \
     "cmd-kick: %llu\n" \
     "cmd-stats: %llu\n" \
+    "cmd-stats-job: %llu\n" \
     "cmd-list-tubes: %llu\n" \
     "cmd-list-watched-tubes: %llu\n" \
     "job-timeouts: %llu\n" \
@@ -160,8 +161,8 @@ static int drain_mode = 0;
 static time_t start_time;
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
-                     stats_ct = 0, timeout_ct = 0, list_tubes_ct = 0,
-                     list_watched_tubes_ct = 0;
+                     stats_job_ct = 0, stats_ct = 0, timeout_ct = 0,
+                     list_tubes_ct = 0, list_watched_tubes_ct = 0;
 
 static unsigned int cur_reserved_ct = 0;
 
@@ -689,6 +690,7 @@ fmt_stats(char *buf, size_t size, void *x)
             bury_ct,
             kick_ct,
             stats_ct,
+            stats_job_ct,
             list_tubes_ct,
             list_watched_tubes_ct,
             timeout_ct,
@@ -1099,7 +1101,7 @@ dispatch_cmd(conn c)
         j = peek_job(id);
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        stats_ct++; /* stats */
+        stats_job_ct++; /* stats */
 
         if (!j->tube) return reply_serr(c, MSG_INTERNAL_ERROR);
         do_stats(c, fmt_job_stats, j);

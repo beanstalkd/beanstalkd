@@ -346,17 +346,58 @@ KICKED <count>\r\n
 
  - <count> is an integer indicating the number of jobs actually kicked.
 
-The stats command gives statistical information. If a job id is given, the
-response will contain information about that job if it exists. Otherwise stats
-will return information about the system as a whole. Its form is:
+The stats-job command gives statistical information about the specified job if
+it exists. Its form is:
 
-stats[ <id>]\r\n
+stats-job <id>\r\n
 
-If a job id is given, the response may be:
+ - <id> is a job id.
 
-  - "NOT_FOUND\r\n" if the job does not exist.
+The response is one of:
 
-Otherwise the server will respond:
+ - "NOT_FOUND\r\n" if the job does not exist.
+
+ - "OK <bytes>\r\n<data>\r\n"
+
+   - <bytes> is the size of the following data section in bytes.
+
+   - <data> is a sequence of bytes of length <bytes> from the previous line. It
+     is a YAML file with statistical information represented a dictionary.
+
+The stats-job data is a YAML file representing a single dictionary of strings
+to scalars. It contains these keys:
+
+ - "id" is the job id
+
+ - "tube" is the name of the tube that contains this job
+
+ - "state" is "ready" or "delayed" or "reserved" or "buried"
+
+ - "pri" is the priority value set by the put, release, or bury commands.
+
+ - "age" is the time in seconds since the put command that created this job.
+
+ - "time-left" is the number of seconds left until the server puts this job
+   into the ready queue. This number is only meaningful if the job is
+   reserved or delayed. If the job is reserved and this amount of time
+   elapses before its state changes, it is considered to have timed out.
+
+ - "timeouts" is the number of times this job has timed out during a
+   reservation.
+
+ - "releases" is the number of times a client has released this job from a
+   reservation.
+
+ - "buries" is the number of times this job has been buried.
+
+ - "kicks" is the number of times this job has been kicked.
+
+The stats command gives statistical information about the system as a whole.
+Its form is:
+
+stats\r\n
+
+The server will respond:
 
 OK <bytes>\r\n
 <data>\r\n
@@ -366,101 +407,72 @@ OK <bytes>\r\n
  - <data> is a sequence of bytes of length <bytes> from the previous line. It
    is a YAML file with statistical information represented a dictionary.
 
-Stats format
+The stats data for the system is a YAML file representing a single dictionary
+of strings to scalars. It contains these keys:
 
-The stats data is a YAML file representing a single dictionary of strings to
-scalars.
+ - "current-jobs-urgent" is the number of ready jobs with priority < 1024.
 
- - The stats dict for a job contains these keys:
+ - "current-jobs-ready" is the number of jobs in the ready queue.
 
-   - "id" is the job id
+ - "current-jobs-reserved" is the number of jobs reserved by all clients.
 
-   - "tube" is the name of the tube that contains this job
+ - "current-jobs-delayed" is the number of delayed jobs.
 
-   - "state" is "ready" or "delayed" or "reserved" or "buried"
+ - "current-jobs-buried" is the number of buried jobs.
 
-   - "pri" is the priority value set by the put, release, or bury commands.
+ - "cmd-put" is the cumulative number of put commands.
 
-   - "age" is the time in seconds since the put command that created this job.
+ - "cmd-peek" is the cumulative number of peek commands.
 
-   - "time-left" is the number of seconds left until the server puts this job
-     into the ready queue. This number is only meaningful if the job is
-     reserved or delayed. If the job is reserved and this amount of time
-     elapses before its state changes, it is considered to have timed out.
+ - "cmd-reserve" is the cumulative number of reserve commands.
 
-   - "timeouts" is the number of times this job has timed out during a
-     reservation.
+ - "cmd-delete" is the cumulative number of delete commands.
 
-   - "releases" is the number of times a client has released this job from a
-     reservation.
+ - "cmd-release" is the cumulative number of release commands.
 
-   - "buries" is the number of times this job has been buried.
+ - "cmd-bury" is the cumulative number of bury commands.
 
-   - "kicks" is the number of times this job has been kicked.
+ - "cmd-kick" is the cumulative number of kick commands.
 
- - The stats dict for the system contains these keys:
+ - "cmd-stats" is the cumulative number of stats commands.
 
-   - "current-jobs-urgent" is the number of ready jobs with priority < 1024.
+ - "cmd-stats-job" is the cumulative number of stats-job commands.
 
-   - "current-jobs-ready" is the number of jobs in the ready queue.
+ - "cmd-list-tubes" is the cumulative number of list-tubes commands.
 
-   - "current-jobs-reserved" is the number of jobs reserved by all clients.
+ - "cmd-list-watched-tubes" is the cumulative number of list-watched-tubes
+   commands.
 
-   - "current-jobs-delayed" is the number of delayed jobs.
+ - "job-timeouts" is the cumulative count of times a job has timed out.
 
-   - "current-jobs-buried" is the number of buried jobs.
+ - "total-jobs" is the cumulative count of jobs created.
 
-   - "cmd-put" is the cumulative number of put commands.
+ - "current-tubes" is the number of currently-existing tubes.
 
-   - "cmd-peek" is the cumulative number of peek commands.
+ - "current-connections" is the number of currently open connections.
 
-   - "cmd-reserve" is the cumulative number of reserve commands.
+ - "current-producers" is the number of open connections that have each
+   issued at least one put command.
 
-   - "cmd-delete" is the cumulative number of delete commands.
+ - "current-workers" is the number of open connections that have each issued
+   at least one reserve command.
 
-   - "cmd-release" is the cumulative number of release commands.
+ - "current-waiting" is the number of open connections that have issued a
+   reserve command but not yet received a response.
 
-   - "cmd-bury" is the cumulative number of bury commands.
+ - "total-connections" is the cumulative count of connections.
 
-   - "cmd-kick" is the cumulative number of kick commands.
+ - "pid" is the process id of the server.
 
-   - "cmd-stats" is the cumulative number of stats commands.
+ - "version" is the version string of the server.
 
-   - "cmd-list-tubes" is the cumulative number of list-tubes commands.
+ - "rusage-utime" is the accumulated user CPU time of this process in seconds
+   and microseconds.
 
-   - "cmd-list-watched-tubes" is the cumulative number of list-watched-tubes
-     commands.
+ - "rusage-stime" is the accumulated system CPU time of this process in
+   seconds and microseconds.
 
-   - "job-timeouts" is the cumulative count of times a job has timed out.
-
-   - "total-jobs" is the cumulative count of jobs created.
-
-   - "current-tubes" is the number of currently-existing tubes.
-
-   - "current-connections" is the number of currently open connections.
-
-   - "current-producers" is the number of open connections that have each
-     issued at least one put command.
-
-   - "current-workers" is the number of open connections that have each issued
-     at least one reserve command.
-
-   - "current-waiting" is the number of open connections that have issued a
-     reserve command but not yet received a response.
-
-   - "total-connections" is the cumulative count of connections.
-
-   - "pid" is the process id of the server.
-
-   - "version" is the version string of the server.
-
-   - "rusage-utime" is the accumulated user CPU time of this process in seconds
-     and microseconds.
-
-   - "rusage-stime" is the accumulated system CPU time of this process in
-     seconds and microseconds.
-
-   - "uptime" is the number of seconds since this server started running.
+ - "uptime" is the number of seconds since this server started running.
 
 The list-tubes command returns a list of all existing tubes. Its form is:
 
