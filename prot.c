@@ -56,6 +56,7 @@
 #define CMD_USE "use "
 #define CMD_WATCH "watch "
 #define CMD_IGNORE "ignore "
+#define CMD_LIST_TUBES "list-tubes"
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
@@ -71,6 +72,7 @@
 #define CMD_USE_LEN CONSTSTRLEN(CMD_USE)
 #define CMD_WATCH_LEN CONSTSTRLEN(CMD_WATCH)
 #define CMD_IGNORE_LEN CONSTSTRLEN(CMD_IGNORE)
+#define CMD_LIST_TUBES_LEN CONSTSTRLEN(CMD_LIST_TUBES)
 
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
@@ -110,6 +112,7 @@
     "cmd-bury: %llu\n" \
     "cmd-kick: %llu\n" \
     "cmd-stats: %llu\n" \
+    "cmd-list-tubes: %llu\n" \
     "job-timeouts: %llu\n" \
     "total-jobs: %llu\n" \
     "current-tubes: %u\n" \
@@ -154,7 +157,7 @@ static int drain_mode = 0;
 static time_t start_time;
 static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
-                     stats_ct = 0, timeout_ct = 0;
+                     stats_ct = 0, timeout_ct = 0, list_tubes_ct = 0;
 
 static unsigned int cur_reserved_ct = 0;
 
@@ -178,6 +181,7 @@ static const char * op_names[] = {
     CMD_USE,
     CMD_WATCH,
     CMD_IGNORE,
+    CMD_LIST_TUBES,
 };
 #endif
 
@@ -596,6 +600,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_USE, OP_USE);
     TEST_CMD(c->cmd, CMD_WATCH, OP_WATCH);
     TEST_CMD(c->cmd, CMD_IGNORE, OP_IGNORE);
+    TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
     return OP_UNKNOWN;
 }
 
@@ -678,6 +683,7 @@ fmt_stats(char *buf, size_t size, void *x)
             bury_ct,
             kick_ct,
             stats_ct,
+            list_tubes_ct,
             timeout_ct,
             total_jobs(),
             tubes.used,
@@ -766,8 +772,38 @@ do_stats(conn c, int(*fmt)(char *, size_t, void *), void *data)
     c->out_job->body[stats_len - 1] = '\n'; /* patch up sprintf's output */
 
     c->out_job_sent = 0;
-
     return reply_line(c, STATE_SENDJOB, "OK %d\r\n", stats_len - 2);
+}
+
+static void
+do_list_tubes(conn c, ms l)
+{
+    char *buf;
+    tube t;
+    size_t i, resp_z;
+
+    /* first, measure how big a buffer we will need */
+    resp_z = 6; /* initial "---\n" and final "\r\n" */
+    for (i = 0; i < l->used; i++) {
+        t = l->items[i];
+        resp_z += 3 + strlen(t->name); /* including "- " and "\n" */
+    }
+
+    c->out_job = allocate_job(resp_z); /* fake job to hold response data */
+    if (!c->out_job) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+    /* now actually format the response */
+    buf = c->out_job->body;
+    buf += snprintf(buf, 5, "---\n");
+    for (i = 0; i < l->used; i++) {
+        t = l->items[i];
+        buf += snprintf(buf, 4 + strlen(t->name), "- %s\n", t->name);
+    }
+    buf[0] = '\r';
+    buf[1] = '\n';
+
+    c->out_job_sent = 0;
+    return reply_line(c, STATE_SENDJOB, "OK %d\r\n", resp_z - 2);
 }
 
 static int
@@ -1060,6 +1096,15 @@ dispatch_cmd(conn c)
 
         if (!j->tube) return reply_serr(c, MSG_INTERNAL_ERROR);
         do_stats(c, fmt_job_stats, j);
+        break;
+    case OP_LIST_TUBES:
+        /* don't allow trailing garbage */
+        if (c->cmd_len != CMD_LIST_TUBES_LEN + 2) {
+            return reply_msg(c, MSG_BAD_FORMAT);
+        }
+
+        list_tubes_ct++;
+        do_list_tubes(c, &tubes);
         break;
     case OP_USE:
         name = c->cmd + CMD_USE_LEN;

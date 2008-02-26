@@ -426,6 +426,8 @@ scalars.
 
    - "cmd-stats" is the cumulative number of stats commands.
 
+   - "cmd-list-tubes" is the cumulative number of list-tubes commands.
+
    - "job-timeouts" is the cumulative count of times a job has timed out.
 
    - "total-jobs" is the cumulative count of jobs created.
@@ -457,4 +459,17 @@ scalars.
 
    - "uptime" is the number of seconds since this server started running.
 
+The list-tubes command returns a list of existing tubes. Its form is:
+
+list-tubes\r\n
+
+The response is:
+
+OK <bytes>\r\n
+<data>\r\n
+
+ - <bytes> is the size of the following data section in bytes.
+
+ - <data> is a sequence of bytes of length <bytes> from the previous line. It
+   is a YAML file containing tube names as a list of strings.
 
