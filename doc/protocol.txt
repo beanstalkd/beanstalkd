@@ -392,6 +392,46 @@ to scalars. It contains these keys:
 
  - "kicks" is the number of times this job has been kicked.
 
+The stats-tube command gives statistical information about the specified tube
+if it exists. Its form is:
+
+stats-tube <tube>\r\n
+
+ - <tube> is a name at most 200 bytes. Stats will be returned for this tube.
+
+The response is one of:
+
+ - "NOT_FOUND\r\n" if the tube does not exist.
+
+ - "OK <bytes>\r\n<data>\r\n"
+
+   - <bytes> is the size of the following data section in bytes.
+
+   - <data> is a sequence of bytes of length <bytes> from the previous line. It
+     is a YAML file with statistical information represented a dictionary.
+
+The stats-tube data is a YAML file representing a single dictionary of strings
+to scalars. It contains these keys:
+
+ - "name" is the tube's name.
+
+ - "current-jobs-urgent" is the number of ready jobs with priority < 1024 in
+   this tube.
+
+ - "current-jobs-ready" is the number of jobs in the ready queue in this tube.
+
+ - "current-jobs-reserved" is the number of jobs reserved by all clients in
+   this tube.
+
+ - "current-jobs-delayed" is the number of delayed jobs in this tube.
+
+ - "current-jobs-buried" is the number of buried jobs in this tube.
+
+ - "total-jobs" is the cumulative count of jobs created in this tube.
+
+ - "current-waiting" is the number of open connections that have issued a
+   reserve command while watching this tube but not yet received a response.
+
 The stats command gives statistical information about the system as a whole.
 Its form is:
 
@@ -437,6 +477,8 @@ of strings to scalars. It contains these keys:
  - "cmd-stats" is the cumulative number of stats commands.
 
  - "cmd-stats-job" is the cumulative number of stats-job commands.
+
+ - "cmd-stats-tube" is the cumulative number of stats-tube commands.
 
  - "cmd-list-tubes" is the cumulative number of list-tubes commands.
 

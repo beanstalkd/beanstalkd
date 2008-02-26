@@ -1,4 +1,4 @@
-/* tube.h - tubes header */
+/* stat.h - stats struct */
 
 /* Copyright (C) 2008 Keith Rarick and Philotic Inc.
 
@@ -16,28 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef tube_h
-#define tube_h
+#ifndef stat_h
+#define stat_h
 
-typedef struct tube *tube;
-
-#include "stat.h"
-#include "pq.h"
-#include "ms.h"
-
-#define MAX_TUBE_NAME_LEN 201
-
-struct tube {
-    unsigned int refs;
-    char name[MAX_TUBE_NAME_LEN];
-    struct pq ready, delay;
-    struct ms waiting; /* set of conns */
-    struct stats stat;
+struct stats {
+    unsigned int urgent_ct;
+    unsigned int waiting_ct;
+    unsigned int buried_ct;
+    unsigned int reserved_ct;
+    long long unsigned int total_jobs_ct;
 };
 
-tube make_tube(const char *name);
-void tube_dref(tube t);
-void tube_iref(tube t);
-#define TUBE_ASSIGN(a,b) (tube_dref(a), (a) = (b), tube_iref(a))
-
-#endif /*tube_h*/
+#endif /*stat_h*/

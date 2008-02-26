@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "stat.h"
 #include "tube.h"
 #include "prot.h"
 #include "util.h"
@@ -40,6 +41,8 @@ make_tube(const char *name)
     pq_init(&t->ready, job_pri_cmp);
     pq_init(&t->delay, job_delay_cmp);
     ms_init(&t->waiting, NULL, NULL);
+
+    t->stat = (struct stats) {0, 0, 0, 0};
 
     return t;
 }
