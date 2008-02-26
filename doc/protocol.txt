@@ -201,13 +201,11 @@ The time available can be found by asking the server for the job's stats.
 There is only one possible response in the form of a text line followed by the
 job body:
 
-RESERVED <id> <pri> <bytes>\r\n
+RESERVED <id> <bytes>\r\n
 <data>\r\n
 
  - <id> is the job id -- an integer unique to this job in this instance of
    beanstalkd.
-
- - <pri> is the priority value set by the put, release, or bury commands.
 
  - <bytes> is an integer indicating the size of the job body, not including
    the trailing "\r\n".
@@ -322,12 +320,10 @@ There are two possible responses, either a single line:
 
 Or a line followed by a chunk of data, if the command was successful:
 
-FOUND <id> <pri> <bytes>\r\n
+FOUND <id> <bytes>\r\n
 <data>\r\n
 
  - <id> is the job id.
-
- - <pri> is the job's priority.
 
  - <bytes> is an integer indicating the size of the job body, not including
    the trailing "\r\n".
@@ -382,6 +378,8 @@ scalars.
    - "tube" is the name of the tube that contains this job
 
    - "state" is "ready" or "delayed" or "reserved" or "buried"
+
+   - "pri" is the priority value set by the put, release, or bury commands.
 
    - "age" is the time in seconds since the put command that created this job.
 

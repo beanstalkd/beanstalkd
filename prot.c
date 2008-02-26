@@ -129,6 +129,7 @@
     "id: %llu\n" \
     "tube: %s\n" \
     "state: %s\n" \
+    "pri: %u\n" \
     "age: %u\n" \
     "delay: %u\n" \
     "ttr: %u\n" \
@@ -229,8 +230,8 @@ reply_job(conn c, job j, const char *word)
     c->out_job = j;
     c->out_job_sent = 0;
 
-    return reply_line(c, STATE_SENDJOB, "%s %llu %u %u\r\n",
-                      word, j->id, j->pri, j->body_size - 2);
+    return reply_line(c, STATE_SENDJOB, "%s %llu %u\r\n",
+                      word, j->id, j->body_size - 2);
 }
 
 conn
@@ -780,6 +781,7 @@ fmt_job_stats(char *buf, size_t size, void *jp)
             j->id,
             j->tube->name,
             job_state(j),
+            j->pri,
             (unsigned int) (t - j->creation),
             j->delay,
             j->ttr,
