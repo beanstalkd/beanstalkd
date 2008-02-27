@@ -423,8 +423,6 @@ to scalars. It contains these keys:
  - "current-jobs-reserved" is the number of jobs reserved by all clients in
    this tube.
 
- - "current-jobs-delayed" is the number of delayed jobs in this tube.
-
  - "current-jobs-buried" is the number of buried jobs in this tube.
 
  - "total-jobs" is the cumulative count of jobs created in this tube.

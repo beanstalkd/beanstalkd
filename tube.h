@@ -30,7 +30,7 @@ typedef struct tube *tube;
 struct tube {
     unsigned int refs;
     char name[MAX_TUBE_NAME_LEN];
-    struct pq ready, delay;
+    struct pq ready;
     struct ms waiting; /* set of conns */
     struct stats stat;
 };

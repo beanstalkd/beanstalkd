@@ -141,7 +141,6 @@
     "current-jobs-urgent: %u\n" \
     "current-jobs-ready: %u\n" \
     "current-jobs-reserved: %u\n" \
-    "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
     "total-jobs: %llu\n" \
     "current-waiting: %u\n" \
@@ -162,7 +161,6 @@
     "kicks: %u\n" \
     "\r\n"
 
-static struct pq ready_q;
 static struct pq delay_q;
 
 /* Doubly-linked list of waiting connections. */
@@ -860,7 +858,6 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.urgent_ct,
             t->ready.used,
             t->stat.reserved_ct,
-            t->delay.used,
             t->stat.buried_ct,
             t->stat.total_jobs_ct,
             t->stat.waiting_ct);
@@ -1440,7 +1437,6 @@ void
 prot_init()
 {
     start_time = time(NULL);
-    pq_init(&ready_q, job_pri_cmp);
     pq_init(&delay_q, job_delay_cmp);
 
     ms_init(&tubes, NULL, NULL);

@@ -39,7 +39,6 @@ make_tube(const char *name)
     if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0') twarnx("truncating tube name");
 
     pq_init(&t->ready, job_pri_cmp);
-    pq_init(&t->delay, job_delay_cmp);
     ms_init(&t->waiting, NULL, NULL);
 
     t->stat = (struct stats) {0, 0, 0, 0};
@@ -52,7 +51,6 @@ tube_free(tube t)
 {
     prot_remove_tube(t);
     pq_clear(&t->ready);
-    pq_clear(&t->delay);
     ms_clear(&t->waiting);
     free(t);
 }
