@@ -334,18 +334,19 @@ FOUND <id> <bytes>\r\n
    previous line.
 
 The kick command moves jobs into the ready queue. If there are any buried jobs
-in the specified tube, it will only kick buried jobs. Otherwise it will kick
-delayed jobs. It looks like:
+in the currently used tube, it will only kick buried jobs. Otherwise it will
+kick delayed jobs. It looks like:
 
-kick <bound> <tube>\r\n
+kick <bound>\r\n
 
  - <bound> is an integer upper bound on the number of jobs to kick. The server
    will kick no more than <bound> jobs.
 
- - <tube> is a name at most 200 bytes. Buried jobs will be kicked from this
-   tube.
+When the server kicks buried jobs, they are taken from the buried list in only
+the currently used tube. However, when the server kicks delayed jobs, they are
+taken from the global delay queue; thus jobs in any tube may be kicked.
 
-The response is of the form
+The response is of the form:
 
 KICKED <count>\r\n
 

@@ -1119,19 +1119,15 @@ dispatch_cmd(conn c)
         break;
     case OP_KICK:
         errno = 0;
-        count = strtoul(c->cmd + CMD_KICK_LEN, &name, 10);
-        if (name++ == c->cmd + CMD_KICK_LEN) {
+        count = strtoul(c->cmd + CMD_KICK_LEN, &end_buf, 10);
+        if (end_buf == c->cmd + CMD_KICK_LEN) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         kick_ct++; /* stats */
 
-        t = find_tube(name);
-        if (!t) return reply_msg(c, MSG_NOTFOUND);
-
-        i = kick_jobs(t, count);
-        t = NULL;
+        i = kick_jobs(c->use, count);
 
         return reply_line(c, STATE_SENDWORD, "KICKED %u\r\n", i);
     case OP_STATS:
