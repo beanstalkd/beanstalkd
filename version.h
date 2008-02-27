@@ -18,4 +18,4 @@
 
 /* This file will be replaced by pkg.sh */
 
-#define VERSION "dev"
+#define VERSION "0.9"
