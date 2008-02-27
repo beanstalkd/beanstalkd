@@ -32,8 +32,8 @@
 
 /* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
  * MUST be enough to hold the longest possible command or reply line, which is
- * currently "release 18446744073709551615 4294967295 4294967295\r\n". */
-#define LINE_BUF_SIZE 54
+ * currently "USING a{200}\r\n". */
+#define LINE_BUF_SIZE 208
 
 #define OP_UNKNOWN 0
 #define OP_PUT 1
