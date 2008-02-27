@@ -182,7 +182,9 @@ use <tube>\r\n
 
 The only reply is:
 
-USING\r\n
+USING <tube>\r\n
+
+ - <tube> is the name of the tube now being used.
 
 Worker Commands
 ---------------
@@ -279,7 +281,7 @@ tube, named "default".
 watch <tube>\r\n
 
  - <tube> is a name at most 200 bytes. It specifies a tube to add to the watch
-   list.
+   list. If the tube doesn't exist, it will be created.
 
 The reply is:
 
