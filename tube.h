@@ -22,6 +22,7 @@
 typedef struct tube *tube;
 
 #include "stat.h"
+#include "job.h"
 #include "pq.h"
 #include "ms.h"
 
@@ -31,6 +32,7 @@ struct tube {
     unsigned int refs;
     char name[MAX_TUBE_NAME_LEN];
     struct pq ready;
+    struct job buried;
     struct ms waiting; /* set of conns */
     struct stats stat;
 };

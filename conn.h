@@ -21,8 +21,8 @@
 
 #include "event.h"
 #include "ms.h"
-#include "job.h"
 #include "tube.h"
+#include "job.h"
 
 #define STATE_WANTCOMMAND 0
 #define STATE_WANTDATA 1

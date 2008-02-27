@@ -19,8 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "job.h"
 #include "tube.h"
+#include "job.h"
 #include "util.h"
 
 static unsigned long long int next_id = 1;

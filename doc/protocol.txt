@@ -331,14 +331,17 @@ FOUND <id> <bytes>\r\n
  - <data> is the job body -- a sequence of bytes of length <bytes> from the
    previous line.
 
-The kick command moves jobs into the ready queue. If there are any buried jobs,
-it will only kick buried jobs. Otherwise it will kick delayed jobs. It looks
-like:
+The kick command moves jobs into the ready queue. If there are any buried jobs
+in the specified tube, it will only kick buried jobs. Otherwise it will kick
+delayed jobs. It looks like:
 
-kick <bound>\r\n
+kick <bound> <tube>\r\n
 
  - <bound> is an integer upper bound on the number of jobs to kick. The server
    will kick no more than <bound> jobs.
+
+ - <tube> is a name at most 200 bytes. Buried jobs will be kicked from this
+   tube.
 
 The response is of the form
 
