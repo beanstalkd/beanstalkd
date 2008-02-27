@@ -58,6 +58,7 @@
 #define CMD_WATCH "watch "
 #define CMD_IGNORE "ignore "
 #define CMD_LIST_TUBES "list-tubes"
+#define CMD_LIST_TUBE_USED "list-tube-used"
 #define CMD_LIST_TUBES_WATCHED "list-tubes-watched"
 #define CMD_STATS_TUBE "stats-tube "
 
@@ -76,6 +77,7 @@
 #define CMD_WATCH_LEN CONSTSTRLEN(CMD_WATCH)
 #define CMD_IGNORE_LEN CONSTSTRLEN(CMD_IGNORE)
 #define CMD_LIST_TUBES_LEN CONSTSTRLEN(CMD_LIST_TUBES)
+#define CMD_LIST_TUBE_USED_LEN CONSTSTRLEN(CMD_LIST_TUBE_USED)
 #define CMD_LIST_TUBES_WATCHED_LEN CONSTSTRLEN(CMD_LIST_TUBES_WATCHED)
 #define CMD_STATS_TUBE_LEN CONSTSTRLEN(CMD_STATS_TUBE)
 
@@ -114,12 +116,16 @@
     "cmd-reserve: %llu\n" \
     "cmd-delete: %llu\n" \
     "cmd-release: %llu\n" \
+    "cmd-use: %llu\n" \
+    "cmd-watch: %llu\n" \
+    "cmd-ignore: %llu\n" \
     "cmd-bury: %llu\n" \
     "cmd-kick: %llu\n" \
     "cmd-stats: %llu\n" \
     "cmd-stats-job: %llu\n" \
     "cmd-stats-tube: %llu\n" \
     "cmd-list-tubes: %llu\n" \
+    "cmd-list-tube-used: %llu\n" \
     "cmd-list-tubes-watched: %llu\n" \
     "job-timeouts: %llu\n" \
     "total-jobs: %llu\n" \
@@ -175,7 +181,8 @@ static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
                      delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
                      stats_job_ct = 0, stats_ct = 0, timeout_ct = 0,
                      list_tubes_ct = 0, stats_tube_ct = 0,
-                     list_watched_tubes_ct = 0;
+                     list_tube_used_ct = 0, list_watched_tubes_ct = 0,
+                     use_ct = 0, watch_ct = 0, ignore_ct = 0;
 
 
 /* Doubly-linked list of connections with at least one reserved job. */
@@ -198,6 +205,7 @@ static const char * op_names[] = {
     CMD_WATCH,
     CMD_IGNORE,
     CMD_LIST_TUBES,
+    CMD_LIST_TUBE_USED,
     CMD_LIST_TUBES_WATCHED,
     CMD_STATS_TUBE,
 };
@@ -634,6 +642,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_WATCH, OP_WATCH);
     TEST_CMD(c->cmd, CMD_IGNORE, OP_IGNORE);
     TEST_CMD(c->cmd, CMD_LIST_TUBES_WATCHED, OP_LIST_TUBES_WATCHED);
+    TEST_CMD(c->cmd, CMD_LIST_TUBE_USED, OP_LIST_TUBE_USED);
     TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
     return OP_UNKNOWN;
 }
@@ -716,12 +725,16 @@ fmt_stats(char *buf, size_t size, void *x)
             reserve_ct,
             delete_ct,
             release_ct,
+            use_ct,
+            watch_ct,
+            ignore_ct,
             bury_ct,
             kick_ct,
             stats_ct,
             stats_job_ct,
             stats_tube_ct,
             list_tubes_ct,
+            list_tube_used_ct,
             list_watched_tubes_ct,
             timeout_ct,
             global_stat.total_jobs_ct,
@@ -1174,6 +1187,15 @@ dispatch_cmd(conn c)
         list_tubes_ct++;
         do_list_tubes(c, &tubes);
         break;
+    case OP_LIST_TUBE_USED:
+        /* don't allow trailing garbage */
+        if (c->cmd_len != CMD_LIST_TUBE_USED_LEN + 2) {
+            return reply_msg(c, MSG_BAD_FORMAT);
+        }
+
+        list_tube_used_ct++;
+        reply_line(c, STATE_SENDWORD, "USING %s\r\n", c->use->name);
+        break;
     case OP_LIST_TUBES_WATCHED:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_LIST_TUBES_WATCHED_LEN + 2) {
@@ -1193,6 +1215,7 @@ dispatch_cmd(conn c)
         TUBE_ASSIGN(c->use, t);
         TUBE_ASSIGN(t, NULL);
 
+        use_ct++;
         reply_line(c, STATE_SENDWORD, "USING %s\r\n", c->use->name);
         break;
     case OP_WATCH:
@@ -1207,6 +1230,7 @@ dispatch_cmd(conn c)
         TUBE_ASSIGN(t, NULL);
         if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
+        watch_ct++;
         reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
         break;
     case OP_IGNORE:
@@ -1225,6 +1249,7 @@ dispatch_cmd(conn c)
         if (t) ms_remove(&c->watch, t); /* may free t if refcount => 0 */
         t = NULL;
 
+        ignore_ct++;
         reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
         break;
     default:

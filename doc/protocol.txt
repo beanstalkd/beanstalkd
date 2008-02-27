@@ -470,6 +470,12 @@ of strings to scalars. It contains these keys:
 
  - "cmd-reserve" is the cumulative number of reserve commands.
 
+ - "cmd-use" is the cumulative number of use commands.
+
+ - "cmd-watch" is the cumulative number of watch commands.
+
+ - "cmd-ignore" is the cumulative number of ignore commands.
+
  - "cmd-delete" is the cumulative number of delete commands.
 
  - "cmd-release" is the cumulative number of release commands.
@@ -485,6 +491,8 @@ of strings to scalars. It contains these keys:
  - "cmd-stats-tube" is the cumulative number of stats-tube commands.
 
  - "cmd-list-tubes" is the cumulative number of list-tubes commands.
+
+ - "cmd-list-tube-used" is the cumulative number of list-tube-used commands.
 
  - "cmd-list-tubes-watched" is the cumulative number of list-tubes-watched
    commands.
@@ -533,6 +541,17 @@ OK <bytes>\r\n
 
  - <data> is a sequence of bytes of length <bytes> from the previous line. It
    is a YAML file containing all tube names as a list of strings.
+
+The list-tube-used command returns the tube currently being used by the
+client. Its form is:
+
+list-tube-used\r\n
+
+The response is:
+
+USING <tube>\r\n
+
+ - <tube> is the name of the tube being used.
 
 The list-tubes-watched command returns a list tubes currently being watched by
 the client. Its form is:
