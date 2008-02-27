@@ -58,7 +58,7 @@
 #define CMD_WATCH "watch "
 #define CMD_IGNORE "ignore "
 #define CMD_LIST_TUBES "list-tubes"
-#define CMD_LIST_WATCHED_TUBES "list-watched-tubes"
+#define CMD_LIST_TUBES_WATCHED "list-tubes-watched"
 #define CMD_STATS_TUBE "stats-tube "
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
@@ -76,7 +76,7 @@
 #define CMD_WATCH_LEN CONSTSTRLEN(CMD_WATCH)
 #define CMD_IGNORE_LEN CONSTSTRLEN(CMD_IGNORE)
 #define CMD_LIST_TUBES_LEN CONSTSTRLEN(CMD_LIST_TUBES)
-#define CMD_LIST_WATCHED_TUBES_LEN CONSTSTRLEN(CMD_LIST_WATCHED_TUBES)
+#define CMD_LIST_TUBES_WATCHED_LEN CONSTSTRLEN(CMD_LIST_TUBES_WATCHED)
 #define CMD_STATS_TUBE_LEN CONSTSTRLEN(CMD_STATS_TUBE)
 
 #define MSG_FOUND "FOUND"
@@ -120,7 +120,7 @@
     "cmd-stats-job: %llu\n" \
     "cmd-stats-tube: %llu\n" \
     "cmd-list-tubes: %llu\n" \
-    "cmd-list-watched-tubes: %llu\n" \
+    "cmd-list-tubes-watched: %llu\n" \
     "job-timeouts: %llu\n" \
     "total-jobs: %llu\n" \
     "current-tubes: %u\n" \
@@ -199,7 +199,7 @@ static const char * op_names[] = {
     CMD_WATCH,
     CMD_IGNORE,
     CMD_LIST_TUBES,
-    CMD_LIST_WATCHED_TUBES,
+    CMD_LIST_TUBES_WATCHED,
     CMD_STATS_TUBE,
 };
 #endif
@@ -614,8 +614,8 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_USE, OP_USE);
     TEST_CMD(c->cmd, CMD_WATCH, OP_WATCH);
     TEST_CMD(c->cmd, CMD_IGNORE, OP_IGNORE);
+    TEST_CMD(c->cmd, CMD_LIST_TUBES_WATCHED, OP_LIST_TUBES_WATCHED);
     TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
-    TEST_CMD(c->cmd, CMD_LIST_WATCHED_TUBES, OP_LIST_WATCHED_TUBES);
     return OP_UNKNOWN;
 }
 
@@ -1154,9 +1154,9 @@ dispatch_cmd(conn c)
         list_tubes_ct++;
         do_list_tubes(c, &tubes);
         break;
-    case OP_LIST_WATCHED_TUBES:
+    case OP_LIST_TUBES_WATCHED:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_LIST_WATCHED_TUBES_LEN + 2) {
+        if (c->cmd_len != CMD_LIST_TUBES_WATCHED_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 

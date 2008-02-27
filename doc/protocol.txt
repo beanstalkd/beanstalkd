@@ -480,7 +480,7 @@ of strings to scalars. It contains these keys:
 
  - "cmd-list-tubes" is the cumulative number of list-tubes commands.
 
- - "cmd-list-watched-tubes" is the cumulative number of list-watched-tubes
+ - "cmd-list-tubes-watched" is the cumulative number of list-tubes-watched
    commands.
 
  - "job-timeouts" is the cumulative count of times a job has timed out.
@@ -528,10 +528,10 @@ OK <bytes>\r\n
  - <data> is a sequence of bytes of length <bytes> from the previous line. It
    is a YAML file containing all tube names as a list of strings.
 
-The list-watched-tubes command returns a list tubes currently being watched by
+The list-tubes-watched command returns a list tubes currently being watched by
 the client. Its form is:
 
-list-watched-tubes\r\n
+list-tubes-watched\r\n
 
 The response is:
 
