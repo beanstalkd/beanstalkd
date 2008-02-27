@@ -163,7 +163,6 @@
 
 static struct pq delay_q;
 
-/* Doubly-linked list of waiting connections. */
 static struct job graveyard = { &graveyard, &graveyard, 0 };
 static unsigned int ready_ct = 0;
 static struct stats global_stat = {0, 0, 0, 0, 0};
