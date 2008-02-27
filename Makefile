@@ -1,5 +1,5 @@
 program := beanstalkd
-export CFLAGS := $(LDFLAGS) -Wall -Werror
+export CFLAGS := $(CFLAGS) -Wall -Werror
 export LDFLAGS := $(LDFLAGS) -levent
 
 sources := $(shell ls *.c | fgrep -v $(program))
