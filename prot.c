@@ -129,7 +129,7 @@
     "cmd-list-tubes-watched: %llu\n" \
     "job-timeouts: %llu\n" \
     "total-jobs: %llu\n" \
-    "current-tubes: %u\n" \
+    "current-tubes: %Zu\n" \
     "current-connections: %u\n" \
     "current-producers: %u\n" \
     "current-workers: %u\n" \
