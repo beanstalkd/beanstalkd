@@ -26,6 +26,8 @@
 #include "util.h"
 #include "prot.h"
 
+#define SAFETY_MARGIN 1 /* seconds */
+
 /* Doubly-linked list of free connections. */
 static struct conn pool = { &pool, &pool, 0 };
 
@@ -224,6 +226,17 @@ has_reserved_this_job(conn c, job needle)
         if (needle == j) return 1;
     }
     return 0;
+}
+
+/* return true if c has a reserved job with less than one second until its
+ * deadline */
+int
+conn_has_close_deadline(conn c)
+{
+    time_t t = time(NULL);
+    job j = soonest_job(c);
+
+    return j && t >= j->deadline - SAFETY_MARGIN;
 }
 
 void

@@ -84,6 +84,7 @@
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
 #define MSG_RESERVED "RESERVED"
+#define MSG_TIMEOUT "TIMEOUT\r\n"
 #define MSG_DELETED "DELETED\r\n"
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
@@ -1072,6 +1073,8 @@ dispatch_cmd(conn c)
 
         reserve_ct++; /* stats */
         conn_set_worker(c);
+
+        if (conn_has_close_deadline(c)) return reply_msg(c, MSG_TIMEOUT);
 
         /* try to get a new job for this guy */
         wait_for_job(c);
