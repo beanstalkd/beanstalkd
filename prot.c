@@ -1074,7 +1074,9 @@ dispatch_cmd(conn c)
         reserve_ct++; /* stats */
         conn_set_worker(c);
 
-        if (conn_has_close_deadline(c)) return reply_msg(c, MSG_TIMEOUT);
+        if (conn_has_close_deadline(c) && !conn_ready(c)) {
+            return reply_msg(c, MSG_TIMEOUT);
+        }
 
         /* try to get a new job for this guy */
         wait_for_job(c);

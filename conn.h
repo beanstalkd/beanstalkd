@@ -108,5 +108,6 @@ void conn_set_worker(conn c);
 job soonest_job(conn c);
 int has_reserved_this_job(conn c, job j);
 int conn_has_close_deadline(conn c);
+int conn_ready(conn c);
 
 #endif /*conn_h*/

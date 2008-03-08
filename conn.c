@@ -239,6 +239,17 @@ conn_has_close_deadline(conn c)
     return j && t >= j->deadline - SAFETY_MARGIN;
 }
 
+int
+conn_ready(conn c)
+{
+    size_t i;
+
+    for (i = 0; i < c->watch.used; i++) {
+        if (((tube) c->watch.items[i])->ready.used) return 1;
+    }
+    return 0;
+}
+
 void
 conn_close(conn c)
 {

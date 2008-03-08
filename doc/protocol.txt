@@ -201,8 +201,8 @@ the job times out, when the server will put the job back into the ready queue.
 The time available can be found by asking the server for the job's stats.
 
 If the client has previously reserved job J and issues a reserve command when
-J has less than one second left in its ttr interval, the server will respond
-with:
+J has less than one second left in its ttr interval and there are no ready
+jobs, the server will respond with:
 
 TIMEOUT\r\n
 
