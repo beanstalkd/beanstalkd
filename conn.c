@@ -42,7 +42,6 @@ static void
 conn_free(conn c)
 {
     c->fd = 0;
-    TUBE_ASSIGN(c->use, NULL);
     conn_insert(&pool, c);
 }
 
@@ -77,6 +76,7 @@ make_conn(int fd, char start_state, tube use, tube watch)
 
     c->use = NULL; /* initialize */
     TUBE_ASSIGN(c->use, use);
+    use->using_ct++;
 
     c->fd = fd;
     c->state = start_state;
@@ -251,6 +251,8 @@ conn_close(conn c)
     if (has_reserved_job(c)) enqueue_reserved_jobs(c);
 
     ms_clear(&c->watch);
+    c->use->using_ct--;
+    TUBE_ASSIGN(c->use, NULL);
 
     conn_free(c);
 }

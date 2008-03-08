@@ -35,6 +35,7 @@ struct tube {
     struct job buried;
     struct ms waiting; /* set of conns */
     struct stats stat;
+    unsigned int using_ct;
     unsigned int watching_ct;
 };
 

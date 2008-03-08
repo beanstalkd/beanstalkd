@@ -149,6 +149,7 @@
     "current-jobs-reserved: %u\n" \
     "current-jobs-buried: %u\n" \
     "total-jobs: %llu\n" \
+    "current-using: %u\n" \
     "current-watching: %u\n" \
     "current-waiting: %u\n" \
     "\r\n"
@@ -892,6 +893,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.reserved_ct,
             t->stat.buried_ct,
             t->stat.total_jobs_ct,
+            t->using_ct,
             t->watching_ct,
             t->stat.waiting_ct);
 }
@@ -1214,8 +1216,10 @@ dispatch_cmd(conn c)
         TUBE_ASSIGN(t, find_or_make_tube(name));
         if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
+        c->use->using_ct--;
         TUBE_ASSIGN(c->use, t);
         TUBE_ASSIGN(t, NULL);
+        c->use->using_ct++;
 
         use_ct++;
         reply_line(c, STATE_SENDWORD, "USING %s\r\n", c->use->name);
