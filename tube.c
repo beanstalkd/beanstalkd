@@ -43,6 +43,7 @@ make_tube(const char *name)
     ms_init(&t->waiting, NULL, NULL);
 
     t->stat = (struct stats) {0, 0, 0, 0};
+    t->watching_ct = 0;
 
     return t;
 }

@@ -47,14 +47,16 @@ conn_free(conn c)
 }
 
 static void
-inc(ms a, tube t, size_t i)
+on_watch(ms a, tube t, size_t i)
 {
     tube_iref(t);
+    t->watching_ct++;
 }
 
 static void
-dec(ms a, tube t, size_t i)
+on_ignore(ms a, tube t, size_t i)
 {
+    t->watching_ct--;
     tube_dref(t);
 }
 
@@ -67,7 +69,7 @@ make_conn(int fd, char start_state, tube use, tube watch)
     c = conn_alloc();
     if (!c) return twarn("OOM"), NULL;
 
-    ms_init(&c->watch, (ms_event_fn) inc, (ms_event_fn) dec);
+    ms_init(&c->watch, (ms_event_fn) on_watch, (ms_event_fn) on_ignore);
     if (!ms_append(&c->watch, watch)) {
         conn_free(c);
         return twarn("OOM"), NULL;

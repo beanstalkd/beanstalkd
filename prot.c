@@ -149,6 +149,7 @@
     "current-jobs-reserved: %u\n" \
     "current-jobs-buried: %u\n" \
     "total-jobs: %llu\n" \
+    "current-watching: %u\n" \
     "current-waiting: %u\n" \
     "\r\n"
 
@@ -891,6 +892,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.reserved_ct,
             t->stat.buried_ct,
             t->stat.total_jobs_ct,
+            t->watching_ct,
             t->stat.waiting_ct);
 }
 
