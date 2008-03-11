@@ -195,16 +195,17 @@ A process that wants to consume jobs from the queue uses "reserve", "delete",
 reserve\r\n
 
 This will return a newly-reserved job. If no job is available to be reserved,
-beanstalkd will wait to send a response until one becomes available. Once a job
-is reserved for the client, the client has limited time to run the job before
-the job times out, when the server will put the job back into the ready queue.
-The time available can be found by asking the server for the job's stats.
+beanstalkd will wait to send a response until one becomes available. Once a
+job is reserved for the client, the client has limited time to run (TTR) the
+job before the job times out. When the job times out, the server will put the
+job back into the ready queue. Both the TTR and the actual time left can be
+found in response to the stats-job command.
 
-During the TTR of a reserved job, the last second is reserved by the server as
-a safety margin during which the client will not be made to wait for another
-job. If the client issues a reserve command during this time, or if the safety
-mmargin arrives while the client is waiting on a reserve command, the server
-will respond with:
+During the TTR of a reserved job, the last second is kept by the server as a
+safety margin, during which the client will not be made to wait for another
+job. If the client issues a reserve command during the safety margin, or if
+the safety margin arrives while the client is waiting on a reserve command,
+the server will respond with:
 
 DEADLINE_SOON\r\n
 
