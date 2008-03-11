@@ -200,15 +200,19 @@ is reserved for the client, the client has limited time to run the job before
 the job times out, when the server will put the job back into the ready queue.
 The time available can be found by asking the server for the job's stats.
 
-If the client has previously reserved job J and issues a reserve command when
-J has less than one second left in its ttr interval and there are no ready
-jobs, the server will respond with:
+During the TTR of a reserved job, the last second is reserved by the server as
+a safety margin during which the client will not be made to wait for another
+job. If the client issues a reserve command during this time, or if the safety
+mmargin arrives while the client is waiting on a reserve command, the server
+will respond with:
 
 TIMEOUT\r\n
 
-This gives the client a chance to delete or release job J before the server
-automatically releases it. Otherwise, the only response is in the form of a
-text line followed by the job body:
+This gives the client a chance to delete or release its reserved job before
+the server automatically releases it.
+
+Otherwise, the only response to this command is a successful reservation in
+the form of a text line followed by the job body:
 
 RESERVED <id> <bytes>\r\n
 <data>\r\n

@@ -146,12 +146,16 @@ has_reserved_job(conn c)
 int
 conn_set_evq(conn c, const int events, evh handler)
 {
-    int r;
+    int r, margin = 0;
     struct timeval tv = {0, 0};
 
     event_set(&c->evq, c->fd, events, handler, c);
 
-    if (has_reserved_job(c)) tv.tv_sec = soonest_job(c)->deadline - time(NULL);
+    if (conn_waiting(c)) margin = 1;
+    if (has_reserved_job(c)) {
+        time_t t = soonest_job(c)->deadline - time(NULL) - margin;
+        tv.tv_sec = t > 0 ? t : 0;
+    }
 
     r = event_add(&c->evq, has_reserved_job(c) ? &tv : NULL);
     if (r == -1) return twarn("event_add() err %d", errno), -1;
@@ -164,12 +168,12 @@ conn_update_evq(conn c, const int events)
 {
     int r;
 
-    if (!c) return -1;
+    if (!c) return twarnx("c is NULL"), -1;
 
     /* If it's been added, try to delete it first */
     if (c->evq.ev_base) {
         r = event_del(&c->evq);
-        if (r == -1) return -1;
+        if (r == -1) return twarn("event_del() err %d", errno), -1;
     }
 
     return conn_set_evq(c, events, c->evq.ev_callback);

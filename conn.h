@@ -59,6 +59,8 @@
 #define CONN_TYPE_WORKER 2
 #define CONN_TYPE_WAITING 4
 
+#define conn_waiting(c) ((c)->type & CONN_TYPE_WAITING)
+
 typedef struct conn *conn;
 
 struct conn {

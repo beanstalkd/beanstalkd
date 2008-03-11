@@ -225,6 +225,8 @@ reply(conn c, const char *line, int len, int state)
 {
     int r;
 
+    if (!c) return;
+
     r = conn_update_evq(c, EV_WRITE | EV_PERSIST);
     if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
 
@@ -273,7 +275,8 @@ remove_waiting_conn(conn c)
     tube t;
     size_t i;
 
-    if (!(c->type & CONN_TYPE_WAITING)) return NULL;
+    if (!conn_waiting(c)) return NULL;
+
     c->type &= ~CONN_TYPE_WAITING;
     global_stat.waiting_ct--;
     for (i = 0; i < c->watch.used; i++) {
@@ -802,12 +805,12 @@ wait_for_job(conn c)
 {
     int r;
 
+    c->state = STATE_WAIT;
+    enqueue_waiting_conn(c);
+
     /* this conn is waiting, but we want to know if they hang up */
     r = conn_update_evq(c, EV_READ | EV_PERSIST);
     if (r == -1) return twarnx("update events failed"), conn_close(c);
-
-    c->state = STATE_WAIT;
-    enqueue_waiting_conn(c);
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1273,17 +1276,24 @@ dispatch_cmd(conn c)
 static void
 h_conn_timeout(conn c)
 {
-    int r;
+    int r, should_timeout = 0;
     job j;
 
+    if (conn_waiting(c) && conn_has_close_deadline(c)) should_timeout = 1;
+
     while ((j = soonest_job(c))) {
-        if (j->deadline > time(NULL)) return;
+        if (j->deadline > time(NULL)) break;
         timeout_ct++; /* stats */
         j->timeout_ct++;
         r = enqueue_job(remove_this_reserved_job(c, j), 0);
         if (!r) bury_job(j); /* there was no room in the queue, so bury it */
         r = conn_update_evq(c, c->evq.ev_events);
         if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
+    }
+
+    if (should_timeout) {
+        dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
+        return reply_msg(remove_waiting_conn(c), MSG_TIMEOUT);
     }
 }
 
