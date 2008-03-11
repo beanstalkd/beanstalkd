@@ -84,7 +84,7 @@
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
 #define MSG_RESERVED "RESERVED"
-#define MSG_TIMEOUT "TIMEOUT\r\n"
+#define MSG_DEADLINE_SOON "DEADLINE_SOON\r\n"
 #define MSG_DELETED "DELETED\r\n"
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
@@ -1078,7 +1078,7 @@ dispatch_cmd(conn c)
         conn_set_worker(c);
 
         if (conn_has_close_deadline(c) && !conn_ready(c)) {
-            return reply_msg(c, MSG_TIMEOUT);
+            return reply_msg(c, MSG_DEADLINE_SOON);
         }
 
         /* try to get a new job for this guy */
@@ -1293,7 +1293,7 @@ h_conn_timeout(conn c)
 
     if (should_timeout) {
         dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
-        return reply_msg(remove_waiting_conn(c), MSG_TIMEOUT);
+        return reply_msg(remove_waiting_conn(c), MSG_DEADLINE_SOON);
     }
 }
 

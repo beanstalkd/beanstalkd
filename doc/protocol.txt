@@ -206,7 +206,7 @@ job. If the client issues a reserve command during this time, or if the safety
 mmargin arrives while the client is waiting on a reserve command, the server
 will respond with:
 
-TIMEOUT\r\n
+DEADLINE_SOON\r\n
 
 This gives the client a chance to delete or release its reserved job before
 the server automatically releases it.
