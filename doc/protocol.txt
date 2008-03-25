@@ -513,6 +513,8 @@ of strings to scalars. It contains these keys:
 
  - "total-jobs" is the cumulative count of jobs created.
 
+ - "max-job-size" is the maximum number of bytes in a job.
+
  - "current-tubes" is the number of currently-existing tubes.
 
  - "current-connections" is the number of currently open connections.

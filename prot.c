@@ -37,7 +37,7 @@
 #include "version.h"
 
 /* job body cannot be greater than this many bytes long */
-#define JOB_DATA_SIZE_LIMIT ((1 << 16) - 1)
+size_t job_data_size_limit = ((1 << 16) - 1);
 
 #define NAME_CHARS \
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
@@ -130,6 +130,7 @@
     "cmd-list-tubes-watched: %llu\n" \
     "job-timeouts: %llu\n" \
     "total-jobs: %llu\n" \
+    "max-job-size: %zu\n" \
     "current-tubes: %zu\n" \
     "current-connections: %u\n" \
     "current-producers: %u\n" \
@@ -744,6 +745,7 @@ fmt_stats(char *buf, size_t size, void *x)
             list_watched_tubes_ct,
             timeout_ct,
             global_stat.total_jobs_ct,
+            job_data_size_limit,
             tubes.used,
             count_cur_conns(),
             count_cur_producers(),
@@ -1023,7 +1025,7 @@ dispatch_cmd(conn c)
         body_size = strtoul(size_buf, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
-        if (body_size > JOB_DATA_SIZE_LIMIT) {
+        if (body_size > job_data_size_limit) {
             return reply_msg(c, MSG_JOB_TOO_BIG);
         }
 

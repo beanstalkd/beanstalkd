@@ -23,6 +23,8 @@
 
 #define URGENT_THRESHOLD 1024
 
+extern size_t job_data_size_limit;
+
 void prot_init();
 
 conn remove_waiting_conn(conn c);

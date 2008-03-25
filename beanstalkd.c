@@ -159,6 +159,17 @@ usage(char *msg, char *arg)
     exit(arg ? 5 : 0);
 }
 
+static size_t
+parse_size_t(char *str)
+{
+    char r, x;
+    size_t size;
+
+    r = sscanf(str, "%zu%c", &size, &x);
+    if (1 != r) usage("invalid size", str);
+    return size;
+}
+
 static int
 parse_port(char *portstr)
 {
@@ -203,6 +214,9 @@ opts(int argc, char **argv)
                 break;
             case 'l':
                 host_addr = parse_host(argv[++i]);
+                break;
+            case 'z':
+                job_data_size_limit = parse_size_t(argv[++i]);
                 break;
             case 'u':
                 user = argv[++i];
