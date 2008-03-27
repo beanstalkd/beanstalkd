@@ -589,9 +589,9 @@ peek_ready_job(unsigned long long int id)
 static job
 peek_job(unsigned long long int id)
 {
-    return peek_ready_job(id) ? :
+    return find_reserved_job(id) ? :
+           peek_ready_job(id) ? :
            pq_find(&delay_q, id) ? :
-           find_reserved_job(id) ? :
            find_buried_job(id);
 }
 
