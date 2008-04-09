@@ -32,6 +32,7 @@ struct tube {
     unsigned int refs;
     char name[MAX_TUBE_NAME_LEN];
     struct pq ready;
+    struct pq delay;
     struct job buried;
     struct ms waiting; /* set of conns */
     struct stats stat;

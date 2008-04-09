@@ -149,6 +149,7 @@ size_t job_data_size_limit = ((1 << 16) - 1);
     "current-jobs-urgent: %u\n" \
     "current-jobs-ready: %u\n" \
     "current-jobs-reserved: %u\n" \
+    "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
     "total-jobs: %llu\n" \
     "current-using: %u\n" \
@@ -170,8 +171,6 @@ size_t job_data_size_limit = ((1 << 16) - 1);
     "buries: %u\n" \
     "kicks: %u\n" \
     "\r\n"
-
-static struct pq delay_q;
 
 static unsigned int ready_ct = 0;
 static struct stats global_stat = {0, 0, 0, 0, 0};
@@ -340,6 +339,31 @@ process_queue()
     }
 }
 
+static job
+delay_q_peek()
+{
+    int i;
+    tube t;
+    job j = NULL, nj;
+
+    for (i = 0; i < tubes.used; i++) {
+        t = tubes.items[i];
+        nj = pq_peek(&t->delay);
+        if (!nj) continue;
+        if (!j || nj->deadline < j->deadline) j = nj;
+    }
+
+    return j;
+}
+
+static void
+set_main_delay_timeout()
+{
+    job j;
+
+    set_main_timeout((j = delay_q_peek()) ? j->deadline : 0);
+}
+
 static int
 enqueue_job(job j, unsigned int delay)
 {
@@ -347,10 +371,10 @@ enqueue_job(job j, unsigned int delay)
 
     if (delay) {
         j->deadline = time(NULL) + delay;
-        r = pq_give(&delay_q, j);
+        r = pq_give(&j->tube->delay, j);
         if (!r) return 0;
         j->state = JOB_STATE_DELAYED;
-        set_main_timeout(pq_peek(&delay_q)->deadline);
+        set_main_delay_timeout();
     } else {
         r = pq_give(&j->tube->ready, j);
         if (!r) return 0;
@@ -392,15 +416,10 @@ enqueue_reserved_jobs(conn c)
 }
 
 static job
-delay_q_peek()
-{
-    return pq_peek(&delay_q);
-}
-
-static job
 delay_q_take()
 {
-    return pq_take(&delay_q);
+    job j = delay_q_peek();
+    return j ? pq_take(&j->tube->delay) : NULL;
 }
 
 static job
@@ -434,17 +453,25 @@ kick_buried_job(tube t)
 static unsigned int
 get_delayed_job_ct()
 {
-    return pq_used(&delay_q);
+    tube t;
+    size_t i;
+    unsigned int count = 0;
+
+    for (i = 0; i < tubes.used; i++) {
+        t = tubes.items[i];
+        count += pq_used(&t->delay);
+    }
+    return count;
 }
 
 static int
-kick_delayed_job()
+kick_delayed_job(tube t)
 {
     int r;
     job j;
 
     if (get_delayed_job_ct() < 1) return 0;
-    j = delay_q_take();
+    j = pq_take(&t->delay);
     j->kick_ct++;
     r = enqueue_job(j, 0);
     if (r) return 1;
@@ -469,10 +496,10 @@ kick_buried_jobs(tube t, unsigned int n)
 
 /* return the number of jobs successfully kicked */
 static unsigned int
-kick_delayed_jobs(unsigned int n)
+kick_delayed_jobs(tube t, unsigned int n)
 {
     unsigned int i;
-    for (i = 0; (i < n) && kick_delayed_job(); ++i);
+    for (i = 0; (i < n) && kick_delayed_job(t); ++i);
     return i;
 }
 
@@ -480,7 +507,7 @@ static unsigned int
 kick_jobs(tube t, unsigned int n)
 {
     if (buried_job_p(t)) return kick_buried_jobs(t, n);
-    return kick_delayed_jobs(n);
+    return kick_delayed_jobs(t, n);
 }
 
 static job
@@ -515,6 +542,21 @@ find_buried_job(unsigned long long int id)
 
     for (i = 0; i < tubes.used; i++) {
         j = find_buried_job_in_tube(tubes.items[i], id);
+        if (j) return j;
+    }
+    return NULL;
+}
+
+static job
+find_delayed_job(unsigned long long int id)
+{
+    job j;
+    size_t i;
+    tube t;
+
+    for (i = 0; i < tubes.used; i++) {
+        t = tubes.items[i];
+        j = pq_find(&t->delay, id);
         if (j) return j;
     }
     return NULL;
@@ -591,7 +633,7 @@ peek_job(unsigned long long int id)
 {
     return find_reserved_job(id) ? :
            peek_ready_job(id) ? :
-           pq_find(&delay_q, id) ? :
+           find_delayed_job(id) ? :
            find_buried_job(id);
 }
 
@@ -897,6 +939,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.urgent_ct,
             t->ready.used,
             t->stat.reserved_ct,
+            pq_used(&t->delay),
             t->stat.buried_ct,
             t->stat.total_jobs_ct,
             t->using_ct,
@@ -1465,7 +1508,7 @@ h_delay()
         if (!r) bury_job(j); /* there was no room in the queue, so bury it */
     }
 
-    set_main_timeout((j = delay_q_peek()) ? j->deadline : 0);
+    set_main_delay_timeout();
 }
 
 void
@@ -1504,7 +1547,6 @@ void
 prot_init()
 {
     start_time = time(NULL);
-    pq_init(&delay_q, job_delay_cmp);
 
     ms_init(&tubes, NULL, NULL);
 
