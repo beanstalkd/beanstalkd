@@ -739,6 +739,11 @@ enqueue_incoming_job(conn c)
         return reply_msg(c, MSG_EXPECTED_CRLF);
     }
 
+    if (drain_mode) {
+        job_free(j);
+        return reply_serr(c, MSG_DRAINING);
+    }
+
     /* we have a complete job, so let's stick it in the pqueue */
     r = enqueue_job(j, j->delay);
     put_ct++; /* stats */
@@ -1053,8 +1058,6 @@ dispatch_cmd(conn c)
 
     switch (type) {
     case OP_PUT:
-        if (drain_mode) return reply_serr(c, MSG_DRAINING);
-
         r = read_pri(&pri, c->cmd + 4, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
