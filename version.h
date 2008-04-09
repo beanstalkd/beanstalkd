@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* This file will be replaced by pkg.sh */
+/* This file should be updated on each release branch; it should remain
+ * unchanged in master. */
 
 #define VERSION "dev"
