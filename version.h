@@ -19,4 +19,4 @@
 /* This file should be updated on each release branch; it should remain
  * unchanged in master. */
 
-#define VERSION "dev"
+#define VERSION "0.10"
