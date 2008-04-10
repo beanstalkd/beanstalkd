@@ -147,13 +147,14 @@ static void
 usage(char *msg, char *arg)
 {
     if (arg) warnx("%s: %s", msg, arg);
-    fprintf(stderr, "Use: %s [-d] [-l ADDR] [-p PORT] [-u USER] [-h]\n"
+    fprintf(stderr, "Use: %s [OPTIONS]\n"
             "\n"
             "Options:\n"
             " -d       detach\n"
             " -l ADDR  listen on address (default is 0.0.0.0)\n"
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
+            " -z SIZE  set the maximum job size\n"
             " -h       show this help\n",
             progname);
     exit(arg ? 5 : 0);
