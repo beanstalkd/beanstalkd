@@ -24,37 +24,10 @@
 #include "tube.h"
 #include "job.h"
 
-#define STATE_WANTCOMMAND 0
-#define STATE_WANTDATA 1
-#define STATE_SENDJOB 2
-#define STATE_SENDWORD 3
-#define STATE_WAIT 4
-
 /* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
  * MUST be enough to hold the longest possible command or reply line, which is
  * currently "USING a{200}\r\n". */
 #define LINE_BUF_SIZE 208
-
-#define OP_UNKNOWN 0
-#define OP_PUT 1
-#define OP_PEEKJOB 2
-#define OP_RESERVE 3
-#define OP_DELETE 4
-#define OP_RELEASE 5
-#define OP_BURY 6
-#define OP_KICK 7
-#define OP_STATS 8
-#define OP_JOBSTATS 9
-#define OP_PEEK_BURIED 10
-#define OP_USE 11
-#define OP_WATCH 12
-#define OP_IGNORE 13
-#define OP_LIST_TUBES 14
-#define OP_LIST_TUBE_USED 15
-#define OP_LIST_TUBES_WATCHED 16
-#define OP_STATS_TUBE 17
-#define OP_PEEK_READY 18
-#define OP_PEEK_DELAYED 19
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1
