@@ -45,8 +45,10 @@ size_t job_data_size_limit = ((1 << 16) - 1);
     "0123456789-+/;.$()"
 
 #define CMD_PUT "put "
-#define CMD_PEEK "peek"
 #define CMD_PEEKJOB "peek "
+#define CMD_PEEK_READY "peek-ready"
+#define CMD_PEEK_DELAYED "peek-delayed"
+#define CMD_PEEK_BURIED "peek-buried"
 #define CMD_RESERVE "reserve"
 #define CMD_DELETE "delete "
 #define CMD_RELEASE "release "
@@ -64,7 +66,9 @@ size_t job_data_size_limit = ((1 << 16) - 1);
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
-#define CMD_PEEK_LEN CONSTSTRLEN(CMD_PEEK)
+#define CMD_PEEK_READY_LEN CONSTSTRLEN(CMD_PEEK_READY)
+#define CMD_PEEK_DELAYED_LEN CONSTSTRLEN(CMD_PEEK_DELAYED)
+#define CMD_PEEK_BURIED_LEN CONSTSTRLEN(CMD_PEEK_BURIED)
 #define CMD_PEEKJOB_LEN CONSTSTRLEN(CMD_PEEKJOB)
 #define CMD_RESERVE_LEN CONSTSTRLEN(CMD_RESERVE)
 #define CMD_DELETE_LEN CONSTSTRLEN(CMD_DELETE)
@@ -203,7 +207,7 @@ static const char * op_names[] = {
     CMD_KICK,
     CMD_STATS,
     CMD_JOBSTATS,
-    CMD_PEEK,
+    CMD_PEEK_BURIED,
     CMD_USE,
     CMD_WATCH,
     CMD_IGNORE,
@@ -511,19 +515,6 @@ kick_jobs(tube t, unsigned int n)
 }
 
 static job
-peek_buried_job()
-{
-    tube t;
-    size_t i;
-
-    for (i = 0; i < tubes.used; i++) {
-        t = tubes.items[i];
-        if (buried_job_p(t)) return t->buried.next;
-    }
-    return NULL;
-}
-
-static job
 find_buried_job_in_tube(tube t, unsigned long long int id)
 {
     job j;
@@ -678,7 +669,9 @@ which_cmd(conn c)
 #define TEST_CMD(s,c,o) if (strncmp((s), (c), CONSTSTRLEN(c)) == 0) return (o);
     TEST_CMD(c->cmd, CMD_PUT, OP_PUT);
     TEST_CMD(c->cmd, CMD_PEEKJOB, OP_PEEKJOB);
-    TEST_CMD(c->cmd, CMD_PEEK, OP_PEEK);
+    TEST_CMD(c->cmd, CMD_PEEK_READY, OP_PEEK_READY);
+    TEST_CMD(c->cmd, CMD_PEEK_DELAYED, OP_PEEK_DELAYED);
+    TEST_CMD(c->cmd, CMD_PEEK_BURIED, OP_PEEK_BURIED);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
     TEST_CMD(c->cmd, CMD_RELEASE, OP_RELEASE);
@@ -1088,13 +1081,39 @@ dispatch_cmd(conn c)
         maybe_enqueue_incoming_job(c);
 
         break;
-    case OP_PEEK:
+    case OP_PEEK_READY:
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_PEEK_LEN + 2) {
+        if (c->cmd_len != CMD_PEEK_READY_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
-        j = job_copy(peek_buried_job() ? : delay_q_peek());
+        j = job_copy(pq_peek(&c->use->ready));
+
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+
+        peek_ct++; /* stats */
+        reply_job(c, j, MSG_FOUND);
+        break;
+    case OP_PEEK_DELAYED:
+        /* don't allow trailing garbage */
+        if (c->cmd_len != CMD_PEEK_DELAYED_LEN + 2) {
+            return reply_msg(c, MSG_BAD_FORMAT);
+        }
+
+        j = job_copy(pq_peek(&c->use->delay));
+
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+
+        peek_ct++; /* stats */
+        reply_job(c, j, MSG_FOUND);
+        break;
+    case OP_PEEK_BURIED:
+        /* don't allow trailing garbage */
+        if (c->cmd_len != CMD_PEEK_BURIED_LEN + 2) {
+            return reply_msg(c, MSG_BAD_FORMAT);
+        }
+
+        j = job_copy(buried_job_p(c->use)? j = c->use->buried.next : NULL);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 

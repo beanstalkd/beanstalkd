@@ -45,7 +45,7 @@
 #define OP_KICK 7
 #define OP_STATS 8
 #define OP_JOBSTATS 9
-#define OP_PEEK 10
+#define OP_PEEK_BURIED 10
 #define OP_USE 11
 #define OP_WATCH 12
 #define OP_IGNORE 13
@@ -53,6 +53,8 @@
 #define OP_LIST_TUBE_USED 15
 #define OP_LIST_TUBES_WATCHED 16
 #define OP_STATS_TUBE 17
+#define OP_PEEK_READY 18
+#define OP_PEEK_DELAYED 19
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1
