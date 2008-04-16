@@ -53,13 +53,6 @@ the server will reply with one of the following error messages:
  - "UNKNOWN_COMMAND\r\n" The client sent a command that the server does not
    know.
 
- - "EXPECTED_CRLF\r\n" The job body must be followed by a CR-LF pair, that is,
-   "\r\n". These two bytes are not counted in the job size given by the client
-   in the put command line.
-
- - "JOB_TOO_BIG\r\n" The client has requested to put a job with a body larger
-   than 2**16 bytes.
-
 These error responses will not be listed in this document for individual
 commands in the following sections, but they are implicitly included in the
 description of all commands. Clients should be prepared to receive an error
@@ -170,6 +163,13 @@ may be:
    priority queue data structure.
 
    - <id> is the integer id of the new job
+
+ - "EXPECTED_CRLF\r\n" The job body must be followed by a CR-LF pair, that is,
+   "\r\n". These two bytes are not counted in the job size given by the client
+   in the put command line.
+
+ - "JOB_TOO_BIG\r\n" The client has requested to put a job with a body larger
+   than 2**16 bytes.
 
 The "use" command is for producers. Subsequent put commands will put jobs into
 the tube specified by this command. If no use command has been issued, jobs
