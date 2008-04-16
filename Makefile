@@ -25,8 +25,11 @@ check: tests/cutcheck $(objects)
 
 $(program): $(objects) $(program).o
 
-tests/cutcheck.c: $(tests)
-	cutgen -o tests/cutcheck.c $(tests)
+check: export CFLAGS := $(CFLAGS) -D__LINUX__
+tests/cutgen: tests/cutgen.c
+
+tests/cutcheck.c: $(tests) tests/cutgen
+	./tests/cutgen -o tests/cutcheck.c $(tests)
 
 tests/cutcheck: tests/cutcheck.o $(objects) $(tests:.c=.o)
 
@@ -39,7 +42,8 @@ $(program)-%.tar.gz:
 	./pkg.sh $(program) $* $@
 
 clean:
-	rm -f $(program) *.o .*.d tests/*.o tests/cutcheck* core gmon.out
+	rm -f $(program) *.o .*.d tests/*.o core gmon.out
+	rm -f $(program) tests/cutcheck* tests/cutgen
 	rm -f $(program)-*.tar.gz
 
 # .DELETE_ON_ERROR:

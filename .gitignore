@@ -4,3 +4,4 @@ beanstalkd
 gmon.out
 tags
 tests/cutcheck*
+tests/cutgen

@@ -6,6 +6,7 @@ See doc/protocol.txt for details of the on-the-wire protocol.
 
 To build beanstalkd, just type "make".
 
-To run unit tests, you must have CUT installed. Then type "make check".
+To run unit tests, type "make check".
 
-CUT can be found at http://sourceforge.net/projects/cut/.
+These unit tests use CUT, which can be found at
+http://sourceforge.net/projects/cut/.
