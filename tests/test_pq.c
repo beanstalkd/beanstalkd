@@ -2,22 +2,26 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../tube.h" /* hack to make cpp happy */
 #include "../pq.h"
 
-static pq q;
+static struct pq qq;
+static pq q = &qq;
 static job j1, j2, j3a, j3b, j3c;
+static tube default_tube;
 
 void
 __CUT_BRINGUP__pq()
 {
+    TUBE_ASSIGN(default_tube, make_tube("default"));
     /* When CUT 3.0 comes out it will fix this design flaw. For now we will
      * just leak some queues during test. */
-    /*q = make_pq(2, job_pri_cmp);*/
-    j1 = make_job(1, 0, 1, 0);
-    j2 = make_job(2, 0, 1, 0);
-    j3a = make_job(3, 0, 1, 0);
-    j3b = make_job(3, 0, 1, 0);
-    j3c = make_job(3, 0, 1, 0);
+    /*pq_init(q, job_pri_cmp);*/
+    j1 = make_job(1, 0, 1, 0, default_tube);
+    j2 = make_job(2, 0, 1, 0, default_tube);
+    j3a = make_job(3, 0, 1, 0, default_tube);
+    j3b = make_job(3, 0, 1, 0, default_tube);
+    j3c = make_job(3, 0, 1, 0, default_tube);
     /*ASSERT(!!q, "Allocation should work");*/
     ASSERT(!!j1, "Allocation should work");
     ASSERT(!!j2, "Allocation should work");
@@ -29,14 +33,14 @@ __CUT_BRINGUP__pq()
 void
 __CUT__pq_test_empty_queue_should_have_no_items()
 {
-    q = make_pq(2, job_pri_cmp);
+    pq_init(q, job_pri_cmp);
     ASSERT(q->used == 0, "q should be empty.");
 }
 
 void
 __CUT__pq_test_insert_one()
 {
-    q = make_pq(2, job_pri_cmp);
+    pq_init(q, job_pri_cmp);
     pq_give(q, j1);
     ASSERT(q->used == 1, "q should contain one item.");
 }
@@ -47,7 +51,7 @@ __CUT__pq_test_insert_and_remove_one()
     int r;
     job j;
 
-    q = make_pq(2, job_pri_cmp);
+    pq_init(q, job_pri_cmp);
     r = pq_give(q, j1);
     ASSERT(r, "insert should succeed");
 
@@ -62,7 +66,7 @@ __CUT__pq_test_priority()
     int r;
     job j;
 
-    q = make_pq(3, job_pri_cmp);
+    pq_init(q, job_pri_cmp);
     r = pq_give(q, j2);
     ASSERT(r, "insert should succeed");
 
@@ -88,7 +92,7 @@ __CUT__pq_test_fifo_property()
     int r;
     job j;
 
-    q = make_pq(3, job_pri_cmp);
+    pq_init(q, job_pri_cmp);
     r = pq_give(q, j3a);
     ASSERT(r, "insert should succeed");
     ASSERT(q->heap[0] == j3a, "j3a should be in pos 0");
@@ -119,10 +123,10 @@ __CUT__pq_test_many_jobs()
     int r, i;
     job j;
 
-    q = make_pq(HOW_MANY, job_pri_cmp);
+    pq_init(q, job_pri_cmp);
 
     for (i = 0; i < HOW_MANY; i++) {
-        j = make_job(1 + rand() % 8192, 0, 1, 0);
+        j = make_job(1 + rand() % 8192, 0, 1, 0, default_tube);
         ASSERT(!!j, "allocation");
         r = pq_give(q, j);
         ASSERT(r, "insert should succeed");
@@ -142,7 +146,7 @@ __CUT__pq_test_find_match()
 {
     job j;
 
-    q = make_pq(2, job_pri_cmp);
+    pq_init(q, job_pri_cmp);
     pq_give(q, j1);
 
     j = pq_find(q, j1->id);
@@ -154,7 +158,7 @@ __CUT__pq_test_find_miss()
 {
     job j;
 
-    q = make_pq(2, job_pri_cmp);
+    pq_init(q, job_pri_cmp);
     pq_give(q, j1);
 
     j = pq_find(q, j1->id + 1);
@@ -169,6 +173,6 @@ __CUT_TAKEDOWN__pq()
     free(j3a);
     free(j3b);
     free(j3c);
-    free(q);
+    TUBE_ASSIGN(default_tube, 0);
 }
 
