@@ -1115,12 +1115,12 @@ dispatch_cmd(conn c)
         if (c->cmd_len != CMD_PEEK_READY_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
+        op_ct[type]++;
 
         j = job_copy(pq_peek(&c->use->ready));
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        op_ct[type]++;
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_PEEK_DELAYED:
@@ -1128,12 +1128,12 @@ dispatch_cmd(conn c)
         if (c->cmd_len != CMD_PEEK_DELAYED_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
+        op_ct[type]++;
 
         j = job_copy(pq_peek(&c->use->delay));
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        op_ct[type]++;
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_PEEK_BURIED:
@@ -1141,18 +1141,19 @@ dispatch_cmd(conn c)
         if (c->cmd_len != CMD_PEEK_BURIED_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
+        op_ct[type]++;
 
         j = job_copy(buried_job_p(c->use)? j = c->use->buried.next : NULL);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        op_ct[type]++;
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_PEEKJOB:
         errno = 0;
         id = strtoull(c->cmd + CMD_PEEKJOB_LEN, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        op_ct[type]++;
 
         /* So, peek is annoying, because some other connection might free the
          * job while we are still trying to write it out. So we copy it and
@@ -1161,7 +1162,6 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        op_ct[type]++;
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_RESERVE:
@@ -1185,12 +1185,12 @@ dispatch_cmd(conn c)
         errno = 0;
         id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        op_ct[type]++;
 
         j = remove_reserved_job(c, id) ? : remove_buried_job(id);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        op_ct[type]++;
         job_free(j);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
@@ -1205,6 +1205,7 @@ dispatch_cmd(conn c)
 
         r = read_delay(&delay, delay_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        op_ct[type]++;
 
         j = remove_reserved_job(c, id);
 
@@ -1213,7 +1214,6 @@ dispatch_cmd(conn c)
         j->pri = pri;
         j->delay = delay;
         j->release_ct++;
-        op_ct[type]++;
         r = enqueue_job(j, delay);
         if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
 
@@ -1228,13 +1228,13 @@ dispatch_cmd(conn c)
 
         r = read_pri(&pri, pri_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        op_ct[type]++;
 
         j = remove_reserved_job(c, id);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->pri = pri;
-        op_ct[type]++;
         bury_job(j);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
@@ -1266,10 +1266,10 @@ dispatch_cmd(conn c)
         id = strtoull(c->cmd + CMD_JOBSTATS_LEN, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
+        op_ct[type]++;
+
         j = peek_job(id);
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
-
-        op_ct[type]++;
 
         if (!j->tube) return reply_serr(c, MSG_INTERNAL_ERROR);
         do_stats(c, (fmt_fn) fmt_job_stats, j);
@@ -1278,10 +1278,10 @@ dispatch_cmd(conn c)
         name = c->cmd + CMD_STATS_TUBE_LEN;
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
 
+        op_ct[type]++;
+
         t = find_tube(name);
         if (!t) return reply_msg(c, MSG_NOTFOUND);
-
-        op_ct[type]++;
 
         do_stats(c, (fmt_fn) fmt_stats_tube, t);
         t = NULL;
@@ -1316,6 +1316,7 @@ dispatch_cmd(conn c)
     case OP_USE:
         name = c->cmd + CMD_USE_LEN;
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
+        op_ct[type]++;
 
         TUBE_ASSIGN(t, find_or_make_tube(name));
         if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
@@ -1325,12 +1326,12 @@ dispatch_cmd(conn c)
         TUBE_ASSIGN(t, NULL);
         c->use->using_ct++;
 
-        op_ct[type]++;
         reply_line(c, STATE_SENDWORD, "USING %s\r\n", c->use->name);
         break;
     case OP_WATCH:
         name = c->cmd + CMD_WATCH_LEN;
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
+        op_ct[type]++;
 
         TUBE_ASSIGN(t, find_or_make_tube(name));
         if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
@@ -1340,12 +1341,12 @@ dispatch_cmd(conn c)
         TUBE_ASSIGN(t, NULL);
         if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
-        op_ct[type]++;
         reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
         break;
     case OP_IGNORE:
         name = c->cmd + CMD_IGNORE_LEN;
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
+        op_ct[type]++;
 
         t = NULL;
         for (i = 0; i < c->watch.used; i++) {
@@ -1359,7 +1360,6 @@ dispatch_cmd(conn c)
         if (t) ms_remove(&c->watch, t); /* may free t if refcount => 0 */
         t = NULL;
 
-        op_ct[type]++;
         reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
         break;
     default:
