@@ -1436,16 +1436,15 @@ h_conn_data(conn c)
         c->cmd_read += r; /* we got some bytes */
 
         c->cmd_len = cmd_len(c); /* find the EOL */
-        dprintf("cmd_len is %d\n", c->cmd_len);
 
         /* yay, complete command line */
         if (c->cmd_len) return do_cmd(c);
 
         /* c->cmd_read > LINE_BUF_SIZE can't happen */
 
-        dprintf("cmd_read is %d\n", c->cmd_read);
         /* command line too long? */
         if (c->cmd_read == LINE_BUF_SIZE) {
+            c->cmd_read = 0; /* discard the input so far */
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
