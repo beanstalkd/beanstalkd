@@ -136,6 +136,7 @@ size_t job_data_size_limit = ((1 << 16) - 1);
 #define OP_STATS_TUBE 17
 #define OP_PEEK_READY 18
 #define OP_PEEK_DELAYED 19
+#define TOTAL_OPS 20
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -211,12 +212,7 @@ static struct ms tubes;
 
 static int drain_mode = 0;
 static time_t start_time;
-static unsigned long long int put_ct = 0, peek_ct = 0, reserve_ct = 0,
-                     delete_ct = 0, release_ct = 0, bury_ct = 0, kick_ct = 0,
-                     stats_job_ct = 0, stats_ct = 0, timeout_ct = 0,
-                     list_tubes_ct = 0, stats_tube_ct = 0,
-                     list_tube_used_ct = 0, list_watched_tubes_ct = 0,
-                     use_ct = 0, watch_ct = 0, ignore_ct = 0;
+static unsigned long long int op_ct[TOTAL_OPS], timeout_ct = 0;
 
 
 /* Doubly-linked list of connections with at least one reserved job. */
@@ -766,7 +762,7 @@ enqueue_incoming_job(conn c)
 
     /* we have a complete job, so let's stick it in the pqueue */
     r = enqueue_job(j, j->delay);
-    put_ct++; /* stats */
+    op_ct[OP_PUT]++; /* stats */
     global_stat.total_jobs_ct++;
     j->tube->stat.total_jobs_ct++;
 
@@ -794,22 +790,22 @@ fmt_stats(char *buf, size_t size, void *x)
             global_stat.reserved_ct,
             get_delayed_job_ct(),
             global_stat.buried_ct,
-            put_ct,
-            peek_ct,
-            reserve_ct,
-            delete_ct,
-            release_ct,
-            use_ct,
-            watch_ct,
-            ignore_ct,
-            bury_ct,
-            kick_ct,
-            stats_ct,
-            stats_job_ct,
-            stats_tube_ct,
-            list_tubes_ct,
-            list_tube_used_ct,
-            list_watched_tubes_ct,
+            op_ct[OP_PUT],
+            op_ct[OP_PEEKJOB],
+            op_ct[OP_RESERVE],
+            op_ct[OP_DELETE],
+            op_ct[OP_RELEASE],
+            op_ct[OP_USE],
+            op_ct[OP_WATCH],
+            op_ct[OP_IGNORE],
+            op_ct[OP_BURY],
+            op_ct[OP_KICK],
+            op_ct[OP_STATS],
+            op_ct[OP_JOBSTATS],
+            op_ct[OP_STATS_TUBE],
+            op_ct[OP_LIST_TUBES],
+            op_ct[OP_LIST_TUBE_USED],
+            op_ct[OP_LIST_TUBES_WATCHED],
             timeout_ct,
             global_stat.total_jobs_ct,
             job_data_size_limit,
@@ -1059,7 +1055,7 @@ dispatch_cmd(conn c)
     int r, i;
     unsigned int count;
     job j;
-    char type;
+    unsigned char type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
     unsigned int pri, delay, ttr, body_size;
     unsigned long long int id;
@@ -1118,7 +1114,7 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        peek_ct++; /* stats */
+        op_ct[type]++;
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_PEEK_DELAYED:
@@ -1131,7 +1127,7 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        peek_ct++; /* stats */
+        op_ct[type]++;
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_PEEK_BURIED:
@@ -1144,7 +1140,7 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        peek_ct++; /* stats */
+        op_ct[type]++;
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_PEEKJOB:
@@ -1159,7 +1155,7 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        peek_ct++; /* stats */
+        op_ct[type]++;
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_RESERVE:
@@ -1168,7 +1164,7 @@ dispatch_cmd(conn c)
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
-        reserve_ct++; /* stats */
+        op_ct[type]++;
         conn_set_worker(c);
 
         if (conn_has_close_deadline(c) && !conn_ready(c)) {
@@ -1188,7 +1184,7 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        delete_ct++; /* stats */
+        op_ct[type]++;
         job_free(j);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
@@ -1211,7 +1207,7 @@ dispatch_cmd(conn c)
         j->pri = pri;
         j->delay = delay;
         j->release_ct++;
-        release_ct++; /* stats */
+        op_ct[type]++;
         r = enqueue_job(j, delay);
         if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
 
@@ -1232,7 +1228,7 @@ dispatch_cmd(conn c)
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->pri = pri;
-        bury_ct++; /* stats */
+        op_ct[type]++;
         bury_job(j);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
@@ -1244,7 +1240,7 @@ dispatch_cmd(conn c)
         }
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
-        kick_ct++; /* stats */
+        op_ct[type]++;
 
         i = kick_jobs(c->use, count);
 
@@ -1255,7 +1251,7 @@ dispatch_cmd(conn c)
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
-        stats_ct++; /* stats */
+        op_ct[type]++;
 
         do_stats(c, fmt_stats, NULL);
         break;
@@ -1267,7 +1263,7 @@ dispatch_cmd(conn c)
         j = peek_job(id);
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        stats_job_ct++; /* stats */
+        op_ct[type]++;
 
         if (!j->tube) return reply_serr(c, MSG_INTERNAL_ERROR);
         do_stats(c, (fmt_fn) fmt_job_stats, j);
@@ -1279,7 +1275,7 @@ dispatch_cmd(conn c)
         t = find_tube(name);
         if (!t) return reply_msg(c, MSG_NOTFOUND);
 
-        stats_tube_ct++; /* stats */
+        op_ct[type]++;
 
         do_stats(c, (fmt_fn) fmt_stats_tube, t);
         t = NULL;
@@ -1290,7 +1286,7 @@ dispatch_cmd(conn c)
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
-        list_tubes_ct++;
+        op_ct[type]++;
         do_list_tubes(c, &tubes);
         break;
     case OP_LIST_TUBE_USED:
@@ -1299,7 +1295,7 @@ dispatch_cmd(conn c)
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
-        list_tube_used_ct++;
+        op_ct[type]++;
         reply_line(c, STATE_SENDWORD, "USING %s\r\n", c->use->name);
         break;
     case OP_LIST_TUBES_WATCHED:
@@ -1308,7 +1304,7 @@ dispatch_cmd(conn c)
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
-        list_watched_tubes_ct++;
+        op_ct[type]++;
         do_list_tubes(c, &c->watch);
         break;
     case OP_USE:
@@ -1323,7 +1319,7 @@ dispatch_cmd(conn c)
         TUBE_ASSIGN(t, NULL);
         c->use->using_ct++;
 
-        use_ct++;
+        op_ct[type]++;
         reply_line(c, STATE_SENDWORD, "USING %s\r\n", c->use->name);
         break;
     case OP_WATCH:
@@ -1338,7 +1334,7 @@ dispatch_cmd(conn c)
         TUBE_ASSIGN(t, NULL);
         if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
-        watch_ct++;
+        op_ct[type]++;
         reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
         break;
     case OP_IGNORE:
@@ -1357,7 +1353,7 @@ dispatch_cmd(conn c)
         if (t) ms_remove(&c->watch, t); /* may free t if refcount => 0 */
         t = NULL;
 
-        ignore_ct++;
+        op_ct[type]++;
         reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
         break;
     default:
@@ -1595,6 +1591,7 @@ void
 prot_init()
 {
     start_time = time(NULL);
+    memset(op_ct, 0, sizeof(op_ct));
 
     ms_init(&tubes, NULL, NULL);
 
