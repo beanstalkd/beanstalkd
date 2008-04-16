@@ -480,6 +480,12 @@ of strings to scalars. It contains these keys:
 
  - "cmd-peek" is the cumulative number of peek commands.
 
+ - "cmd-peek-ready" is the cumulative number of peek-ready commands.
+
+ - "cmd-peek-delayed" is the cumulative number of peek-delayed commands.
+
+ - "cmd-peek-buried" is the cumulative number of peek-buried commands.
+
  - "cmd-reserve" is the cumulative number of reserve commands.
 
  - "cmd-use" is the cumulative number of use commands.

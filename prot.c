@@ -146,6 +146,9 @@ size_t job_data_size_limit = ((1 << 16) - 1);
     "current-jobs-buried: %u\n" \
     "cmd-put: %llu\n" \
     "cmd-peek: %llu\n" \
+    "cmd-peek-ready: %llu\n" \
+    "cmd-peek-delayed: %llu\n" \
+    "cmd-peek-buried: %llu\n" \
     "cmd-reserve: %llu\n" \
     "cmd-delete: %llu\n" \
     "cmd-release: %llu\n" \
@@ -792,6 +795,9 @@ fmt_stats(char *buf, size_t size, void *x)
             global_stat.buried_ct,
             op_ct[OP_PUT],
             op_ct[OP_PEEKJOB],
+            op_ct[OP_PEEK_READY],
+            op_ct[OP_PEEK_DELAYED],
+            op_ct[OP_PEEK_BURIED],
             op_ct[OP_RESERVE],
             op_ct[OP_DELETE],
             op_ct[OP_RELEASE],
