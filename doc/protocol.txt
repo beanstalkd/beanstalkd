@@ -146,8 +146,8 @@ below).
    The minimum ttr is 1. If the client sends 0, the server will silently
    increase the ttr to 1.
 
- - <bytes> is an integer (currently must be < 2**16) indicating the size of
-   the job body, not including the trailing "\r\n".
+ - <bytes> is an integer indicating the size of the job body, not including the
+   trailing "\r\n". This value must be less than max-job-size (default: 2**16).
 
  - <data> is the job body -- a sequence of bytes of length <bytes> from the
    previous line.
@@ -169,7 +169,7 @@ may be:
    in the put command line.
 
  - "JOB_TOO_BIG\r\n" The client has requested to put a job with a body larger
-   than 2**16 bytes.
+   than max-job-size bytes.
 
 The "use" command is for producers. Subsequent put commands will put jobs into
 the tube specified by this command. If no use command has been issued, jobs
