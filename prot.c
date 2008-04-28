@@ -500,8 +500,8 @@ kick_delayed_job(tube t)
     int r;
     job j;
 
-    if (get_delayed_job_ct() < 1) return 0;
     j = pq_take(&t->delay);
+    if (!j) return 0;
     j->kick_ct++;
     r = enqueue_job(j, 0);
     if (r) return 1;
