@@ -3,7 +3,7 @@
  * CUT 2.3
  *
  * Copyright (c) 2001 Samuel A. Falvo II, William D. Tanksley
- * See LICENSE.TXT for details.
+ * See CUT-LICENSE.TXT for details.
  *
  * Based on WDT's "TestAssert" package.
  *

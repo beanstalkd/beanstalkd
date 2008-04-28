@@ -1,7 +1,9 @@
 /*
- * CUT 2.3
+ * This file has been modified from the original CUT distribution.
+ *
+ * CUT 2.3-kr1
  * Copyright (c) 2001-2002 Samuel A. Falvo II, William D. Tanksley
- * See LICENSE.TXT for details.
+ * See CUT-LICENSE.TXT for details.
  *
  * $Log: cutgen.c,v $
  * Revision 1.4  2003/03/18 05:53:50  sfalvo
@@ -494,7 +496,7 @@ char * libCUT[] =
    " * CUT 2.1",
    " *",
    " * Copyright (c) 2001-2002 Samuel A. Falvo II, William D. Tanksley",
-   " * See LICENSE.TXT for details.",
+   " * See CUT-LICENSE.TXT for details.",
    " *",
    " * Based on WDT's 'TestAssert' package.",
    " *",
