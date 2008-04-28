@@ -42,7 +42,7 @@ $(program)-%.tar.gz:
 	./pkg.sh $(program) $* $@
 
 clean:
-	rm -f $(program) *.o .*.d tests/*.o core gmon.out
+	rm -f $(program) *.o .*.d tests/*.o core core.* gmon.out
 	rm -f $(program) tests/cutcheck* tests/cutgen
 	rm -f $(program)-*.tar.gz
 
