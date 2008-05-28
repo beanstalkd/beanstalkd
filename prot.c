@@ -336,16 +336,16 @@ next_eligible_job()
     size_t i;
     job j = NULL, candidate;
 
-    dprintf("tubes.used = %d\n", tubes.used);
+    dprintf("tubes.used = %zu\n", tubes.used);
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
-        dprintf("for %s t->waiting.used=%d t->ready.used=%d\n",
+        dprintf("for %s t->waiting.used=%zu t->ready.used=%d\n",
                 t->name, t->waiting.used, t->ready.used);
         if (t->waiting.used && t->ready.used) {
             candidate = pq_peek(&t->ready);
             if (!j || candidate->id < j->id) j = candidate;
         }
-        dprintf("i = %d, tubes.used = %d\n", i, tubes.used);
+        dprintf("i = %zu, tubes.used = %zu\n", i, tubes.used);
     }
 
     return j;
