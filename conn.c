@@ -267,6 +267,7 @@ conn_close(conn c)
     if (!has_reserved_this_job(c, c->out_job)) job_free(c->out_job);
 
     c->in_job = c->out_job = NULL;
+    c->in_job_read = 0;
 
     if (c->type & CONN_TYPE_PRODUCER) cur_producer_ct--; /* stats */
     if (c->type & CONN_TYPE_WORKER) cur_worker_ct--; /* stats */

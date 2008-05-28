@@ -115,6 +115,7 @@ size_t job_data_size_limit = ((1 << 16) - 1);
 #define STATE_SENDJOB 2
 #define STATE_SENDWORD 3
 #define STATE_WAIT 4
+#define STATE_BITBUCKET 5
 
 #define OP_UNKNOWN 0
 #define OP_PUT 1
@@ -206,6 +207,11 @@ size_t job_data_size_limit = ((1 << 16) - 1);
     "buries: %u\n" \
     "kicks: %u\n" \
     "\r\n"
+
+/* this number is pretty arbitrary */
+#define BUCKET_BUF_SIZE 1024
+
+static char bucket[BUCKET_BUF_SIZE];
 
 static unsigned int ready_ct = 0;
 static struct stats global_stat = {0, 0, 0, 0, 0};
@@ -734,6 +740,10 @@ fill_extra_data(conn c)
         job_data_bytes = min(extra_bytes, c->in_job->body_size);
         memcpy(c->in_job->body, c->cmd + c->cmd_len, job_data_bytes);
         c->in_job_read = job_data_bytes;
+    } else if (c->in_job_read) {
+        /* we are in bit-bucket mode, throwing away data */
+        job_data_bytes = min(extra_bytes, c->in_job_read);
+        c->in_job_read -= job_data_bytes;
     }
 
     /* how many bytes are left to go into the future cmd? */
@@ -1104,6 +1114,21 @@ dispatch_cmd(conn c)
 
         c->in_job = make_job(pri, delay, ttr ? : 1, body_size + 2, c->use);
 
+        /* OOM? */
+        if (!c->in_job) {
+            /* throw away the job body and respond with OUT_OF_MEMORY */
+
+            /* Invert the meaning of in_job_read while throwing away data -- it
+             * counts the bytes that remain to be thrown away. */
+            c->in_job_read = body_size + 2;
+            fill_extra_data(c);
+
+            if (c->in_job_read == 0) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+            c->state = STATE_BITBUCKET;
+            return;
+        }
+
         fill_extra_data(c);
 
         /* it's possible we already have a complete job */
@@ -1425,7 +1450,7 @@ reset_conn(conn c)
 static void
 h_conn_data(conn c)
 {
-    int r;
+    int r, to_read;
     job j;
     struct iovec iov[2];
 
@@ -1451,6 +1476,20 @@ h_conn_data(conn c)
         }
 
         /* otherwise we have an incomplete line, so just keep waiting */
+        break;
+    case STATE_BITBUCKET:
+        /* Invert the meaning of in_job_read while throwing away data -- it
+         * counts the bytes that remain to be thrown away. */
+        to_read = min(c->in_job_read, BUCKET_BUF_SIZE);
+        r = read(c->fd, bucket, to_read);
+        if (r == -1) return check_err(c, "read()");
+        if (r == 0) return conn_close(c); /* the client hung up */
+
+        c->in_job_read -= r; /* we got some bytes */
+
+        /* (c->in_job_read < 0) can't happen */
+
+        if (c->in_job_read == 0) return reply_serr(c, MSG_OUT_OF_MEMORY);
         break;
     case STATE_WANTDATA:
         j = c->in_job;

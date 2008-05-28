@@ -55,8 +55,16 @@ struct conn {
     int reply_len;
     int reply_sent;
     char reply_buf[LINE_BUF_SIZE]; /* this string IS NUL-terminated */
+
+    /* A job to be read from the client. */
     job in_job;
+
+    /* How many bytes of in_job->body have been read so far. If in_job is NULL
+     * while in_job_read is nonzero, we are in bit bucket mode and
+     * in_job_read's meaning is inverted -- then it counts the bytes that
+     * remain to be thrown away. */
     int in_job_read;
+
     job out_job;
     int out_job_sent;
     struct job reserved_jobs; /* doubly-linked list header */
