@@ -50,6 +50,7 @@ size_t job_data_size_limit = ((1 << 16) - 1);
 #define CMD_PEEK_DELAYED "peek-delayed"
 #define CMD_PEEK_BURIED "peek-buried"
 #define CMD_RESERVE "reserve"
+#define CMD_RESERVE_TIMEOUT "reserve-with-timeout "
 #define CMD_DELETE "delete "
 #define CMD_RELEASE "release "
 #define CMD_BURY "bury "
@@ -71,6 +72,7 @@ size_t job_data_size_limit = ((1 << 16) - 1);
 #define CMD_PEEK_BURIED_LEN CONSTSTRLEN(CMD_PEEK_BURIED)
 #define CMD_PEEKJOB_LEN CONSTSTRLEN(CMD_PEEKJOB)
 #define CMD_RESERVE_LEN CONSTSTRLEN(CMD_RESERVE)
+#define CMD_RESERVE_TIMEOUT_LEN CONSTSTRLEN(CMD_RESERVE_TIMEOUT)
 #define CMD_DELETE_LEN CONSTSTRLEN(CMD_DELETE)
 #define CMD_RELEASE_LEN CONSTSTRLEN(CMD_RELEASE)
 #define CMD_BURY_LEN CONSTSTRLEN(CMD_BURY)
@@ -89,6 +91,7 @@ size_t job_data_size_limit = ((1 << 16) - 1);
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
 #define MSG_RESERVED "RESERVED"
 #define MSG_DEADLINE_SOON "DEADLINE_SOON\r\n"
+#define MSG_TIMED_OUT "TIMED_OUT\r\n"
 #define MSG_DELETED "DELETED\r\n"
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
@@ -137,7 +140,8 @@ size_t job_data_size_limit = ((1 << 16) - 1);
 #define OP_STATS_TUBE 17
 #define OP_PEEK_READY 18
 #define OP_PEEK_DELAYED 19
-#define TOTAL_OPS 20
+#define OP_RESERVE_TIMEOUT 20
+#define TOTAL_OPS 21
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -151,6 +155,7 @@ size_t job_data_size_limit = ((1 << 16) - 1);
     "cmd-peek-delayed: %llu\n" \
     "cmd-peek-buried: %llu\n" \
     "cmd-reserve: %llu\n" \
+    "cmd-reserve-with-timeout: %llu\n" \
     "cmd-delete: %llu\n" \
     "cmd-release: %llu\n" \
     "cmd-use: %llu\n" \
@@ -704,6 +709,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_PEEK_READY, OP_PEEK_READY);
     TEST_CMD(c->cmd, CMD_PEEK_DELAYED, OP_PEEK_DELAYED);
     TEST_CMD(c->cmd, CMD_PEEK_BURIED, OP_PEEK_BURIED);
+    TEST_CMD(c->cmd, CMD_RESERVE_TIMEOUT, OP_RESERVE_TIMEOUT);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
     TEST_CMD(c->cmd, CMD_RELEASE, OP_RELEASE);
@@ -809,6 +815,7 @@ fmt_stats(char *buf, size_t size, void *x)
             op_ct[OP_PEEK_DELAYED],
             op_ct[OP_PEEK_BURIED],
             op_ct[OP_RESERVE],
+            op_ct[OP_RESERVE_TIMEOUT],
             op_ct[OP_DELETE],
             op_ct[OP_RELEASE],
             op_ct[OP_USE],
@@ -882,12 +889,15 @@ read_ttr(unsigned int *ttr, const char *buf, char **end)
 }
 
 static void
-wait_for_job(conn c)
+wait_for_job(conn c, int timeout)
 {
     int r;
 
     c->state = STATE_WAIT;
     enqueue_waiting_conn(c);
+
+    /* Set the pending timeout to the requested timeout amount */
+    c->pending_timeout = timeout;
 
     /* this conn is waiting, but we want to know if they hang up */
     r = conn_update_evq(c, EV_READ | EV_PERSIST);
@@ -1068,7 +1078,7 @@ find_or_make_tube(const char *name)
 static void
 dispatch_cmd(conn c)
 {
-    int r, i;
+    int r, i, timeout = -1;
     unsigned int count;
     job j;
     unsigned char type;
@@ -1189,9 +1199,13 @@ dispatch_cmd(conn c)
 
         reply_job(c, j, MSG_FOUND);
         break;
-    case OP_RESERVE:
+    case OP_RESERVE_TIMEOUT:
+        errno = 0;
+        timeout = strtol(c->cmd + CMD_RESERVE_TIMEOUT_LEN, &end_buf, 10);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+    case OP_RESERVE: /* FALLTHROUGH */
         /* don't allow trailing garbage */
-        if (c->cmd_len != CMD_RESERVE_LEN + 2) {
+        if (type == OP_RESERVE && c->cmd_len != CMD_RESERVE_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
@@ -1203,7 +1217,7 @@ dispatch_cmd(conn c)
         }
 
         /* try to get a new job for this guy */
-        wait_for_job(c);
+        wait_for_job(c, timeout);
         process_queue();
         break;
     case OP_DELETE:
@@ -1415,6 +1429,10 @@ h_conn_timeout(conn c)
     if (should_timeout) {
         dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
         return reply_msg(remove_waiting_conn(c), MSG_DEADLINE_SOON);
+    } else if (conn_waiting(c) && c->pending_timeout >= 0) {
+        dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
+        c->pending_timeout=-1;
+        return reply_msg(remove_waiting_conn(c), MSG_TIMED_OUT);
     }
 }
 

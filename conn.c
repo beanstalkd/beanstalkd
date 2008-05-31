@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>
+#include <limits.h>
 
 #include "conn.h"
 #include "net.h"
@@ -84,6 +85,7 @@ make_conn(int fd, char start_state, tube use, tube watch)
     c->state = start_state;
     c->type = 0;
     c->cmd_read = 0;
+    c->pending_timeout = -1;
     c->in_job = c->out_job = NULL;
     c->in_job_read = c->out_job_sent = 0;
     c->prev = c->next = c; /* must be out of a linked list right now */
@@ -146,8 +148,8 @@ has_reserved_job(conn c)
 int
 conn_set_evq(conn c, const int events, evh handler)
 {
-    int r, margin = 0;
-    struct timeval tv = {0, 0};
+    int r, margin = 0, should_timeout=0;
+    struct timeval tv = {INT_MAX, 0};
 
     event_set(&c->evq, c->fd, events, handler, c);
 
@@ -155,9 +157,14 @@ conn_set_evq(conn c, const int events, evh handler)
     if (has_reserved_job(c)) {
         time_t t = soonest_job(c)->deadline - time(NULL) - margin;
         tv.tv_sec = t > 0 ? t : 0;
+        should_timeout = 1;
+    }
+    if (c->pending_timeout >= 0) {
+        tv.tv_sec = min(tv.tv_sec, c->pending_timeout);
+        should_timeout = 1;
     }
 
-    r = event_add(&c->evq, has_reserved_job(c) ? &tv : NULL);
+    r = event_add(&c->evq, should_timeout ? &tv : NULL);
     if (r == -1) return twarn("event_add() err %d", errno), -1;
 
     return 0;

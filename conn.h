@@ -44,6 +44,7 @@ struct conn {
     char state;
     char type;
     struct event evq;
+    int pending_timeout;
 
     /* we cannot share this buffer with the reply line because we might read in
      * command line data for a subsequent command, and we need to store it
