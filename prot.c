@@ -252,6 +252,9 @@ static const char * op_names[] = {
     CMD_LIST_TUBE_USED,
     CMD_LIST_TUBES_WATCHED,
     CMD_STATS_TUBE,
+    CMD_PEEK_READY,
+    CMD_PEEK_DELAYED,
+    CMD_RESERVE_TIMEOUT
 };
 #endif
 
