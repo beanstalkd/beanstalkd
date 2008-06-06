@@ -340,6 +340,13 @@ reserve_job(conn c, job j)
     conn_insert(&running, c);
     j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
+    if (c->soonest_job == NULL) {
+        c->soonest_job = j;
+    } else {
+        if (j->deadline < c->soonest_job->deadline) {
+            c->soonest_job = j;
+        }
+    }
     return reply_job(c, j, MSG_RESERVED);
 }
 
@@ -455,6 +462,7 @@ enqueue_reserved_jobs(conn c)
         if (!r) bury_job(j);
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
+        c->soonest_job = NULL;
         if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
     }
 }
@@ -1019,6 +1027,7 @@ remove_this_reserved_job(conn c, job j)
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
     }
+    c->soonest_job = NULL;
     if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
     return j;
 }

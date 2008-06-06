@@ -60,6 +60,9 @@ struct conn {
     /* A job to be read from the client. */
     job in_job;
 
+    /* Memoization of the soonest job */
+    job soonest_job;
+
     /* How many bytes of in_job->body have been read so far. If in_job is NULL
      * while in_job_read is nonzero, we are in bit bucket mode and
      * in_job_read's meaning is inverted -- then it counts the bytes that

@@ -86,6 +86,7 @@ make_conn(int fd, char start_state, tube use, tube watch)
     c->type = 0;
     c->cmd_read = 0;
     c->pending_timeout = -1;
+    c->soonest_job = NULL;
     c->in_job = c->out_job = NULL;
     c->in_job_read = c->out_job_sent = 0;
     c->prev = c->next = c; /* must be out of a linked list right now */
@@ -220,11 +221,15 @@ conn_insert(conn head, conn c)
 job
 soonest_job(conn c)
 {
-    job j, soonest = NULL;
+    job j = NULL;
+    job soonest = c->soonest_job;
 
-    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
-        if (j->deadline <= (soonest ? : j)->deadline) soonest = j;
+    if (soonest == NULL) {
+        for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
+            if (j->deadline <= (soonest ? : j)->deadline) soonest = j;
+        }
     }
+    c->soonest_job = soonest;
     return soonest;
 }
 
