@@ -149,19 +149,19 @@ has_reserved_job(conn c)
 int
 conn_set_evq(conn c, const int events, evh handler)
 {
-    int r, margin = 0, should_timeout=0;
+    int r, margin = 0, should_timeout = 0;
     struct timeval tv = {INT_MAX, 0};
 
     event_set(&c->evq, c->fd, events, handler, c);
 
     if (conn_waiting(c)) margin = 1;
-    if (has_reserved_job(c)) {
+    if (c->pending_timeout >= 0) {
+        tv.tv_sec = c->pending_timeout;
+        should_timeout=1;
+    }
+    if (should_timeout == 0 && has_reserved_job(c)) {
         time_t t = soonest_job(c)->deadline - time(NULL) - margin;
         tv.tv_sec = t > 0 ? t : 0;
-        should_timeout = 1;
-    }
-    if (c->pending_timeout >= 0) {
-        tv.tv_sec = min(tv.tv_sec, c->pending_timeout);
         should_timeout = 1;
     }
 
