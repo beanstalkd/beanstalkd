@@ -565,44 +565,31 @@ kick_jobs(tube t, unsigned int n)
     return kick_delayed_jobs(t, n);
 }
 
+/*
 static job
 find_buried_job_in_tube(tube t, unsigned long long int id)
 {
-    job j;
+    job j = job_find(id);
 
-    for (j = t->buried.next; j != &t->buried; j = j->next) {
-        if (j->id == id) return j;
-    }
-    return NULL;
+    return (j && j->tube == t && j->state == JOB_STATE_RESERVED) ? j : NULL;
 }
+*/
 
 static job
 find_buried_job(unsigned long long int id)
 {
-    job j;
-    size_t i;
-
-    for (i = 0; i < tubes.used; i++) {
-        j = find_buried_job_in_tube(tubes.items[i], id);
-        if (j) return j;
-    }
-    return NULL;
+    job j = job_find(id);
+    return (j && j->state == JOB_STATE_BURIED) ? j : NULL;
 }
 
+/*
 static job
 find_delayed_job(unsigned long long int id)
 {
-    job j;
-    size_t i;
-    tube t;
-
-    for (i = 0; i < tubes.used; i++) {
-        t = tubes.items[i];
-        j = pq_find(&t->delay, id);
-        if (j) return j;
-    }
-    return NULL;
+    job j = job_find(id);
+    return (j && j->state == JOB_STATE_DELAYED) ? j : NULL;
 }
+*/
 
 static job
 remove_buried_job(unsigned long long int id)
@@ -628,23 +615,23 @@ enqueue_waiting_conn(conn c)
 static job
 find_reserved_job_in_conn(conn c, unsigned long long int id)
 {
-    job j;
-
-    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
-        if (j->id == id) return j;
-    }
-    return NULL;
+    job j = job_find(id);
+    return (j && j->reserver == c && j->state == JOB_STATE_RESERVED) ? j : NULL;
 }
 
+/*
 static job
 find_reserved_job_in_list(conn list, unsigned long long int id)
 {
-    job j;
+    job j = job_find(id);
     conn c;
 
+    if (!j) return NULL;
+
     for (c = list->next; c != list; c = c->next) {
-        j = find_reserved_job_in_conn(c, id);
-        if (j) return j;
+        if (j->state == JOB_STATE_RESERVED && j->reserver == c) {
+            return j;
+        }
     }
     return NULL;
 }
@@ -652,31 +639,22 @@ find_reserved_job_in_list(conn list, unsigned long long int id)
 static job
 find_reserved_job(unsigned long long int id)
 {
-    return find_reserved_job_in_list(&running, id);
+    job j = job_find(id);
+    return (j && j->state == JOB_STATE_RESERVED) ? j : NULL;
 }
 
 static job
 peek_ready_job(unsigned long long int id)
 {
-
-    job j;
-    size_t i;
-
-    for (i = 0; i < tubes.used; i++) {
-        j = pq_find(&((tube) tubes.items[i])->ready, id);
-        if (j) return j;
-    }
-    return NULL;
+    job j = job_find(id);
+    return (j && j->state == JOB_STATE_READY) ? j : NULL;
 }
+*/
 
-/* TODO: make a global hashtable of jobs because this is slow */
 static job
 peek_job(unsigned long long int id)
 {
-    return find_reserved_job(id) ? :
-           peek_ready_job(id) ? :
-           find_delayed_job(id) ? :
-           find_buried_job(id);
+    return job_find(id);
 }
 
 static void
