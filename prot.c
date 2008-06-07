@@ -565,31 +565,12 @@ kick_jobs(tube t, unsigned int n)
     return kick_delayed_jobs(t, n);
 }
 
-/*
-static job
-find_buried_job_in_tube(tube t, unsigned long long int id)
-{
-    job j = job_find(id);
-
-    return (j && j->tube == t && j->state == JOB_STATE_RESERVED) ? j : NULL;
-}
-*/
-
 static job
 find_buried_job(unsigned long long int id)
 {
     job j = job_find(id);
     return (j && j->state == JOB_STATE_BURIED) ? j : NULL;
 }
-
-/*
-static job
-find_delayed_job(unsigned long long int id)
-{
-    job j = job_find(id);
-    return (j && j->state == JOB_STATE_DELAYED) ? j : NULL;
-}
-*/
 
 static job
 remove_buried_job(unsigned long long int id)
@@ -618,38 +599,6 @@ find_reserved_job_in_conn(conn c, unsigned long long int id)
     job j = job_find(id);
     return (j && j->reserver == c && j->state == JOB_STATE_RESERVED) ? j : NULL;
 }
-
-/*
-static job
-find_reserved_job_in_list(conn list, unsigned long long int id)
-{
-    job j = job_find(id);
-    conn c;
-
-    if (!j) return NULL;
-
-    for (c = list->next; c != list; c = c->next) {
-        if (j->state == JOB_STATE_RESERVED && j->reserver == c) {
-            return j;
-        }
-    }
-    return NULL;
-}
-
-static job
-find_reserved_job(unsigned long long int id)
-{
-    job j = job_find(id);
-    return (j && j->state == JOB_STATE_RESERVED) ? j : NULL;
-}
-
-static job
-peek_ready_job(unsigned long long int id)
-{
-    job j = job_find(id);
-    return (j && j->state == JOB_STATE_READY) ? j : NULL;
-}
-*/
 
 static job
 peek_job(unsigned long long int id)
