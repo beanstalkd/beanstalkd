@@ -234,14 +234,9 @@ soonest_job(conn c)
 }
 
 int
-has_reserved_this_job(conn c, job needle)
+has_reserved_this_job(conn c, job j)
 {
-    job j;
-
-    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
-        if (needle == j) return 1;
-    }
-    return 0;
+    return j && j->state == JOB_STATE_RESERVED && j->reserver == c;
 }
 
 /* return true if c has a reserved job with less than one second until its
