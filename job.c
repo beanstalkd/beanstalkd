@@ -25,6 +25,54 @@
 
 static unsigned long long int next_id = 1;
 
+static job_hash *all_jobs=NULL;
+
+static int
+_get_job_hash_index(unsigned long long int job_id)
+{
+    return job_id % NUM_JOB_BUCKETS;
+}
+
+static job
+store_job(job j)
+{
+    job_hash jh = NULL;
+    int index=0;
+
+    if (all_jobs == NULL) {
+        all_jobs = calloc(NUM_JOB_BUCKETS, sizeof(job_hash));
+        if (all_jobs == NULL) {
+            twarnx("Failed to allocate %d hash buckets", NUM_JOB_BUCKETS);
+            return NULL;
+        }
+    }
+
+    index = _get_job_hash_index(j->id);
+
+    jh = malloc(sizeof(struct job_hash));
+    if (jh == NULL) {
+        return NULL;
+    }
+
+    jh->job = j;
+    jh->next = all_jobs[index];
+
+    all_jobs[index] = jh;
+
+    return j;
+}
+
+job
+job_find(unsigned long long int job_id)
+{
+    job_hash jh = NULL;
+    int index = _get_job_hash_index(job_id);
+
+    for (jh = all_jobs[index]; jh && jh->job->id != job_id; jh = jh->next);
+
+    return jh ? jh->job : NULL;
+}
+
 job
 allocate_job(int body_size)
 {
@@ -33,6 +81,7 @@ allocate_job(int body_size)
     j = malloc(sizeof(struct job) + body_size);
     if (!j) return twarnx("OOM"), NULL;
 
+    j->id = 0;
     j->state = JOB_STATE_INVALID;
     j->creation = time(NULL);
     j->timeout_ct = j->release_ct = j->bury_ct = j->kick_ct = 0;
@@ -56,15 +105,49 @@ make_job(unsigned int pri, unsigned int delay, unsigned int ttr, int body_size,
     j->pri = pri;
     j->delay = delay;
     j->ttr = ttr;
+
+    if (store_job(j) == NULL) {
+        job_free (j);
+        twarnx("OOM");
+        return NULL;
+    }
+
     TUBE_ASSIGN(j->tube, tube);
 
     return j;
 }
 
+static void
+job_hash_free(unsigned long long int job_id)
+{
+    int index=_get_job_hash_index(job_id);
+    job_hash jh = all_jobs ? all_jobs[index] : NULL;
+
+    if (jh) {
+        if (jh->job->id == job_id) {
+            /* Special case the first */
+            all_jobs[index] = jh->next;
+            free(jh);
+        } else {
+            job_hash tmp;
+            while (jh->next && jh->next->job->id != job_id) jh = jh->next;
+            if (jh->next) {
+                tmp = jh->next;
+                jh->next = jh->next->next;
+                free(tmp);
+            }
+        }
+    }
+}
+
 void
 job_free(job j)
 {
-    if (j) TUBE_ASSIGN(j->tube, NULL);
+    if (j) {
+        TUBE_ASSIGN(j->tube, NULL);
+        job_hash_free(j->id);
+    }
+
     free(j);
 }
 
