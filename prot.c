@@ -1355,23 +1355,25 @@ dispatch_cmd(conn c)
 static void
 h_conn_timeout(conn c)
 {
-    int r, should_timeout = 0;
-    job j;
+    int should_timeout = 0;
 
     if (conn_waiting(c) && conn_has_close_deadline(c)) should_timeout = 1;
 
-    while ((j = soonest_job(c))) {
-        if (j->deadline > time(NULL)) break;
-        timeout_ct++; /* stats */
-        j->timeout_ct++;
-        r = enqueue_job(remove_this_reserved_job(c, j), 0);
-        if (!r) bury_job(j); /* there was no room in the queue, so bury it */
-        r = conn_update_evq(c, c->evq.ev_events);
-        if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
-    }
-
     if (should_timeout) {
+        int r;
+        job j;
         dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
+        while ((j = soonest_job(c))) {
+            if (j->deadline > time(NULL)) break;
+            timeout_ct++; /* stats */
+            j->timeout_ct++;
+            r = enqueue_job(remove_this_reserved_job(c, j), 0);
+            /* there was no room in the queue, so bury it */
+            if (!r) bury_job(j);
+            r = conn_update_evq(c, c->evq.ev_events);
+            if (r == -1)
+                return twarnx("conn_update_evq() failed"), conn_close(c);
+        }
         return reply_msg(remove_waiting_conn(c), MSG_DEADLINE_SOON);
     } else if (conn_waiting(c) && c->pending_timeout >= 0) {
         dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
