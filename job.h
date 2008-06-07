@@ -48,6 +48,7 @@ struct job {
     unsigned int bury_ct;
     unsigned int kick_ct;
     tube tube;
+    void *reserver;
     char state;
     char body[];
 };

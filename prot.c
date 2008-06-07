@@ -340,6 +340,7 @@ reserve_job(conn c, job j)
     conn_insert(&running, c);
     j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
+    j->reserver=c;
     if (c->soonest_job == NULL) {
         c->soonest_job = j;
     } else {
@@ -420,6 +421,7 @@ enqueue_job(job j, unsigned int delay)
 {
     int r;
 
+    j->reserver = NULL;
     if (delay) {
         j->deadline = time(NULL) + delay;
         r = pq_give(&j->tube->delay, j);
@@ -447,6 +449,7 @@ bury_job(job j)
     global_stat.buried_ct++;
     j->tube->stat.buried_ct++;
     j->state = JOB_STATE_BURIED;
+    j->reserver=NULL;
     j->bury_ct++;
 }
 
@@ -1026,6 +1029,7 @@ remove_this_reserved_job(conn c, job j)
     if (j) {
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
+        j->reserver=NULL;
     }
     c->soonest_job = NULL;
     if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
