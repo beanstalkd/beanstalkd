@@ -118,19 +118,19 @@ make_job(unsigned int pri, unsigned int delay, unsigned int ttr, int body_size,
 }
 
 static void
-job_hash_free(unsigned long long int job_id)
+job_hash_free(job j)
 {
-    int index=_get_job_hash_index(job_id);
+    int index=_get_job_hash_index(j->id);
     job_hash jh = all_jobs ? all_jobs[index] : NULL;
 
     if (jh) {
-        if (jh->job->id == job_id) {
+        if (jh->job == j) {
             /* Special case the first */
             all_jobs[index] = jh->next;
             free(jh);
         } else {
             job_hash tmp;
-            while (jh->next && jh->next->job->id != job_id) jh = jh->next;
+            while (jh->next && jh->next->job != j) jh = jh->next;
             if (jh->next) {
                 tmp = jh->next;
                 jh->next = jh->next->next;
@@ -145,7 +145,7 @@ job_free(job j)
 {
     if (j) {
         TUBE_ASSIGN(j->tube, NULL);
-        job_hash_free(j->id);
+        job_hash_free(j);
     }
 
     free(j);
