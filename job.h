@@ -24,8 +24,6 @@
 typedef struct job *job;
 typedef int(*job_cmp_fn)(job, job);
 
-typedef struct job_hash *job_hash;
-
 #include "tube.h"
 
 #define JOB_STATE_INVALID 0
@@ -50,13 +48,8 @@ struct job {
     tube tube;
     void *reserver;
     char state;
+    job ht_next; /* Next job in a hash table list */
     char body[];
-};
-
-/* Linked list structure that exists in hash buckets */
-struct job_hash {
-    job job;
-    job_hash next;
 };
 
 #define NUM_JOB_BUCKETS 12289

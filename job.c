@@ -25,7 +25,7 @@
 
 static unsigned long long int next_id = 1;
 
-static job_hash *all_jobs=NULL;
+static job *all_jobs=NULL;
 
 static int
 _get_job_hash_index(unsigned long long int job_id)
@@ -36,11 +36,10 @@ _get_job_hash_index(unsigned long long int job_id)
 static job
 store_job(job j)
 {
-    job_hash jh = NULL;
     int index=0;
 
     if (all_jobs == NULL) {
-        all_jobs = calloc(NUM_JOB_BUCKETS, sizeof(job_hash));
+        all_jobs = calloc(NUM_JOB_BUCKETS, sizeof(job));
         if (all_jobs == NULL) {
             twarnx("Failed to allocate %d hash buckets", NUM_JOB_BUCKETS);
             return NULL;
@@ -49,15 +48,9 @@ store_job(job j)
 
     index = _get_job_hash_index(j->id);
 
-    jh = malloc(sizeof(struct job_hash));
-    if (jh == NULL) {
-        return NULL;
-    }
+    j->ht_next = all_jobs[index];
 
-    jh->job = j;
-    jh->next = all_jobs[index];
-
-    all_jobs[index] = jh;
+    all_jobs[index] = j;
 
     return j;
 }
@@ -65,12 +58,12 @@ store_job(job j)
 job
 job_find(unsigned long long int job_id)
 {
-    job_hash jh = NULL;
+    job jh = NULL;
     int index = _get_job_hash_index(job_id);
 
-    for (jh = all_jobs[index]; jh && jh->job->id != job_id; jh = jh->next);
+    for (jh = all_jobs[index]; jh && jh->id != job_id; jh = jh->ht_next);
 
-    return jh ? jh->job : NULL;
+    return jh;
 }
 
 job
@@ -87,6 +80,7 @@ allocate_job(int body_size)
     j->timeout_ct = j->release_ct = j->bury_ct = j->kick_ct = 0;
     j->body_size = body_size;
     j->next = j->prev = j; /* not in a linked list */
+    j->ht_next = NULL;
     j->tube = NULL;
 
     return j;
@@ -121,20 +115,18 @@ static void
 job_hash_free(job j)
 {
     int index=_get_job_hash_index(j->id);
-    job_hash jh = all_jobs ? all_jobs[index] : NULL;
+    job jh = all_jobs ? all_jobs[index] : NULL;
 
     if (jh) {
-        if (jh->job == j) {
+        if (jh == j) {
             /* Special case the first */
-            all_jobs[index] = jh->next;
-            free(jh);
+            all_jobs[index] = jh->ht_next;
         } else {
-            job_hash tmp;
-            while (jh->next && jh->next->job != j) jh = jh->next;
-            if (jh->next) {
-                tmp = jh->next;
-                jh->next = jh->next->next;
-                free(tmp);
+            job tmp;
+            while (jh->ht_next && jh->ht_next != j) jh = jh->ht_next;
+            if (jh->ht_next) {
+                tmp = jh->ht_next;
+                jh->ht_next = jh->ht_next->ht_next;
             }
         }
     }
