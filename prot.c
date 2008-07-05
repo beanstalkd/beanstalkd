@@ -341,12 +341,8 @@ reserve_job(conn c, job j)
     j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
     j->reserver=c;
-    if (c->soonest_job == NULL) {
-        c->soonest_job = j;
-    } else {
-        if (j->deadline < c->soonest_job->deadline) {
-            c->soonest_job = j;
-        }
+    if (c->soonest_job && j->deadline < c->soonest_job->deadline) {
+      c->soonest_job = j;
     }
     return reply_job(c, j, MSG_RESERVED);
 }
