@@ -238,6 +238,7 @@ main(int argc, char **argv)
     progname = argv[0];
     opts(argc, argv);
 
+    job_init();
     prot_init();
 
     r = make_server_socket(host_addr, port);

@@ -75,4 +75,6 @@ void job_insert(job head, job j);
 
 unsigned long long int total_jobs();
 
+void job_init();
+
 #endif /*job_h*/

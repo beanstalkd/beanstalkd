@@ -38,14 +38,6 @@ store_job(job j)
 {
     int index=0;
 
-    if (all_jobs == NULL) {
-        all_jobs = calloc(NUM_JOB_BUCKETS, sizeof(job));
-        if (all_jobs == NULL) {
-            twarnx("Failed to allocate %d hash buckets", NUM_JOB_BUCKETS);
-            return NULL;
-        }
-    }
-
     index = _get_job_hash_index(j->id);
 
     j->ht_next = all_jobs[index];
@@ -231,4 +223,13 @@ unsigned long long int
 total_jobs()
 {
     return next_id - 1;
+}
+
+void
+job_init()
+{
+    all_jobs = calloc(NUM_JOB_BUCKETS, sizeof(job));
+    if (!all_jobs) {
+        twarnx("Failed to allocate %d hash buckets", NUM_JOB_BUCKETS);
+    }
 }
