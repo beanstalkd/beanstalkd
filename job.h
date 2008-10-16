@@ -52,8 +52,6 @@ struct job {
     char body[];
 };
 
-#define NUM_JOB_BUCKETS 12289
-
 job allocate_job(int body_size);
 job make_job(unsigned int pri, unsigned int delay, unsigned int ttr,
              int body_size, tube tube);

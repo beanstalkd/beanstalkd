@@ -21,16 +21,23 @@
 
 #include "tube.h"
 #include "job.h"
+#include "primes.h"
 #include "util.h"
 
 static unsigned long long int next_id = 1;
 
+static int cur_prime = 0;
+
 static job *all_jobs=NULL;
+static size_t all_jobs_cap = 12289; /* == primes[0] */
+static size_t all_jobs_used = 0;
+
+static void rehash();
 
 static int
 _get_job_hash_index(unsigned long long int job_id)
 {
-    return job_id % NUM_JOB_BUCKETS;
+    return job_id % all_jobs_cap;
 }
 
 static void
@@ -41,8 +48,40 @@ store_job(job j)
     index = _get_job_hash_index(j->id);
 
     j->ht_next = all_jobs[index];
-
     all_jobs[index] = j;
+    all_jobs_used++;
+
+    /* accept a load factor of 4 */
+    if (all_jobs_used > (all_jobs_cap << 2)) rehash();
+}
+
+static void
+rehash()
+{
+    job *old = all_jobs;
+    size_t old_cap = all_jobs_cap, old_used = all_jobs_used, i;
+
+    if (cur_prime >= NUM_PRIMES) return;
+
+    all_jobs_cap = primes[++cur_prime];
+    all_jobs = calloc(all_jobs_cap, sizeof(job));
+    if (!all_jobs) {
+        twarnx("Failed to allocate %d new hash buckets", all_jobs_cap);
+        --cur_prime;
+        all_jobs = old;
+        all_jobs_cap = old_cap;
+        all_jobs_used = old_used;
+        return;
+    }
+
+    for (i = 0; i < old_cap; i++) {
+        while (old[i]) {
+            job j = old[i];
+            old[i] = j->next;
+            j->next = NULL;
+            store_job(j);
+        }
+    }
 }
 
 job
@@ -116,6 +155,8 @@ job_hash_free(job j)
             }
         }
     }
+
+    all_jobs_used--;
 }
 
 void
@@ -222,8 +263,8 @@ total_jobs()
 void
 job_init()
 {
-    all_jobs = calloc(NUM_JOB_BUCKETS, sizeof(job));
+    all_jobs = calloc(all_jobs_cap, sizeof(job));
     if (!all_jobs) {
-        twarnx("Failed to allocate %d hash buckets", NUM_JOB_BUCKETS);
+        twarnx("Failed to allocate %d hash buckets", all_jobs_cap);
     }
 }
