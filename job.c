@@ -81,8 +81,8 @@ rehash()
     for (i = 0; i < old_cap; i++) {
         while (old[i]) {
             job j = old[i];
-            old[i] = j->next;
-            j->next = NULL;
+            old[i] = j->ht_next;
+            j->ht_next = NULL;
             store_job(j);
         }
     }
