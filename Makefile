@@ -25,6 +25,8 @@ check: tests/cutcheck $(objects)
 
 $(program): $(objects) $(program).o
 
+perf: $(objects) perf.o
+
 check: export CFLAGS := $(CFLAGS) -D__LINUX__
 tests/cutgen: tests/cutgen.c
 

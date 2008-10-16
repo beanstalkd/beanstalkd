@@ -1,6 +1,7 @@
 .*.d
 *.o
 beanstalkd
+perf
 gmon.out
 tags
 tests/cutcheck*
