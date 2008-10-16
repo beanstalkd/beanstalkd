@@ -12,6 +12,7 @@ static tube default_tube;
 void
 __CUT_BRINGUP__job()
 {
+    job_init();
     TUBE_ASSIGN(default_tube, make_tube("default"));
 }
 
