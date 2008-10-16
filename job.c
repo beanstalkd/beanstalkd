@@ -77,6 +77,7 @@ rehash()
         all_jobs_used = old_used;
         return;
     }
+    all_jobs_used = 0;
 
     for (i = 0; i < old_cap; i++) {
         while (old[i]) {
