@@ -33,7 +33,7 @@ _get_job_hash_index(unsigned long long int job_id)
     return job_id % NUM_JOB_BUCKETS;
 }
 
-static job
+static void
 store_job(job j)
 {
     int index=0;
@@ -43,8 +43,6 @@ store_job(job j)
     j->ht_next = all_jobs[index];
 
     all_jobs[index] = j;
-
-    return j;
 }
 
 job
@@ -92,11 +90,7 @@ make_job(unsigned int pri, unsigned int delay, unsigned int ttr, int body_size,
     j->delay = delay;
     j->ttr = ttr;
 
-    if (store_job(j) == NULL) {
-        job_free (j);
-        twarnx("OOM");
-        return NULL;
-    }
+    store_job(j);
 
     TUBE_ASSIGN(j->tube, tube);
 
