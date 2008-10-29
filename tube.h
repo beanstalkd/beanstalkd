@@ -21,6 +21,8 @@
 
 typedef struct tube *tube;
 
+typedef void(*evh)(int, short, void *);
+
 #include "stat.h"
 #include "job.h"
 #include "pq.h"

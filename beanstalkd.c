@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <event.h>
 
 #include "net.h"
 #include "util.h"
