@@ -19,7 +19,9 @@
 #ifndef conn_h
 #define conn_h
 
-#include "event.h"
+#include <sys/types.h>
+#include <sys/time.h>
+#include <event.h>
 #include "ms.h"
 #include "tube.h"
 #include "job.h"

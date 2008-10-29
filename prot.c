@@ -776,7 +776,7 @@ fmt_stats(char *buf, size_t size, void *x)
             global_stat.waiting_ct,
             count_tot_conns(),
             getpid(),
-            VERSION,
+            BEAN_VERSION,
             (int) ru.ru_utime.tv_sec, (int) ru.ru_utime.tv_usec,
             (int) ru.ru_stime.tv_sec, (int) ru.ru_stime.tv_usec,
             uptime());
