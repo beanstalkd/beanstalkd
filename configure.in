@@ -161,8 +161,8 @@ if test x"$debug" = xyes ; then
   if test x"$GCC" = xyes; then
     dnl Remove any optimization flags from CFLAGS
     changequote({,})
-    CFLAGS=`echo "$CFLAGS" | /usr/bin/sed -e 's/-O[0-9s]*//g'`
-    CFLAGS=`echo "$CFLAGS" | /usr/bin/sed -e 's/-g[0-2]\? //g'`
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-O[0-9s]*//g'`
+    CFLAGS=`echo "$CFLAGS" | sed -e 's/-g[0-2]\? //g'`
     changequote([,])
     CFLAGS="$CFLAGS -g3 -Wall -O0"
   fi
