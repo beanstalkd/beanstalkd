@@ -1346,30 +1346,37 @@ dispatch_cmd(conn c)
     }
 }
 
-/* if we get a timeout, it means that a job has been reserved for too long, so
- * we should put it back in the queue */
+/* There are three reasons this function may be called. We need to check for
+ * all of them.
+ *
+ *  1. A reserved job has run out of time.
+ *  2. A waiting client's reserved job has entered the safety margin.
+ *  3. A waiting client's requested timeout has occurred.
+ *
+ * If any of these happen, we must do the appropriate thing. */
 static void
 h_conn_timeout(conn c)
 {
-    int should_timeout = 0;
+    int r, should_timeout = 0;
+    job j;
 
+    /* Check if the client was trying to reserve a job. */
     if (conn_waiting(c) && conn_has_close_deadline(c)) should_timeout = 1;
 
+    /* Check if any reserved jobs have run out of time. We should do this
+     * whether or not the client is waiting for a new reservation. */
+    while ((j = soonest_job(c))) {
+        if (j->deadline > time(NULL)) break;
+        timeout_ct++; /* stats */
+        j->timeout_ct++;
+        r = enqueue_job(remove_this_reserved_job(c, j), 0);
+        if (!r) bury_job(j); /* there was no room in the queue, so bury it */
+        r = conn_update_evq(c, c->evq.ev_events);
+        if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
+    }
+
     if (should_timeout) {
-        int r;
-        job j;
         dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
-        while ((j = soonest_job(c))) {
-            if (j->deadline > time(NULL)) break;
-            timeout_ct++; /* stats */
-            j->timeout_ct++;
-            r = enqueue_job(remove_this_reserved_job(c, j), 0);
-            /* there was no room in the queue, so bury it */
-            if (!r) bury_job(j);
-            r = conn_update_evq(c, c->evq.ev_events);
-            if (r == -1)
-                return twarnx("conn_update_evq() failed"), conn_close(c);
-        }
         return reply_msg(remove_waiting_conn(c), MSG_DEADLINE_SOON);
     } else if (conn_waiting(c) && c->pending_timeout >= 0) {
         dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
