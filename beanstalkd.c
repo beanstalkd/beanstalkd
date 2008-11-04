@@ -33,6 +33,7 @@
 #include "net.h"
 #include "util.h"
 #include "prot.h"
+#include "binlog.h"
 
 static char *user = NULL;
 static int detach = 0;
@@ -92,6 +93,7 @@ su(const char *user) {
 void
 exit_cleanly(int sig)
 {
+    binlog_close();
     exit(0);
 }
 
@@ -152,6 +154,7 @@ usage(char *msg, char *arg)
             "\n"
             "Options:\n"
             " -d       detach\n"
+            " -b DIR   binlog directory\n"
             " -l ADDR  listen on address (default is 0.0.0.0)\n"
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
@@ -223,6 +226,9 @@ opts(int argc, char **argv)
             case 'u':
                 user = argv[++i];
                 break;
+            case 'b':
+                binlog_dir = argv[++i];
+                break;
             case 'h':
                 usage(NULL, NULL);
             default:
@@ -252,8 +258,11 @@ main(int argc, char **argv)
     nudge_fd_limit();
 
     unbrake((evh) h_accept);
+    prot_replay_binlog();
+    binlog_init();
 
     event_dispatch();
+    binlog_close();
     twarnx("got here for some reason");
     return 0;
 }

@@ -116,6 +116,7 @@ allocate_job(int body_size)
     j->next = j->prev = j; /* not in a linked list */
     j->ht_next = NULL;
     j->tube = NULL;
+    j->binlog = NULL;
 
     return j;
 }

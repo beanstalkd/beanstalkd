@@ -34,6 +34,7 @@
 #include "conn.h"
 #include "util.h"
 #include "net.h"
+#include "binlog.h"
 #include "version.h"
 
 /* job body cannot be greater than this many bytes long */
@@ -433,6 +434,7 @@ enqueue_job(job j, unsigned int delay)
             j->tube->stat.urgent_ct++;
         }
     }
+    binlog_write_job(j);
     process_queue();
     return 1;
 }
@@ -446,6 +448,7 @@ bury_job(job j)
     j->state = JOB_STATE_BURIED;
     j->reserver=NULL;
     j->bury_ct++;
+    binlog_write_job(j);
 }
 
 void
@@ -1133,6 +1136,8 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
+        j->state = JOB_STATE_INVALID;
+        binlog_write_job(j);
         job_free(j);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
@@ -1572,4 +1577,30 @@ prot_init()
 
     TUBE_ASSIGN(default_tube, tube_find_or_make("default"));
     if (!default_tube) twarnx("Out of memory during startup!");
+}
+
+void
+prot_replay_binlog()
+{
+    struct job binlog_jobs;
+    job j, nj;
+    unsigned int delay;
+
+    binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
+    binlog_read(&binlog_jobs);
+
+    for(j = binlog_jobs.next ; j != &binlog_jobs ; j = nj) {
+        nj = j->next;
+        job_remove(j);
+        delay = 0;
+        switch (j->state) {
+        case JOB_STATE_BURIED:
+            bury_job(j);
+            break;
+        case JOB_STATE_DELAYED:
+            if (start_time < j->deadline) delay = j->deadline - start_time;
+        default:
+            enqueue_job(j,delay);
+    }
+  }
 }

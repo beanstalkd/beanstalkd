@@ -1,4 +1,4 @@
-/* prot.h - protocol implementation header */
+/* binlog.c - binary log implementation */
 
 /* Copyright (C) 2007 Keith Rarick and Philotic Inc.
 
@@ -16,24 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef prot_h
-#define prot_h
+#ifndef binlog_h
+#define binlog_h
 
-#include "conn.h"
+#include "job.h"
 
-#define URGENT_THRESHOLD 1024
+typedef struct binlog *binlog;
 
-extern size_t job_data_size_limit;
+struct binlog {
+  binlog next, prev;
+  unsigned int refs;
+  char path[];
+};
 
-void prot_init();
+extern char *binlog_dir;
 
-conn remove_waiting_conn(conn c);
+void binlog_write_job(job j);
+void binlog_read(job binlog_jobs);
+void binlog_close();
 
-void enqueue_reserved_jobs(conn c);
+#endif
 
-void enter_drain_mode(int sig);
-void h_accept(const int fd, const short which, struct event *ev);
-void prot_remove_tube(tube t);
-void prot_replay_binlog();
-
-#endif /*prot_h*/

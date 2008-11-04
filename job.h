@@ -47,6 +47,7 @@ struct job {
     unsigned int kick_ct;
     tube tube;
     void *reserver;
+    void *binlog;
     char state;
     job ht_next; /* Next job in a hash table list */
     char body[];

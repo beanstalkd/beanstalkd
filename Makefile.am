@@ -12,11 +12,12 @@ beanstalkd_SOURCES = beanstalkd.c \
 					 primes.c \
 					 prot.c \
 					 tube.c \
+					 binlog.c \
 					 util.c
 
 cutgen_CFLAGS = -D__LINUX__
 
-EXTRA_DIST = conn.h job.h ms.h net.h pq.h primes.h prot.h stat.h tube.h util.h
+EXTRA_DIST = conn.h job.h ms.h net.h pq.h primes.h prot.h stat.h tube.h util.h binlog.h
 
 tests = $(abs_srcdir)/tests/test_conn.c \
 		$(abs_srcdir)/tests/test_job.c \
