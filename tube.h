@@ -42,9 +42,13 @@ struct tube {
     unsigned int watching_ct;
 };
 
+extern struct ms tubes;
+
 tube make_tube(const char *name);
 void tube_dref(tube t);
 void tube_iref(tube t);
+tube tube_find(const char *name);
+tube tube_find_or_make(const char *name);
 #define TUBE_ASSIGN(a,b) (tube_dref(a), (a) = (b), tube_iref(a))
 
 #endif /*tube_h*/
