@@ -27,3 +27,4 @@ tests/cutcheck*
 tests/cutgen
 stamp-h1
 version.h
+.*.swp
