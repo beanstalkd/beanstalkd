@@ -37,7 +37,7 @@
 #include "version.h"
 
 /* job body cannot be greater than this many bytes long */
-size_t job_data_size_limit = ((1 << 16) - 1);
+size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 
 #define NAME_CHARS \
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
