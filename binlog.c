@@ -206,7 +206,7 @@ binlog_open()
     sprintf(path,"%s/binlog.%d", binlog_dir, ++binlog_index);
 
     if (!add_binlog(path)) return -1;
-    fd = open(path, O_WRONLY | O_CREAT);
+    fd = open(path, O_WRONLY | O_CREAT, 0400);
 
     if (fd < 0) {
         twarnx("Cannot open binlog %s", path);
