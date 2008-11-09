@@ -64,7 +64,7 @@ binlog_scan_dir()
         name_len = strlen(dp->d_name);
         if (name_len > 7 && !strncmp("binlog.", dp->d_name, 7)) {
             val = strtol(dp->d_name + 7, &endptr, 10);
-            if (endptr && *endptr == (char) NULL) {
+            if (endptr && *endptr == 0) {
                 if (max == 0 || val > max) max = val;
                 if (min == 0 || val < min) min = val;
             }
