@@ -210,10 +210,11 @@ binlog_open()
 {
     char path[PATH_MAX];
     binlog b;
-    int fd;
+    int fd, r;
 
     if (!binlog_dir) return -1;
-    sprintf(path, "%s/binlog.%d", binlog_dir, ++binlog_index);
+    r = snprintf(path, PATH_MAX, "%s/binlog.%d", binlog_dir, ++binlog_index);
+    if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir), -1;
 
     if (!add_binlog(path)) return -1;
     fd = open(path, O_WRONLY | O_CREAT, 0400);
@@ -313,7 +314,7 @@ binlog_read(job binlog_jobs)
 {
     int binlog_index_min;
     struct stat sbuf;
-    int fd, idx;
+    int fd, idx, r;
     char path[PATH_MAX];
 
     binlog_head.prev = binlog_head.next = &binlog_head;
@@ -331,7 +332,9 @@ binlog_read(job binlog_jobs)
 
     if (binlog_index_min) {
         for (idx = binlog_index_min; idx <= binlog_index; idx++) {
-            sprintf(path, "%s/binlog.%d", binlog_dir, idx);
+            r = snprintf(path, PATH_MAX, "%s/binlog.%d", binlog_dir, idx);
+            if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir);
+
             fd = open(path, O_RDONLY);
             add_binlog(path);
 
