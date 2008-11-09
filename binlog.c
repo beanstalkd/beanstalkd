@@ -212,6 +212,7 @@ binlog_open()
     binlog b;
     int fd;
 
+    if (!binlog_dir) return -1;
     sprintf(path, "%s/binlog.%d", binlog_dir, ++binlog_index);
 
     if (!add_binlog(path)) return -1;
