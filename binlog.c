@@ -55,12 +55,14 @@ binlog_scan_dir()
     long max = 0;
     long val;
     char *endptr;
+    size_t name_len;
 
     dirp = opendir(binlog_dir);
     if (!dirp) return 0;
 
     while ((dp = readdir(dirp)) != NULL) {
-        if (dp->d_namlen > 7 && !strncmp("binlog.", dp->d_name, 7)) {
+        name_len = strlen(dp->d_name);
+        if (name_len > 7 && !strncmp("binlog.", dp->d_name, 7)) {
             val = strtol(dp->d_name + 7, &endptr, 10);
             if (endptr && *endptr == (char) NULL) {
                 if (max == 0 || val > max) max = val;
