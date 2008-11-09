@@ -124,7 +124,7 @@ binlog_replay(int fd, job binlog_jobs)
     int version;
 
     if (read(fd, &version, sizeof(version)) < sizeof(version)) {
-        return twarnx("oops");
+        return twarn("read()");
     }
     if (version != binlog_version) {
         return twarnx("binlog version mismatch %d %d", version, binlog_version);
@@ -137,7 +137,7 @@ binlog_replay(int fd, job binlog_jobs)
 
         tubename[namelen] = '\0';
         if (read(fd, &js, sizeof(struct job)) != sizeof(struct job)) {
-            return twarnx("oops");
+            return twarn("read()");
         }
 
         j = job_find(js.id);
@@ -161,7 +161,7 @@ binlog_replay(int fd, job binlog_jobs)
                 j->creation = js.creation;
                 job_insert(binlog_jobs, j);
                 if (read(fd, j->body, js.body_size) < js.body_size) {
-                    twarnx("oops");
+                    twarn("read()");
                     return;
                 }
             }
@@ -219,7 +219,7 @@ binlog_open()
     fd = open(path, O_WRONLY | O_CREAT, 0400);
 
     if (fd < 0) {
-        twarnx("Cannot open binlog %s", path);
+        twarn("Cannot open binlog %s", path);
         return -1;
     }
 
@@ -227,7 +227,7 @@ binlog_open()
     bytes_written = write(fd, &binlog_version, sizeof(int));
 
     if (bytes_written < sizeof(int)) {
-        twarnx("Cannot write to binlog");
+        twarn("Cannot write to binlog");
         close(fd);
         return -1;
     }
@@ -289,7 +289,7 @@ binlog_write_job(job j)
         size_t written = writev(binlog_fd, vec, vcnt);
 
         if (written < 0) {
-            twarnx("Cannot write to binlog");
+            twarn("Cannot write to binlog");
             binlog_close();
             return;
         }
@@ -321,7 +321,7 @@ binlog_read(job binlog_jobs)
     if (!binlog_dir) return;
 
     if (stat(binlog_dir, &sbuf) < 0) {
-        if (mkdir(binlog_dir, 0700) < 0) return twarnx("%s", binlog_dir);
+        if (mkdir(binlog_dir, 0700) < 0) return twarn("%s", binlog_dir);
     } else if (!(sbuf.st_mode & S_IFDIR)) {
         twarnx("%s", binlog_dir);
         return;
@@ -336,7 +336,7 @@ binlog_read(job binlog_jobs)
             add_binlog(path);
 
             if (fd < 0) {
-                twarnx("oops");
+                twarn("%s", path);
             } else {
                 binlog_replay(fd, binlog_jobs);
                 close(fd);
