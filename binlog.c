@@ -316,6 +316,7 @@ binlog_read(job binlog_jobs)
     struct stat sbuf;
     int fd, idx, r;
     char path[PATH_MAX];
+    binlog b;
 
     binlog_head.prev = binlog_head.next = &binlog_head;
 
@@ -336,13 +337,14 @@ binlog_read(job binlog_jobs)
             if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir);
 
             fd = open(path, O_RDONLY);
-            add_binlog(path);
 
             if (fd < 0) {
                 twarn("%s", path);
             } else {
+                b = binlog_iref(add_binlog(path));
                 binlog_replay(fd, binlog_jobs);
                 close(fd);
+                binlog_dref(b);
             }
         }
 
