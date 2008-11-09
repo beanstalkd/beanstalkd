@@ -277,7 +277,6 @@ binlog_write_job(job j)
             tube_namelen = strlen(j->tube->name);
             vec[1].iov_len = tube_namelen;
             to_write += tube_namelen;
-            j->binlog = binlog_iref(last_binlog);
             vcnt = 4;
             vec[3].iov_base = j->body;
             vec[3].iov_len = j->body_size;
@@ -292,6 +291,8 @@ binlog_write_job(job j)
 
     if ((bytes_written + to_write) > binlog_size_limit) binlog_open_next();
     if (binlog_fd < 0) return;
+
+    if (j->state && !j->binlog) j->binlog = binlog_iref(last_binlog);
 
     while (to_write > 0) {
         size_t written = writev(binlog_fd, vec, vcnt);
