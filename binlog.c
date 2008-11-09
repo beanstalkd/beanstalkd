@@ -123,14 +123,22 @@ binlog_replay(int fd, job binlog_jobs)
     size_t namelen;
     int version;
 
-    if (read(fd, &version, sizeof(version)) < sizeof(version)) return twarnx("oops");
-    if (version != binlog_version) return twarnx("binlog version mismatch %d %d",version,binlog_version);
+    if (read(fd, &version, sizeof(version)) < sizeof(version)) {
+        return twarnx("oops");
+    }
+    if (version != binlog_version) {
+        return twarnx("binlog version mismatch %d %d", version, binlog_version);
+    }
 
     while (read(fd, &namelen, sizeof(size_t)) == sizeof(size_t)) {
-        if (namelen > 0 && read(fd, tubename, namelen) != namelen) return twarnx("oops %x %d", namelen, (int)lseek(fd,SEEK_CUR,0));
+        if (namelen > 0 && read(fd, tubename, namelen) != namelen) {
+            return twarnx("oops %x %d", namelen, (int)lseek(fd, SEEK_CUR, 0));
+        }
 
         tubename[namelen] = '\0';
-        if (read(fd, &js, sizeof(struct job)) != sizeof(struct job)) return twarnx("oops");
+        if (read(fd, &js, sizeof(struct job)) != sizeof(struct job)) {
+            return twarnx("oops");
+        }
 
         j = job_find(js.id);
         switch (js.state) {
@@ -146,7 +154,8 @@ binlog_replay(int fd, job binlog_jobs)
         case JOB_STATE_DELAYED:
             if (!j) {
                 t = tube_find_or_make(tubename);
-                j = make_job_with_id(js.pri, js.delay, js.ttr, js.body_size, t, js.id);
+                j = make_job_with_id(js.pri, js.delay, js.ttr, js.body_size,
+                                     t, js.id);
                 j->next = j->prev = j;
                 j->binlog = binlog_iref(binlog_head.prev);
                 j->creation = js.creation;
@@ -187,7 +196,7 @@ add_binlog(char *path)
 
     b = (binlog)malloc(sizeof(struct binlog) + strlen(path) + 1);
     if (!b) return twarnx("OOM"), NULL;
-    strcpy(b->path,path);
+    strcpy(b->path, path);
     b->refs = 0;
     b->prev = binlog_head.prev;
     b->next = &binlog_head;
@@ -203,7 +212,7 @@ binlog_open()
     binlog b;
     int fd;
 
-    sprintf(path,"%s/binlog.%d", binlog_dir, ++binlog_index);
+    sprintf(path, "%s/binlog.%d", binlog_dir, ++binlog_index);
 
     if (!add_binlog(path)) return -1;
     fd = open(path, O_WRONLY | O_CREAT, 0400);
@@ -214,7 +223,7 @@ binlog_open()
     }
 
 
-    bytes_written = write(fd,&binlog_version, sizeof(int));
+    bytes_written = write(fd, &binlog_version, sizeof(int));
 
     if (bytes_written < sizeof(int)) {
         twarnx("Cannot write to binlog");
@@ -250,7 +259,8 @@ binlog_write_job(job j)
     vec[1].iov_base = j->tube->name;
     vec[1].iov_len = 0;
 
-    /* we could save some bytes in the binlog file by only saving some parts of the job struct */
+    /* we could save some bytes in the binlog file by only saving some parts of
+     * the job struct */
     vec[2].iov_base = (char *) j;
     vec[2].iov_len = sizeof(struct job);
     to_write += sizeof(struct job);
@@ -266,8 +276,7 @@ binlog_write_job(job j)
             vec[3].iov_len = j->body_size;
             to_write += j->body_size;
         }
-    }
-    else if (j->state == JOB_STATE_INVALID) {
+    } else if (j->state == JOB_STATE_INVALID) {
         if (j->binlog) binlog_dref(j->binlog);
         j->binlog = NULL;
     }
@@ -312,8 +321,7 @@ binlog_read(job binlog_jobs)
 
     if (stat(binlog_dir, &sbuf) < 0) {
         if (mkdir(binlog_dir, 0700) < 0) return twarnx("%s", binlog_dir);
-    }
-    else if (!(sbuf.st_mode & S_IFDIR)) {
+    } else if (!(sbuf.st_mode & S_IFDIR)) {
         twarnx("%s", binlog_dir);
         return;
     }
@@ -328,8 +336,7 @@ binlog_read(job binlog_jobs)
 
             if (fd < 0) {
                 twarnx("oops");
-            }
-            else {
+            } else {
                 binlog_replay(fd, binlog_jobs);
                 close(fd);
             }

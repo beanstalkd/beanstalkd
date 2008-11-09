@@ -122,8 +122,8 @@ allocate_job(int body_size)
 }
 
 job
-make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr, int body_size,
-         tube tube, unsigned long long id)
+make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
+                 int body_size, tube tube, unsigned long long id)
 {
     job j;
 
