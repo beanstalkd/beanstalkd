@@ -44,7 +44,7 @@ static int binlog_fd = -1;
 static int binlog_version = 1;
 static size_t bytes_written;
 
-struct binlog binlog_head;
+static binlog first_binlog = NULL, last_binlog = NULL;
 
 static int
 binlog_scan_dir()
@@ -77,13 +77,14 @@ binlog_scan_dir()
 }
 
 static void
-binlog_remove(binlog b)
+binlog_remove_first()
 {
-    if (!b) return;
-    if (b->next == b) return; /* not in a doubly-linked list */
+    binlog b = first_binlog;
 
-    b->next->prev = b->prev;
-    b->prev->next = b->next;
+    if (!b) return;
+
+    first_binlog = b->next;
+    if (!first_binlog) last_binlog = NULL;
 
     unlink(b->path);
     free(b);
@@ -99,17 +100,12 @@ binlog_iref(binlog b)
 static void
 binlog_dref(binlog b)
 {
-    binlog bn;
-
     if (!b) return;
     if (b->refs < 1) return twarnx("refs is zero for binlog: %s", b->path);
 
     --b->refs;
     if (b->refs < 1) {
-        for (b = binlog_head.next; b != binlog_head.prev && b->refs == 0; b = bn) {
-            bn = b->next;
-            binlog_remove(b);
-        }
+        while (first_binlog && first_binlog->refs == 0) binlog_remove_first();
     }
 }
 
@@ -157,7 +153,7 @@ binlog_replay(int fd, job binlog_jobs)
                 j = make_job_with_id(js.pri, js.delay, js.ttr, js.body_size,
                                      t, js.id);
                 j->next = j->prev = j;
-                j->binlog = binlog_iref(binlog_head.prev);
+                j->binlog = binlog_iref(last_binlog);
                 j->creation = js.creation;
                 job_insert(binlog_jobs, j);
                 if (read(fd, j->body, js.body_size) < js.body_size) {
@@ -186,7 +182,7 @@ binlog_close()
 {
     if (binlog_fd < 0) return;
     close(binlog_fd);
-    binlog_dref(open_binlog);
+    binlog_dref(last_binlog);
     binlog_fd = -1;
 }
 
@@ -199,10 +195,11 @@ add_binlog(char *path)
     if (!b) return twarnx("OOM"), NULL;
     strcpy(b->path, path);
     b->refs = 0;
-    b->prev = binlog_head.prev;
-    b->next = &binlog_head;
-    b->prev->next = b;
-    binlog_head.prev = b;
+    b->next = NULL;
+    if (last_binlog) last_binlog->next = b;
+    last_binlog = b;
+    if (!first_binlog) first_binlog = b;
+
     return b;
 }
 
@@ -231,7 +228,7 @@ binlog_open()
     if (bytes_written < sizeof(int)) {
         twarn("Cannot write to binlog");
         close(fd);
-        binlog_dref(open_binlog);
+        binlog_dref(last_binlog);
         return -1;
     }
 
@@ -243,7 +240,7 @@ binlog_open_next()
 {
     if (binlog_fd < 0) return;
     close(binlog_fd);
-    binlog_dref(open_binlog);
+    binlog_dref(last_binlog);
     binlog_fd = binlog_open();
 }
 
@@ -275,7 +272,7 @@ binlog_write_job(job j)
             tube_namelen = strlen(j->tube->name);
             vec[1].iov_len = tube_namelen;
             to_write += tube_namelen;
-            j->binlog = binlog_iref(binlog_head.prev);
+            j->binlog = binlog_iref(last_binlog);
             vcnt = 4;
             vec[3].iov_base = j->body;
             vec[3].iov_len = j->body_size;
@@ -320,8 +317,6 @@ binlog_read(job binlog_jobs)
     int fd, idx, r;
     char path[PATH_MAX];
     binlog b;
-
-    binlog_head.prev = binlog_head.next = &binlog_head;
 
     if (!binlog_dir) return;
 

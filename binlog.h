@@ -24,7 +24,7 @@
 typedef struct binlog *binlog;
 
 struct binlog {
-  binlog next, prev;
+  binlog next;
   unsigned int refs;
   char path[];
 };
