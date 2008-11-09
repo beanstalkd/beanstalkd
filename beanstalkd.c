@@ -33,6 +33,7 @@
 #include "net.h"
 #include "util.h"
 #include "prot.h"
+#include "version.h"
 #include "binlog.h"
 
 static char *user = NULL;
@@ -158,9 +159,10 @@ usage(char *msg, char *arg)
             " -l ADDR  listen on address (default is 0.0.0.0)\n"
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
-            " -z SIZE  set the maximum job size\n"
+            " -z SIZE  set the maximum job size in bytes (default is %d)\n"
+            " -v       show version information\n"
             " -h       show this help\n",
-            progname);
+            progname, JOB_DATA_SIZE_LIMIT_DEFAULT);
     exit(arg ? 5 : 0);
 }
 
@@ -231,6 +233,9 @@ opts(int argc, char **argv)
                 break;
             case 'h':
                 usage(NULL, NULL);
+            case 'v':
+                printf("beanstalkd %s\n", BEAN_VERSION);
+                exit(0);
             default:
                 usage("unknown option", argv[i]);
         }

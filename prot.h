@@ -22,6 +22,7 @@
 #include "conn.h"
 
 #define URGENT_THRESHOLD 1024
+#define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 
 extern size_t job_data_size_limit;
 
