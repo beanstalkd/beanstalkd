@@ -286,6 +286,8 @@ binlog_write_job(job j)
     } else if (j->state == JOB_STATE_INVALID) {
         if (j->binlog) binlog_dref(j->binlog);
         j->binlog = NULL;
+    } else {
+        return twarnx("unserializable job state: %d", j->state);
     }
 
     if ((bytes_written + to_write) > binlog_size_limit) binlog_open_next();
