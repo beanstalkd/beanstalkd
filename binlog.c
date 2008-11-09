@@ -153,7 +153,6 @@ binlog_replay(int fd, job binlog_jobs)
                 j = make_job_with_id(js.pri, js.delay, js.ttr, js.body_size,
                                      t, js.id);
                 j->next = j->prev = j;
-                j->binlog = binlog_iref(last_binlog);
                 j->creation = js.creation;
                 job_insert(binlog_jobs, j);
                 if (read(fd, j->body, js.body_size) < js.body_size) {
@@ -173,6 +172,12 @@ binlog_replay(int fd, job binlog_jobs)
             j->release_ct = js.release_ct;
             j->bury_ct = js.bury_ct;
             j->kick_ct = js.kick_ct;
+
+            /* this is a complete record, so we can move the binlog ref */
+            if (namelen && js.body_size) {
+                binlog_dref(j->binlog);
+                j->binlog = binlog_iref(last_binlog);
+            }
         }
     }
 }
