@@ -186,6 +186,7 @@ binlog_close()
 {
     if (binlog_fd < 0) return;
     close(binlog_fd);
+    binlog_dref(open_binlog);
     binlog_fd = -1;
 }
 
@@ -216,7 +217,7 @@ binlog_open()
     r = snprintf(path, PATH_MAX, "%s/binlog.%d", binlog_dir, ++binlog_index);
     if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir), -1;
 
-    if (!add_binlog(path)) return -1;
+    if (!binlog_iref(add_binlog(path))) return -1;
     fd = open(path, O_WRONLY | O_CREAT, 0400);
 
     if (fd < 0) {
@@ -230,6 +231,7 @@ binlog_open()
     if (bytes_written < sizeof(int)) {
         twarn("Cannot write to binlog");
         close(fd);
+        binlog_dref(open_binlog);
         return -1;
     }
 
@@ -241,6 +243,7 @@ binlog_open_next()
 {
     if (binlog_fd < 0) return;
     close(binlog_fd);
+    binlog_dref(open_binlog);
     binlog_fd = binlog_open();
 }
 
