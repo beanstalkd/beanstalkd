@@ -17,7 +17,7 @@ clean_exit() {
   exit $2
 }
 
-fgrep -v "#" $1 | nc $SERVER $PORT > .tmp_test
+fgrep -v "#" $1 | nc -q 1 $SERVER $PORT > .tmp_test
 
 # diff is "false" if they match
 if diff .tmp_test $2; then
