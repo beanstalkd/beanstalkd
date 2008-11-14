@@ -816,7 +816,13 @@ read_pri(unsigned int *pri, const char *buf, char **end)
 static int
 read_delay(unsigned int *delay, const char *buf, char **end)
 {
-    return read_pri(delay, buf, end);
+    unsigned int result;
+    time_t now, deadline;
+    result = read_pri(delay, buf, end);
+    now = time(NULL);
+    deadline = now + *delay;
+    if (deadline < now) return -1;
+    return result;
 }
 
 /* Read a timeout value from the given buffer and place it in ttr.
