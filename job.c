@@ -175,30 +175,26 @@ job_free(job j)
     free(j);
 }
 
+/* We can't substrct any of these values because there are too many bits */
 int
 job_pri_cmp(job a, job b)
 {
-    if (a->pri == b->pri) {
-        /* we can't just subtract because id has too many bits */
-        if (a->id > b->id) return 1;
-        if (a->id < b->id) return -1;
-        return 0;
-    }
     if (a->pri > b->pri) return 1;
     if (a->pri < b->pri) return -1;
+    if (a->id > b->id) return 1;
+    if (a->id < b->id) return -1;
     return 0;
 }
 
+/* We can't substrct any of these values because there are too many bits */
 int
 job_delay_cmp(job a, job b)
 {
-    if (a->deadline == b->deadline) {
-        /* we can't just subtract because id has too many bits */
-        if (a->id > b->id) return 1;
-        if (a->id < b->id) return -1;
-        return 0;
-    }
-    return a->deadline - b->deadline;
+    if (a->deadline > b->deadline) return 1;
+    if (a->deadline < b->deadline) return -1;
+    if (a->id > b->id) return 1;
+    if (a->id < b->id) return -1;
+    return 0;
 }
 
 job
