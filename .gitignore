@@ -1,6 +1,7 @@
 *~
 *.o
 *.lo
+*.swp
 DEADJOE
 Makefile
 Makefiles
