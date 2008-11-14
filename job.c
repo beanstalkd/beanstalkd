@@ -184,7 +184,9 @@ job_pri_cmp(job a, job b)
         if (a->id < b->id) return -1;
         return 0;
     }
-    return a->pri - b->pri;
+    if (a->pri > b->pri) return 1;
+    if (a->pri < b->pri) return -1;
+    return 0;
 }
 
 int

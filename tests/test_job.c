@@ -48,6 +48,23 @@ __CUT__job_test_cmp_ids()
     ASSERT(job_pri_cmp(a, b) < 0, "should be a < b");
 }
 
+
+void
+__CUT__job_test_large_pris()
+{
+    job a, b;
+
+    a = make_job(1, 0, 1, 0, default_tube);
+    b = make_job(-5, 0, 1, 0, default_tube);
+
+    ASSERT(job_pri_cmp(a, b) < 0, "should be a < b");
+
+    a = make_job(-5, 0, 1, 0, default_tube);
+    b = make_job(1, 0, 1, 0, default_tube);
+
+    ASSERT(job_pri_cmp(a, b) > 0, "should be a > b");
+}
+
 void
 __CUT_TAKEDOWN__job()
 {
