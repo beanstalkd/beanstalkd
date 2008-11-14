@@ -19,7 +19,7 @@ clean_exit() {
 
 fgrep -v "#" $1 | nc $SERVER $PORT > .tmp_test
 
-# diff is "true" if they match
+# diff is "false" if they match
 if diff .tmp_test $2; then
   clean_exit $bg 0 2>/dev/null
 fi
