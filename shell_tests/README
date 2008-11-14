@@ -1,0 +1,13 @@
+These tests are to be written in pairs:
+  -my_test.commands
+  -my_test.expected
+
+Each .commands file will be nc'd to beanstalkd, and the response diff'd
+with the appropriate .expected file.  If the response is not identical to the
+.expected file, the test fails.  At the moment, the test harness bails upon the
+first failure, but it could easily be extended to finish the tests and print
+full results.
+
+IMPORTANT: Since beanstalkd expects \r\n line endings, you must be sure to
+include those in your files.  You can tell vim to do this with
+  :set ff=dos
