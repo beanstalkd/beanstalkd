@@ -47,14 +47,17 @@ struct job {
     unsigned int kick_ct;
     tube tube;
     void *reserver;
+    void *binlog;
     char state;
     job ht_next; /* Next job in a hash table list */
     char body[];
 };
 
+#define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
+
 job allocate_job(int body_size);
-job make_job(unsigned int pri, unsigned int delay, unsigned int ttr,
-             int body_size, tube tube);
+job make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
+             int body_size, tube tube, unsigned long long id);
 void job_free(job j);
 
 /* Lookup a job by job ID */

@@ -116,20 +116,26 @@ allocate_job(int body_size)
     j->next = j->prev = j; /* not in a linked list */
     j->ht_next = NULL;
     j->tube = NULL;
+    j->binlog = NULL;
 
     return j;
 }
 
 job
-make_job(unsigned int pri, unsigned int delay, unsigned int ttr, int body_size,
-         tube tube)
+make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
+                 int body_size, tube tube, unsigned long long id)
 {
     job j;
 
     j = allocate_job(body_size);
     if (!j) return twarnx("OOM"), NULL;
 
-    j->id = next_id++;
+    if (id) {
+        j->id = id;
+        if (id >= next_id) next_id = id + 1;
+    } else {
+        j->id = next_id++;
+    }
     j->pri = pri;
     j->delay = delay;
     j->ttr = ttr;

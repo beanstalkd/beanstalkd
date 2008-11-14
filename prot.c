@@ -34,6 +34,7 @@
 #include "conn.h"
 #include "util.h"
 #include "net.h"
+#include "binlog.h"
 #include "version.h"
 
 /* job body cannot be greater than this many bytes long */
@@ -222,7 +223,6 @@ static unsigned int ready_ct = 0;
 static struct stats global_stat = {0, 0, 0, 0, 0};
 
 static tube default_tube;
-static struct ms tubes;
 
 static int drain_mode = 0;
 static time_t start_time;
@@ -434,6 +434,7 @@ enqueue_job(job j, unsigned int delay)
             j->tube->stat.urgent_ct++;
         }
     }
+    binlog_write_job(j);
     process_queue();
     return 1;
 }
@@ -447,6 +448,7 @@ bury_job(job j)
     j->state = JOB_STATE_BURIED;
     j->reserver=NULL;
     j->bury_ct++;
+    binlog_write_job(j);
 }
 
 void
@@ -978,46 +980,10 @@ name_is_ok(const char *name, size_t max)
         strspn(name, NAME_CHARS) == len && name[0] != '-';
 }
 
-static tube
-find_tube(const char *name)
-{
-    tube t;
-    size_t i;
-
-    for (i = 0; i < tubes.used; i++) {
-        t = tubes.items[i];
-        if (strncmp(t->name, name, MAX_TUBE_NAME_LEN) == 0) return t;
-    }
-    return NULL;
-}
-
 void
 prot_remove_tube(tube t)
 {
     ms_remove(&tubes, t);
-}
-
-static tube
-make_and_insert_tube(const char *name)
-{
-    int r;
-    tube t = NULL;
-
-    t = make_tube(name);
-    if (!t) return NULL;
-
-    /* We want this global tube list to behave like "weak" refs, so don't
-     * increment the ref count. */
-    r = ms_append(&tubes, t);
-    if (!r) return tube_dref(t), NULL;
-
-    return t;
-}
-
-static tube
-find_or_make_tube(const char *name)
-{
-    return find_tube(name) ? : make_and_insert_tube(name);
 }
 
 static void
@@ -1175,6 +1141,8 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
+        j->state = JOB_STATE_INVALID;
+        binlog_write_job(j);
         job_free(j);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
@@ -1264,7 +1232,7 @@ dispatch_cmd(conn c)
 
         op_ct[type]++;
 
-        t = find_tube(name);
+        t = tube_find(name);
         if (!t) return reply_msg(c, MSG_NOTFOUND);
 
         do_stats(c, (fmt_fn) fmt_stats_tube, t);
@@ -1302,7 +1270,7 @@ dispatch_cmd(conn c)
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
-        TUBE_ASSIGN(t, find_or_make_tube(name));
+        TUBE_ASSIGN(t, tube_find_or_make(name));
         if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
         c->use->using_ct--;
@@ -1317,7 +1285,7 @@ dispatch_cmd(conn c)
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
-        TUBE_ASSIGN(t, find_or_make_tube(name));
+        TUBE_ASSIGN(t, tube_find_or_make(name));
         if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
         r = 1;
@@ -1612,6 +1580,32 @@ prot_init()
 
     ms_init(&tubes, NULL, NULL);
 
-    TUBE_ASSIGN(default_tube, find_or_make_tube("default"));
+    TUBE_ASSIGN(default_tube, tube_find_or_make("default"));
     if (!default_tube) twarnx("Out of memory during startup!");
+}
+
+void
+prot_replay_binlog()
+{
+    struct job binlog_jobs;
+    job j, nj;
+    unsigned int delay;
+
+    binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
+    binlog_read(&binlog_jobs);
+
+    for(j = binlog_jobs.next ; j != &binlog_jobs ; j = nj) {
+        nj = j->next;
+        job_remove(j);
+        delay = 0;
+        switch (j->state) {
+        case JOB_STATE_BURIED:
+            bury_job(j);
+            break;
+        case JOB_STATE_DELAYED:
+            if (start_time < j->deadline) delay = j->deadline - start_time;
+        default:
+            enqueue_job(j,delay);
+    }
+  }
 }
