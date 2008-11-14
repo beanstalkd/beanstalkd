@@ -15,7 +15,7 @@ clean_exit() {
   exit $1
 }
 
-nc $SERVER $PORT < shell_tests/test.commands > .tmp_test
+fgrep -v "#" shell_tests/test.commands | nc $SERVER $PORT > .tmp_test
 
 # diff is "true" if they match
 if diff .tmp_test shell_tests/test.expected; then
