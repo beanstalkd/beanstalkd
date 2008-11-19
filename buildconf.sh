@@ -1,8 +1,8 @@
 #!/bin/sh
 
-eval `grep '^EXTRA_VERSION=' configure.in`
-case "$EXTRA_VERSION" in
-  *-dev)
+eval `grep '^BEAN_VERSION=' configure.in`
+case "$BEAN_VERSION" in
+  *-g*)
     rebuildok=1
     ;;
   *)
