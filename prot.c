@@ -347,9 +347,9 @@ reserve_job(conn c, job j)
     conn_insert(&running, c);
     j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
-    j->reserver=c;
+    j->reserver = c;
     if (c->soonest_job && j->deadline < c->soonest_job->deadline) {
-      c->soonest_job = j;
+        c->soonest_job = j;
     }
     return reply_job(c, j, MSG_RESERVED);
 }
@@ -453,7 +453,7 @@ bury_job(job j)
     global_stat.buried_ct++;
     j->tube->stat.buried_ct++;
     j->state = JOB_STATE_BURIED;
-    j->reserver=NULL;
+    j->reserver = NULL;
     j->bury_ct++;
     binlog_write_job(j);
 }
@@ -979,7 +979,7 @@ remove_this_reserved_job(conn c, job j)
     if (j) {
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
-        j->reserver=NULL;
+        j->reserver = NULL;
     }
     c->soonest_job = NULL;
     if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
@@ -1226,7 +1226,7 @@ dispatch_cmd(conn c)
     case OP_TOUCH:
         errno = 0;
         id = strtoull(c->cmd + CMD_TOUCH_LEN, &end_buf, 10);
-		perror("strtoull");
+        perror("strtoull");
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
@@ -1238,7 +1238,7 @@ dispatch_cmd(conn c)
         } else {
             return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
         }
-		break;
+        break;
     case OP_STATS:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_STATS_LEN + 2) {
@@ -1389,7 +1389,7 @@ h_conn_timeout(conn c)
         return reply_msg(remove_waiting_conn(c), MSG_DEADLINE_SOON);
     } else if (conn_waiting(c) && c->pending_timeout >= 0) {
         dprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
-        c->pending_timeout=-1;
+        c->pending_timeout = -1;
         return reply_msg(remove_waiting_conn(c), MSG_TIMED_OUT);
     }
 }
@@ -1630,7 +1630,7 @@ prot_replay_binlog()
     binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
     binlog_read(&binlog_jobs);
 
-    for(j = binlog_jobs.next ; j != &binlog_jobs ; j = nj) {
+    for (j = binlog_jobs.next ; j != &binlog_jobs ; j = nj) {
         nj = j->next;
         job_remove(j);
         delay = 0;
@@ -1640,8 +1640,9 @@ prot_replay_binlog()
             break;
         case JOB_STATE_DELAYED:
             if (start_time < j->deadline) delay = j->deadline - start_time;
+            /* fall through */
         default:
             enqueue_job(j,delay);
+        }
     }
-  }
 }

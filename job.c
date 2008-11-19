@@ -28,7 +28,7 @@ static unsigned long long int next_id = 1;
 
 static int cur_prime = 0;
 
-static job *all_jobs=NULL;
+static job *all_jobs = NULL;
 static size_t all_jobs_cap = 12289; /* == primes[0] */
 static size_t all_jobs_used = 0;
 
@@ -45,7 +45,7 @@ _get_job_hash_index(unsigned long long int job_id)
 static void
 store_job(job j)
 {
-    int index=0;
+    int index = 0;
 
     index = _get_job_hash_index(j->id);
 
@@ -150,7 +150,7 @@ make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
 static void
 job_hash_free(job j)
 {
-    int index=_get_job_hash_index(j->id);
+    int index = _get_job_hash_index(j->id);
     job jh = all_jobs ? all_jobs[index] : NULL;
 
     if (jh) {

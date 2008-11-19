@@ -149,7 +149,7 @@ has_reserved_job(conn c)
 int
 conn_set_evq(conn c, const int events, evh handler)
 {
-    int r, margin = 0, should_timeout=0;
+    int r, margin = 0, should_timeout = 0;
     struct timeval tv = {INT_MAX, 0};
 
     event_set(&c->evq, c->fd, events, handler, c);
