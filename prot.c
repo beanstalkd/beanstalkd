@@ -1226,8 +1226,7 @@ dispatch_cmd(conn c)
     case OP_TOUCH:
         errno = 0;
         id = strtoull(c->cmd + CMD_TOUCH_LEN, &end_buf, 10);
-        perror("strtoull");
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (errno) return twarn("strtoull"), reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
 

@@ -26,7 +26,7 @@ static int listen_socket = -1;
 static struct event listen_evq;
 static evh accept_handler;
 static time_t main_deadline = 0;
-static int brakes_are_on = 1;
+static int brakes_are_on = 1, after_startup = 0;
 
 int
 make_server_socket(struct in_addr host_addr, int port)
@@ -87,7 +87,8 @@ unbrake(evh h)
 
     if (!brakes_are_on) return;
     brakes_are_on = 0;
-    twarnx("releasing the brakes");
+    if (after_startup) twarnx("releasing the brakes");
+    after_startup = 1;
 
     accept_handler = h ? : accept_handler;
     event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST,
