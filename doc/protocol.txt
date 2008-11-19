@@ -299,6 +299,24 @@ There are two possible responses:
 
  - "NOT_FOUND\r\n" if the job does not exist or is not reserved by the client.
 
+The "touch" command allows a worker to request more time to work on a job.
+This is useful for jobs that potentially take a long time, but you still want
+the benefits of a TTR pulling a job away from an unresponsive worker.  A worker
+may periodically tell the server that it's still alive and processing a job
+(e.g. it may do this on DEADLINE_SOON).
+
+The touch command looks like this:
+
+touch <id>\r\n
+
+ - <id> is the ID of a job reserved by the current connection.
+
+There are two possible responses:
+
+ - "TOUCHED\r\n" to indicate success.
+
+ - "NOT_FOUND\r\n" if the job does not exist or is not reserved by the client.
+
 The "watch" command adds the named tube to the watch list for the current
 connection. A reserve command will take a job from any of the tubes in the
 watch list. For each new connection, the watch list initially consists of one
