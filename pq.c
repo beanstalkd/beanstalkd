@@ -66,6 +66,9 @@ swap(pq q, unsigned int a, unsigned int b)
     j = q->heap[a];
     q->heap[a] = q->heap[b];
     q->heap[b] = j;
+
+    q->heap[a]->heap_index = a;
+    q->heap[b]->heap_index = b;
 }
 
 #define PARENT(i) (((i-1))>>1)
@@ -112,6 +115,7 @@ static void
 delete_min(pq q)
 {
     q->heap[0] = q->heap[--q->used];
+    q->heap[0]->heap_index = 0;
     if (q->used) bubble_down(q, 0);
 }
 
@@ -125,6 +129,7 @@ pq_give(pq q, job j)
 
     k = q->used++;
     q->heap[k] = j;
+    j->heap_index = k;
     bubble_up(q, k);
 
     return 1;
@@ -147,6 +152,33 @@ pq_peek(pq q)
 {
     if (q->used == 0) return NULL;
     return q->heap[0];
+}
+
+job
+pq_remove(pq q, job j)
+{
+    unsigned long long int id;
+    unsigned int pri;
+
+    if (q->used == 0) return NULL;
+    if (q->heap[j->heap_index] != j) return NULL;
+
+    id = j->id;
+    j->id = 0;
+    pri = j->pri;
+    j->pri = 0;
+
+    bubble_up(q, j->heap_index);
+
+    j->id = id;
+    j->pri = pri;
+
+    /* can't happen */
+    if (q->heap[0] != j) return NULL;
+
+    delete_min(q);
+
+    return j;
 }
 
 job

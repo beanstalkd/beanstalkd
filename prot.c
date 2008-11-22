@@ -573,6 +573,21 @@ remove_buried_job(job j)
     return j;
 }
 
+static job
+remove_ready_job(job j)
+{
+    if (!j || j->state != JOB_STATE_READY) return NULL;
+    j = pq_remove(&j->tube->ready, j);
+    if (j) {
+        ready_ct--;
+        if (j->pri < URGENT_THRESHOLD) {
+            global_stat.urgent_ct--;
+            j->tube->stat.urgent_ct--;
+        }
+    }
+    return j;
+}
+
 static void
 enqueue_waiting_conn(conn c)
 {
@@ -1145,7 +1160,9 @@ dispatch_cmd(conn c)
         op_ct[type]++;
 
         j = job_find(id);
-        j = remove_reserved_job(c, j) ? : remove_buried_job(j);
+        j = remove_reserved_job(c, j) ? :
+            remove_ready_job(j) ? :
+            remove_buried_job(j);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 

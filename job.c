@@ -117,6 +117,7 @@ allocate_job(int body_size)
     j->ht_next = NULL;
     j->tube = NULL;
     j->binlog = NULL;
+    j->heap_index = 0;
 
     return j;
 }

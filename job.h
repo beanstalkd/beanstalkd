@@ -50,6 +50,7 @@ struct job {
     void *binlog;
     char state;
     job ht_next; /* Next job in a hash table list */
+    size_t heap_index; /* where is this job in a heap */
     char body[];
 };
 
