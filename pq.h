@@ -47,6 +47,4 @@ job pq_peek(pq q);
 /* remove and return j if the queue contains j, else return NULL */
 job pq_remove(pq q, job j);
 
-unsigned int pq_used(pq q);
-
 #endif /*q_h*/

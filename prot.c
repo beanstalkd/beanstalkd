@@ -510,7 +510,7 @@ get_delayed_job_ct()
 
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
-        count += pq_used(&t->delay);
+        count += t->delay.used;
     }
     return count;
 }
@@ -953,7 +953,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.urgent_ct,
             t->ready.used,
             t->stat.reserved_ct,
-            pq_used(&t->delay),
+            t->delay.used,
             t->stat.buried_ct,
             t->stat.total_jobs_ct,
             t->using_ct,

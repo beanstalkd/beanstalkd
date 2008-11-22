@@ -180,9 +180,3 @@ pq_remove(pq q, job j)
 
     return j;
 }
-
-unsigned int
-pq_used(pq q)
-{
-    return q->used;
-}
