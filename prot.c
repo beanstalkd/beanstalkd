@@ -839,10 +839,7 @@ static int
 read_delay(unsigned int *delay, const char *buf, char **end)
 {
     time_t now = time(NULL);
-    unsigned int result;
-    result = read_pri(delay, buf, end);
-    if (result) return result;
-    return (now + *delay < now);
+    return read_pri(delay, buf, end) ? : (now + *delay < now);
 }
 
 /* Read a timeout value from the given buffer and place it in ttr.
