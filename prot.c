@@ -265,6 +265,8 @@ static const char * op_names[] = {
 };
 #endif
 
+static job remove_buried_job(job j);
+
 static int
 buried_job_p(tube t)
 {
@@ -482,17 +484,6 @@ delay_q_take()
     return j ? pq_take(&j->tube->delay) : NULL;
 }
 
-static job
-remove_this_buried_job(job j)
-{
-    j = job_remove(j);
-    if (j) {
-        global_stat.buried_ct--;
-        j->tube->stat.buried_ct--;
-    }
-    return j;
-}
-
 static int
 kick_buried_job(tube t)
 {
@@ -500,7 +491,7 @@ kick_buried_job(tube t)
     job j;
 
     if (!buried_job_p(t)) return 0;
-    j = remove_this_buried_job(t->buried.next);
+    j = remove_buried_job(t->buried.next);
     j->kick_ct++;
     r = enqueue_job(j, 0);
     if (r) return 1;
@@ -571,16 +562,15 @@ kick_jobs(tube t, unsigned int n)
 }
 
 static job
-find_buried_job(unsigned long long int id)
+remove_buried_job(job j)
 {
-    job j = job_find(id);
-    return (j && j->state == JOB_STATE_BURIED) ? j : NULL;
-}
-
-static job
-remove_buried_job(unsigned long long int id)
-{
-    return remove_this_buried_job(find_buried_job(id));
+    if (!j || j->state != JOB_STATE_BURIED) return NULL;
+    j = job_remove(j);
+    if (j) {
+        global_stat.buried_ct--;
+        j->tube->stat.buried_ct--;
+    }
+    return j;
 }
 
 static void
@@ -599,16 +589,15 @@ enqueue_waiting_conn(conn c)
 }
 
 static job
-find_reserved_job_in_conn(conn c, unsigned long long int id)
+find_reserved_job_in_conn(conn c, job j)
 {
-    job j = job_find(id);
     return (j && j->reserver == c && j->state == JOB_STATE_RESERVED) ? j : NULL;
 }
 
 static job
-touch_job(conn c, unsigned long long int id)
+touch_job(conn c, job j)
 {
-    job j = find_reserved_job_in_conn(c, id);
+    j = find_reserved_job_in_conn(c, j);
     if (j) {
         j->deadline = time(NULL) + j->ttr;
         c->soonest_job = NULL;
@@ -985,9 +974,9 @@ remove_this_reserved_job(conn c, job j)
 }
 
 static job
-remove_reserved_job(conn c, unsigned long long int id)
+remove_reserved_job(conn c, job j)
 {
-    return remove_this_reserved_job(c, find_reserved_job_in_conn(c, id));
+    return remove_this_reserved_job(c, find_reserved_job_in_conn(c, j));
 }
 
 static int
@@ -1155,7 +1144,8 @@ dispatch_cmd(conn c)
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
-        j = remove_reserved_job(c, id) ? : remove_buried_job(id);
+        j = job_find(id);
+        j = remove_reserved_job(c, j) ? : remove_buried_job(j);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
@@ -1177,7 +1167,7 @@ dispatch_cmd(conn c)
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
-        j = remove_reserved_job(c, id);
+        j = remove_reserved_job(c, job_find(id));
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
@@ -1200,7 +1190,7 @@ dispatch_cmd(conn c)
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
-        j = remove_reserved_job(c, id);
+        j = remove_reserved_job(c, job_find(id));
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
@@ -1228,7 +1218,7 @@ dispatch_cmd(conn c)
 
         op_ct[type]++;
 
-        j = touch_job(c, id);
+        j = touch_job(c, job_find(id));
 
         if (j) {
             reply(c, MSG_TOUCHED, MSG_TOUCHED_LEN, STATE_SENDWORD);
