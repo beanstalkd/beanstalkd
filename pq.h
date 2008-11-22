@@ -47,10 +47,6 @@ job pq_peek(pq q);
 /* remove and return j if the queue contains j, else return NULL */
 job pq_remove(pq q, job j);
 
-/* return a job that matches the given id, else NULL */
-/* This is O(n), so don't do it much. */
-job pq_find(pq q, unsigned long long int id);
-
 unsigned int pq_used(pq q);
 
 #endif /*q_h*/

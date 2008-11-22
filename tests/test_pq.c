@@ -142,30 +142,6 @@ __CUT__pq_test_many_jobs()
 }
 
 void
-__CUT__pq_test_find_match()
-{
-    job j;
-
-    pq_init(q, job_pri_cmp);
-    pq_give(q, j1);
-
-    j = pq_find(q, j1->id);
-    ASSERT(j == j1, "j1 should come out.");
-}
-
-void
-__CUT__pq_test_find_miss()
-{
-    job j;
-
-    pq_init(q, job_pri_cmp);
-    pq_give(q, j1);
-
-    j = pq_find(q, j1->id + 1);
-    ASSERT(j == NULL, "no job should match.");
-}
-
-void
 __CUT_TAKEDOWN__pq()
 {
     free(j1);

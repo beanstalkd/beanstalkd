@@ -181,15 +181,6 @@ pq_remove(pq q, job j)
     return j;
 }
 
-job
-pq_find(pq q, unsigned long long int id)
-{
-    unsigned int i;
-
-    for (i = 0; i < q->used; i++) if (q->heap[i]->id == id) return q->heap[i];
-    return NULL;
-}
-
 unsigned int
 pq_used(pq q)
 {
