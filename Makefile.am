@@ -19,6 +19,8 @@ cutgen_CFLAGS = -D__LINUX__
 
 EXTRA_DIST = conn.h job.h ms.h net.h pq.h primes.h prot.h stat.h tube.h util.h binlog.h
 
+dist_man_MANS = doc/beanstalkd.1
+
 tests = $(abs_srcdir)/tests/test_conn.c \
 		$(abs_srcdir)/tests/test_job.c \
 		$(abs_srcdir)/tests/test_ms.c \

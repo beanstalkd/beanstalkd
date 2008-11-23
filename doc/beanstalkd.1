@@ -1,0 +1,51 @@
+.TH BEANSTALKD 1 "November 21, 2008"
+.SH NAME
+beastalkd \- A fast, distributed, in-memory work-queue service
+.SH SYNOPSIS
+.B beanstalkd
+.RI [ options ]
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.B beanstalkd
+work-queue service
+.PP
+.B beanstalkd
+is a fast, distributed, in-memory work-queue service. Its
+interface is generic, but was originally designed for reducing the
+latency of page views in high-volume web applications by running most
+time-consuming tasks asynchronously.
+.br
+.SH OPTIONS
+These programs follow the usual GNU command line syntax. A summary of options 
+is included below.
+.TP
+.B \-d
+Detach and run beanstalkd as a daemon.
+.TP
+.B \-l <addr>
+Listen on address ADDR (default is 0.0.0.0)
+.TP
+.B \-u <user>
+Become the user USER and its primary group.
+.TP
+.B \-p <port>
+Listen on TCP port PORT (default is 11300).
+.TP
+.B \-z <size>
+The maximum size in bytes of a job.
+.TP
+.B \-h
+Show the command line help and summary of options.
+.TP
+.SH LICENSE
+The beanstalkd daemon is copyright Keith Rarick and Philotic Inc. and is
+distributed under the GNU General Public License version 3 or later.
+.br
+.SH SEE ALSO
+The README file that comes with beanstalkd
+.br
+.B http://xph.us/software/beanstalkd/
+.SH AUTHOR
+The beanstalkd daemon was written by Keith Rarick and Philotic Inc.
+.br
