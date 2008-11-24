@@ -33,7 +33,6 @@
 #include "job.h"
 #include "binlog.h"
 #include "util.h"
-#include "version.h"
 
 /* max size we will create a log file */
 size_t binlog_size_limit = 10 << 20;

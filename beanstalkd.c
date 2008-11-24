@@ -33,7 +33,7 @@
 #include "net.h"
 #include "util.h"
 #include "prot.h"
-#include "version.h"
+#include "config.h"
 #include "binlog.h"
 
 static char *user = NULL;
@@ -234,7 +234,7 @@ opts(int argc, char **argv)
             case 'h':
                 usage(NULL, NULL);
             case 'v':
-                printf("beanstalkd %s\n", BEAN_VERSION);
+                printf("beanstalkd %s\n", VERSION);
                 exit(0);
             default:
                 usage("unknown option", argv[i]);
