@@ -45,7 +45,6 @@ tests = \
 
 check-cut: tests/cutcheck 
 	tests/cutcheck
-	@echo
 
 check-shell: $(program)
 	shell_tests/run.sh

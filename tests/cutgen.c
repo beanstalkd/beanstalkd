@@ -310,7 +310,7 @@ void EmitUnitTesterBody()
     
     BlankLine();
     Emit( "  cut_break_formatting();" );
-    Emit( "  printf(\"Done.\");" );
+    Emit( "  printf(\"Done.\\n\");" );
     Emit( "  return 0;\n}\n" );
 }
 
