@@ -1,27 +1,42 @@
-#!/bin/bash
+#!/bin/sh
 
-SERVER='localhost'
-PORT=11400
-./beanstalkd -p $PORT >/dev/null 2>/dev/null &
-bg=$!
+server=localhost
+port=11400
+tmpdir="$TMPDIR"
+test -z "$tmpdir" && tmpdir=/tmp
+tmpf="${tmpdir}/bnch$$"
+nc='nc -q 1'
 
-sleep .1
-if ! ps $bg >/dev/null; then
-  echo "Could not start beanstalkd for testing, port $PORT is taken"
-  exit 1
-fi
+commands="$1"; shift
+expected="$1"; shift
 
-clean_exit() {
-  kill -9 $1
-  rm .tmp_test
-  exit $2
+cleanup() {
+    {
+        test -z "$bpid" || kill -9 $bpid
+        rm -f "$tmpf"
+    } >/dev/null 2>&1
 }
 
-fgrep -v "#" $1 | nc -q 1 $SERVER $PORT > .tmp_test
+catch() {
+    echo '' Interrupted
+    exit 3
+}
 
-# diff is "false" if they match
-if diff $2 .tmp_test; then
-  clean_exit $bg 0 2>/dev/null
+trap cleanup EXIT
+trap catch HUP INT QUIT TERM
+
+./beanstalkd -p $port >/dev/null 2>/dev/null &
+bpid=$!
+
+sleep .1
+if ! ps $bpid >/dev/null; then
+  echo "Could not start beanstalkd for testing, port $port is taken"
+  exit 2
 fi
 
-clean_exit $bg 1 2>/dev/null
+# Run the test
+fgrep -v "#" $commands | $nc $server $port > "$tmpf"
+
+# Check the output
+diff $expected "$tmpf" || exit 1
+
