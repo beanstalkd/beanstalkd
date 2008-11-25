@@ -27,7 +27,7 @@ tests = \
 	$(srcdir)/tests/test_tube.c \
 	$(srcdir)/tests/test_util.c
 
-EXTRA_DIST = cutgen.c $(tests) cut.h shell_tests \
+EXTRA_DIST = cutgen.c $(tests) cut.h shell_tests check.sh check-one.sh \
 	binlog.h \
 	conn.h \
 	job.h \
@@ -47,7 +47,7 @@ check-cut: tests/cutcheck
 	tests/cutcheck
 
 check-shell: $(program)
-	$(srcdir)/shell_tests/run.sh $(srcdir)/shell_tests/*.commands
+	$(srcdir)/check.sh $(srcdir)/shell_tests/*.commands
 
 check: check-cut check-shell
 

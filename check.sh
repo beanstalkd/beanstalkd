@@ -1,6 +1,6 @@
 #!/bin/bash
 
-one="$(dirname "$0")/run_one.sh"
+one="$(dirname "$0")/check-one.sh"
 
 echo "Starting Tests..."
 for commands in "$@"; do
