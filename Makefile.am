@@ -32,9 +32,14 @@ tests = $(abs_srcdir)/tests/test_conn.c \
 		$(abs_srcdir)/tests/test_tube.c \
 		$(abs_srcdir)/tests/test_util.c
 
-check: $(program) tests/cutcheck 
+check-cut: $(program) tests/cutcheck 
 	tests/cutcheck
 	@echo
+
+check-shell: $(program)
+	shell_tests/run.sh
+
+check: check-cut check-shell
 
 tests/cutcheck.c: $(tests) tests/cutgen
 	tests/cutgen -o tests/cutcheck.c $(tests)
