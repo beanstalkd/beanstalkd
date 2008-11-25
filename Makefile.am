@@ -21,15 +21,16 @@ EXTRA_DIST = conn.h job.h ms.h net.h pq.h primes.h prot.h stat.h tube.h util.h b
 dist_doc_DATA = doc/protocol.txt
 dist_man_MANS = doc/beanstalkd.1
 
-tests = $(abs_srcdir)/tests/test_conn.c \
-		$(abs_srcdir)/tests/test_job.c \
-		$(abs_srcdir)/tests/test_ms.c \
-		$(abs_srcdir)/tests/test_net.c \
-		$(abs_srcdir)/tests/test_pq.c \
-		$(abs_srcdir)/tests/test_prot.c \
-		$(abs_srcdir)/tests/test_reserve.c \
-		$(abs_srcdir)/tests/test_tube.c \
-		$(abs_srcdir)/tests/test_util.c
+tests = \
+	tests/test_conn.c \
+	tests/test_job.c \
+	tests/test_ms.c \
+	tests/test_net.c \
+	tests/test_pq.c \
+	tests/test_prot.c \
+	tests/test_reserve.c \
+	tests/test_tube.c \
+	tests/test_util.c
 
 check-cut: $(program) tests/cutcheck 
 	tests/cutcheck
