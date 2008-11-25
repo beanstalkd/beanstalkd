@@ -16,8 +16,6 @@ aux_sources = \
 	util.c
 beanstalkd_SOURCES = beanstalkd.c $(aux_sources)
 
-cutgen_CFLAGS = -D__LINUX__
-
 EXTRA_DIST = conn.h job.h ms.h net.h pq.h primes.h prot.h stat.h tube.h util.h binlog.h
 
 dist_doc_DATA = doc/protocol.txt
@@ -47,10 +45,6 @@ tests/cutcheck.c: $(tests) tests/cutgen
 
 tests/cutcheck: tests/cutcheck.o $(aux_sources:.c=.o) $(tests:.c=.o)
 	$(LINK) $^ $(beanstalkd_LDADD) $(LIBS)
-
-tests/cutgen: $(abs_srcdir)/tests/cutgen.c
-	@if ! test -d tests; then mkdir tests; fi
-	$(CC) $(CFLAGS) $(cutgen_CFLAGS) -I$(abs_srcdir)/tests/ $(LDFLAGS) $(abs_srcdir)/tests/cutgen.c -o tests/cutgen
 
 clean:
 	rm -f *.o tests/*.o tests/cutgen tests/cutcheck*
