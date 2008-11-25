@@ -43,7 +43,7 @@ tests = \
 	tests/test_tube.c \
 	tests/test_util.c
 
-check-cut: $(program) tests/cutcheck 
+check-cut: tests/cutcheck 
 	tests/cutcheck
 	@echo
 
