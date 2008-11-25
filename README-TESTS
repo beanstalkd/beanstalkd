@@ -10,7 +10,7 @@ http://sourceforge.net/projects/cut/
 
 == Shell Tests ==
 
-Shell tests go in the shell_tests directory and are to be written in pairs:
+Shell tests go in the sh-tests directory and are to be written in pairs:
   -my_test.commands
   -my_test.expected
 
