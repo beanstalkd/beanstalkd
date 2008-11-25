@@ -27,7 +27,7 @@ tests = \
 	$(srcdir)/tests/test_tube.c \
 	$(srcdir)/tests/test_util.c
 
-EXTRA_DIST = cutgen.c $(tests) $(srcdir)/tests/cut.h shell_tests \
+EXTRA_DIST = cutgen.c $(tests) cut.h shell_tests \
 	binlog.h \
 	conn.h \
 	job.h \

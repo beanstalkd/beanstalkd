@@ -452,7 +452,7 @@ char * libCUT[] =
    "#include <stdlib.h>",
    "#include <stdio.h>",
    "#include <stdarg.h>",
-   "#include \"tests/cut.h\"",
+   "#include \"cut.h\"",
    "",
    "#ifndef BOOL		/* Just in case -- helps in portability */",
    "#define BOOL int",

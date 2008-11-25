@@ -1,7 +1,7 @@
-#include "cut.h"
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../cut.h"
 #include "../tube.h" /* hack to make cpp happy */
 #include "../pq.h"
 
