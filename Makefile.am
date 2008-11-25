@@ -1,4 +1,4 @@
-AUTOMAKE_OPTIONS = foreign no-dependencies
+AUTOMAKE_OPTIONS = foreign no-dependencies subdir-objects
 
 program = beanstalkd
 
@@ -43,9 +43,6 @@ check: check-cut check-shell
 
 tests/cutcheck.c: $(tests) tests/cutgen
 	tests/cutgen -o tests/cutcheck.c $(tests)
-
-tests/cutcheck.o: tests/cutcheck.c
-	$(CC) $(CFLAGS) -I$(abs_srcdir)/tests/ -c tests/cutcheck.c -o tests/cutcheck.o
 
 tests/cutcheck: tests/cutcheck.o
 	for file in `ls $(abs_srcdir)/tests/test_*.c`; do  cd $(abs_builddir)/tests/ && $(CC) $(CFLAGS) -I$(abs_srcdir)/tests/ -c $$file;  done;
