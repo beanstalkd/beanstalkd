@@ -1,10 +1,12 @@
 #!/bin/bash
 
+one="$(dirname "$0")/run_one.sh"
+
 echo "Starting Tests..."
-for commands in shell_tests/*.commands; do
+for commands in "$@"; do
   expected=${commands/.commands/.expected}
   echo Testing $(echo $commands | sed -re 's/.*\/(.*)\..*/\1/')
-  shell_tests/run_one.sh $commands $expected
+  $one $commands $expected
   if test $? != 0; then
     echo "!!! TEST FAILED !!!"
     exit 1

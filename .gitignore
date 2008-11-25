@@ -25,6 +25,6 @@ gmon.out
 tags
 cscope.out
 tests/cutcheck*
-tests/cutgen
+cutgen
 stamp-h1
 .*.swp
