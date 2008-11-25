@@ -3,17 +3,18 @@ AUTOMAKE_OPTIONS = foreign no-dependencies subdir-objects
 program = beanstalkd
 
 bin_PROGRAMS = $(program)
-beanstalkd_SOURCES = beanstalkd.c \
-					 conn.c \
-					 job.c \
-					 ms.c \
-					 net.c \
-					 pq.c \
-					 primes.c \
-					 prot.c \
-					 tube.c \
-					 binlog.c \
-					 util.c
+aux_sources = \
+	binlog.c \
+	conn.c \
+	job.c \
+	ms.c \
+	net.c \
+	pq.c \
+	primes.c \
+	prot.c \
+	tube.c \
+	util.c
+beanstalkd_SOURCES = beanstalkd.c $(aux_sources)
 
 cutgen_CFLAGS = -D__LINUX__
 
@@ -44,9 +45,8 @@ check: check-cut check-shell
 tests/cutcheck.c: $(tests) tests/cutgen
 	tests/cutgen -o tests/cutcheck.c $(tests)
 
-tests/cutcheck: tests/cutcheck.o
-	for file in `ls $(abs_srcdir)/tests/test_*.c`; do  cd $(abs_builddir)/tests/ && $(CC) $(CFLAGS) -I$(abs_srcdir)/tests/ -c $$file;  done;
-	$(CC) $(CFLAGS) -I$(abs_srcdir)/tests/ $(LDFLAGS) $(LIBS) -pg `ls *.o | grep -v $(program)` `ls $(abs_builddir)/tests/test_*.o` tests/cutcheck.o -o tests/cutcheck
+tests/cutcheck: tests/cutcheck.o $(aux_sources:.c=.o) $(tests:.c=.o)
+	$(LINK) $^ $(beanstalkd_LDADD) $(LIBS)
 
 tests/cutgen: $(abs_srcdir)/tests/cutgen.c
 	@if ! test -d tests; then mkdir tests; fi
