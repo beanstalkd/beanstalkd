@@ -4,7 +4,7 @@ one="$(dirname "$0")/check-one.sh"
 
 for commands in "$@"; do
   expected=${commands/.commands/.expected}
-  echo Testing $(echo $commands | sed -re 's/.*\/(.*)\..*/\1/')
+  echo $commands
   $one $commands $expected
   res=$?
   test "$res" = 1 && echo "FAIL: $commands"
