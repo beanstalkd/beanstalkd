@@ -28,3 +28,4 @@ tests/cutcheck*
 cutgen
 stamp-h1
 .*.swp
+.dotest
