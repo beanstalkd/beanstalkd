@@ -218,6 +218,8 @@ job_copy(job j)
     memcpy(n, j, sizeof(struct job) + j->body_size);
     n->next = n->prev = n; /* not in a linked list */
 
+    n->binlog = NULL; /* copies do not have refcnt on the binlog */
+
     n->tube = 0; /* Don't use memcpy for the tube, which we must refcount. */
     TUBE_ASSIGN(n->tube, j->tube);
 
