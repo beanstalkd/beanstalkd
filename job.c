@@ -158,17 +158,18 @@ job_hash_free(job j)
         if (jh == j) {
             /* Special case the first */
             all_jobs[index] = jh->ht_next;
+            all_jobs_used--;
         } else {
             job tmp;
             while (jh->ht_next && jh->ht_next != j) jh = jh->ht_next;
             if (jh->ht_next) {
+                all_jobs_used--;
                 tmp = jh->ht_next;
                 jh->ht_next = jh->ht_next->ht_next;
             }
         }
     }
 
-    all_jobs_used--;
 }
 
 void
@@ -176,7 +177,7 @@ job_free(job j)
 {
     if (j) {
         TUBE_ASSIGN(j->tube, NULL);
-        job_hash_free(j);
+        if (j->id) job_hash_free(j);
     }
 
     free(j);
