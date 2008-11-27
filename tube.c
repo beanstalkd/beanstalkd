@@ -57,6 +57,7 @@ tube_free(tube t)
 {
     prot_remove_tube(t);
     pq_clear(&t->ready);
+    pq_clear(&t->delay);
     ms_clear(&t->waiting);
     free(t);
 }
