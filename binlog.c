@@ -362,3 +362,18 @@ binlog_init()
     binlog_fd = binlog_open();
 }
 
+const char *
+binlog_oldest_index()
+{
+    if (!first_binlog) return "0";
+
+    return strrchr(first_binlog->path, '.') + 1;
+}
+
+const char *
+binlog_current_index()
+{
+    if (!last_binlog) return "0";
+
+    return strrchr(last_binlog->path, '.') + 1;
+}

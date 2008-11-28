@@ -30,10 +30,13 @@ struct binlog {
 };
 
 extern char *binlog_dir;
+extern size_t binlog_size_limit;
 
 void binlog_write_job(job j);
 void binlog_read(job binlog_jobs);
 void binlog_close();
+const char *binlog_oldest_index();
+const char *binlog_current_index();
 
 #endif
 
