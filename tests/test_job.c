@@ -66,6 +66,34 @@ __CUT__job_test_large_pris()
 }
 
 void
+__CUT__job_test_hash_free()
+{
+    job j;
+    unsigned long long int jid = 83;
+
+    j = make_job_with_id(0, 0, 1, 0, default_tube, jid);
+    job_free(j);
+
+    ASSERT(!job_find(jid), "job should be missing");
+}
+
+void
+__CUT__job_test_hash_free_next()
+{
+    job a, b;
+    unsigned long long int aid = 97, bid = 12386;
+
+    b = make_job_with_id(0, 0, 1, 0, default_tube, bid);
+    a = make_job_with_id(0, 0, 1, 0, default_tube, aid);
+
+    ASSERT(a->ht_next == b, "b should be chained to a");
+
+    job_free(b);
+
+    ASSERT(a->ht_next == NULL, "job should be missing");
+}
+
+void
 __CUT_TAKEDOWN__job()
 {
     TUBE_ASSIGN(default_tube, 0);

@@ -151,25 +151,14 @@ make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
 static void
 job_hash_free(job j)
 {
-    int index = _get_job_hash_index(j->id);
-    job jh = all_jobs ? all_jobs[index] : NULL;
+    job *slot;
 
-    if (jh) {
-        if (jh == j) {
-            /* Special case the first */
-            all_jobs[index] = jh->ht_next;
-            all_jobs_used--;
-        } else {
-            job tmp;
-            while (jh->ht_next && jh->ht_next != j) jh = jh->ht_next;
-            if (jh->ht_next) {
-                all_jobs_used--;
-                tmp = jh->ht_next;
-                jh->ht_next = jh->ht_next->ht_next;
-            }
-        }
+    slot = &all_jobs[_get_job_hash_index(j->id)];
+    while (*slot && *slot != j) slot = &(*slot)->ht_next;
+    if (*slot) {
+        *slot = (*slot)->ht_next;
+        --all_jobs_used;
     }
-
 }
 
 void
