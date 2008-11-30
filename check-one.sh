@@ -38,5 +38,5 @@ fi
 fgrep -v "#" $commands | $nc $server $port > "$tmpf"
 
 # Check the output
-diff $expected "$tmpf" || exit 1
+diff $expected "$tmpf"
 
