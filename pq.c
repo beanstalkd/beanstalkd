@@ -160,7 +160,7 @@ pq_remove(pq q, job j)
     unsigned long long int id;
     unsigned int pri;
 
-    if (q->used == 0) return NULL;
+    if (j->heap_index >= q->used) return NULL;
     if (q->heap[j->heap_index] != j) return NULL;
 
     id = j->id;
