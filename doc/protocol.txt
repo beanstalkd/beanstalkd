@@ -244,8 +244,8 @@ RESERVED <id> <bytes>\r\n
 
 The delete command removes a job from the server entirely. It is normally used
 by the client when the job has successfully run to completion. A client can
-only delete jobs that it has reserved or jobs that are buried. The delete
-command looks like this:
+delete jobs that it has reserved, ready jobs, and jobs that are buried. The
+delete command looks like this:
 
 delete <id>\r\n
 
@@ -256,8 +256,8 @@ The client then waits for one line of response, which may be:
  - "DELETED\r\n" to indicate success.
 
  - "NOT_FOUND\r\n" if the job does not exist or is not either reserved by the
-   client or buried. This could happen if the job timed out before the client
-   sent the delete command.
+   client, ready, or buried. This could happen if the job timed out before the
+   client sent the delete command.
 
 The release command puts a reserved job back into the ready queue (and marks
 its state as "ready") to be run by any client. It is normally used when the job
