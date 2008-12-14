@@ -27,7 +27,7 @@ tests = \
 	$(srcdir)/tests/test_tube.c \
 	$(srcdir)/tests/test_util.c
 
-EXTRA_DIST = cutgen.c $(tests) cut.h sh-tests check.sh check-one.sh \
+EXTRA_DIST = cut.c cutgen.c $(tests) cut.h sh-tests check.sh check-one.sh \
 	binlog.h \
 	conn.h \
 	job.h \
@@ -57,7 +57,7 @@ tests/cutcheck.c: $(tests) cutgen
 	mkdir -p tests
 	./cutgen -o tests/cutcheck.c $(tests)
 
-tests/cutcheck: tests/cutcheck.o $(aux_sources:.c=.o) $(tests:.c=.o)
+tests/cutcheck: tests/cutcheck.o cut.o $(aux_sources:.c=.o) $(tests:.c=.o)
 	$(LINK) $^ $(beanstalkd_LDADD) $(LIBS)
 
 CLEANFILES = cutgen tests/cutcheck* tests/*.o
