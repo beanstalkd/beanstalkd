@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#include "util.h"
+
 #define DO_NOT_PROCESS        "..."
 
 #define SEARCH_TOKEN_TEST     "__CUT__"
@@ -41,6 +43,9 @@
 #define SEARCH_TOKEN_BRINGUP_LENGTH    sizeof( SEARCH_TOKEN_BRINGUP )-1
 #define SEARCH_TOKEN_TAKEDOWN_LENGTH   sizeof( SEARCH_TOKEN_TAKEDOWN )-1
 
+#define terr(fmt, args...) do { fprintf(stderr, "\n"); twarn(fmt, ##args); exit(1); } while (0)
+#define terrx(fmt, args...) do { fprintf(stderr, "\n"); twarnx(fmt, ##args); exit(1); } while (0)
+
 typedef enum TestType {
    TYPE_TEST = 0,
    TYPE_BRINGUP = 1,
@@ -49,49 +54,69 @@ typedef enum TestType {
 
 typedef struct TestItem {
    char name[MAX_SYMBOL_LENGTH];
-   enum TestType type;
    struct TestItem *next;
 } TestItem;
 
+typedef struct TestGroup {
+   char bringup[MAX_SYMBOL_LENGTH], takedown[MAX_SYMBOL_LENGTH];
+   struct TestItem *tests;
+   struct TestGroup *next;
+} TestGroup;
+
 /* globals */
 
-TestItem *testList = 0;
+TestGroup *test_groups = 0;
 FILE *outfile;
 
 static int g_count, g_ready, g_index;  /* Used by filename globbing support for windows */
 static char **g_wildcards, g_fileName[MAX_LINE_LENGTH];
 
-TestItem *FindFirstMatch( TestItem *current, char *basis_name, int basis_type )
-{
-   while ( current )
-   {
-      if ( !strcmp(current->name,basis_name) && current->type == basis_type )
-         return current;
-      current = current->next;
-   }
-   return 0;
-}
-
 int NameAndTypeInTestList( char *name, TestType type )
 {
-   return 0 != FindFirstMatch(testList,name,type);
+   TestItem *item;
+   TestGroup *group;
+
+   for (group = test_groups; group; group = group->next) {
+      if (!strcmp(group->bringup, name) && type == TYPE_BRINGUP) return 1;
+      if (!strcmp(group->takedown, name) && type == TYPE_TAKEDOWN) return 1;
+      for (item = group->tests; item; item = item->next) {
+         if (!strcmp(item->name, name)) return 1;
+      }
+   }
+
+   return 0;
 }
 
 void AppendToTestList( char *name, TestType type )
 {
-   struct TestItem *current = testList;
-   if ( !current )
-      current = testList = malloc( sizeof( *testList) );
-   else
-   {
-      while ( current->next ) current = current->next;
-      current->next = malloc(sizeof( *testList));
-      current = current->next;
+   TestGroup *new, *cur;
+   TestItem *newt;
+
+   if (type == TYPE_BRINGUP) {
+      struct TestGroup *new;
+
+      new = malloc(sizeof(struct TestGroup));
+      if (!new) terr("malloc");
+
+      new->next = test_groups;
+      strcpy(new->bringup, name);
+      test_groups = new;
+   } else if (type == TYPE_TAKEDOWN) {
+      cur = test_groups;
+      if (!cur) terrx("no current test group");
+
+      strcpy(cur->takedown, name);
+   } else {
+      cur = test_groups;
+      if (!cur) terrx("no current test group");
+
+      newt = malloc(sizeof(struct TestItem));
+      if (!newt) terr("malloc");
+
+      newt->next = cur->tests;
+      strcpy(newt->name, name);
+      cur->tests = newt;
    }
-   
-   current->next = 0;
-   strcpy(current->name, name);
-   current->type = type;
 }
 
 void InsertNameAndTypeIntoTestList( char *name, TestType type )
@@ -211,18 +236,16 @@ void BlankLine()
 
 void ListExternalFunctions()
 {
-   TestItem *current = testList;
-   while ( current )
-   {
-      if (current->type == TYPE_TEST)
-         EmitExternDeclarationFor( current->name, SEARCH_TOKEN_TEST );
-      else if (current->type == TYPE_BRINGUP)
-         EmitExternDeclarationFor( current->name, SEARCH_TOKEN_BRINGUP );
-      else if (current->type == TYPE_TAKEDOWN)
-         EmitExternDeclarationFor( current->name, SEARCH_TOKEN_TAKEDOWN );
-      current = current->next;
+   TestGroup *cur;
+   TestItem *item;
+
+   for (cur = test_groups; cur; cur = cur->next) {
+       EmitExternDeclarationFor(cur->bringup, SEARCH_TOKEN_BRINGUP);
+       EmitExternDeclarationFor(cur->takedown, SEARCH_TOKEN_TAKEDOWN);
+       for (item = cur->tests; item; item = item->next) {
+          EmitExternDeclarationFor(item->name, SEARCH_TOKEN_TEST);
+       }
    }
-   
    BlankLine();
 }
 
@@ -277,35 +300,23 @@ void EmitTakedown(int indent,char *name)
 
 void EmitUnitTesterBody()
 {
-    int indent=0;
     TestItem *test;
+    TestGroup *group;
+
     Emit( "int main( int argc, char *argv[] )\n{" );
     Emit( "  if ( argc == 1 )" );
     Emit( "    cut_init( -1 );" );
     Emit( "  else cut_init( atoi( argv[1] ) );" );
     BlankLine();
-    
-    indent = 1;
-    test = testList;
-    while ( test )
-    {
-      if (test->type == TYPE_BRINGUP)
-      {
-         EmitBringup(indent,test->name);
-         indent ++;
-      }
 
-      if (test->type == TYPE_TEST)
-         EmitTest(indent,test->name);
-
-      if (test->type == TYPE_TAKEDOWN)
-      {
-         indent --;
-         EmitTakedown(indent,test->name);
-      }
-      test = test->next;
+    for (group = test_groups; group; group = group->next) {
+       EmitBringup(1, group->bringup);
+       for (test = group->tests; test; test = test->next) {
+          EmitTest(2, test->name);
+       }
+       EmitTakedown(1, group->takedown);
     }
-    
+
     BlankLine();
     Emit( "  cut_break_formatting();" );
     Emit( "  printf(\"Done.\\n\");" );
