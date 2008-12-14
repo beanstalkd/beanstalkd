@@ -13,6 +13,7 @@ static tube default_tube;
 void
 __CUT_BRINGUP__pq()
 {
+    job_init();
     TUBE_ASSIGN(default_tube, make_tube("default"));
     /* When CUT 3.0 comes out it will fix this design flaw. For now we will
      * just leak some queues during test. */
