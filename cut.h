@@ -28,14 +28,10 @@
 #ifndef CUT_CUT_H_INCLUDED
 #define CUT_CUT_H_INCLUDED
 
-typedef void CUTTakedownFunction( void );
-typedef void(*fn)(void);
+typedef void(*cut_fn)(void);
 
-void cut_start            ( char *, CUTTakedownFunction * );
-void cut_init             ( int breakpoint );
-void cut_break_formatting ( void );
-void cut_resume_formatting( void );
-void cut_interject( const char *, ... );
+void cut_init(int);
+void cut_exit(void);
 
 #define cut_run(G, T) __cut_run("group-" #G, \
                           __CUT_BRINGUP__ ## G, \
@@ -45,7 +41,6 @@ void cut_interject( const char *, ... );
                           __FILE__, \
                           __LINE__);
 
-#define cut_mark_point()     __cut_mark_point(__FILE__,__LINE__)
 #define ASSERT(X,msg)        __cut_assert(__FILE__,__LINE__,msg,#X,X)
 
 #define STATIC_ASSERT(X)  extern bool __static_ASSERT_at_line_##__LINE__##__[ (0!=(X))*2-1 ];
@@ -56,9 +51,8 @@ void cut_interject( const char *, ... );
  * macros instead.
  */
 
-void __cut_run(char *, fn, fn, char *, fn, char *, int);
-void __cut_mark_point   ( char *, int );
-void __cut_assert       ( char *, int, char *, char *, int );
+void __cut_run(char *, cut_fn, cut_fn, char *, cut_fn, char *, int);
+void __cut_assert( char *, int, char *, char *, int );
 
 #endif
 

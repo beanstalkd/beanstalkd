@@ -279,8 +279,8 @@ void EmitUnitTesterBody()
     }
 
     BlankLine();
-    Emit( "  cut_break_formatting();" );
-    Emit( "  printf(\"Done.\\n\");" );
+    Emit( "  printf(\"\\nDone.\\n\");" );
+    Emit( "  cut_exit();\n" );
     Emit( "  return 0;\n}\n" );
 }
 
