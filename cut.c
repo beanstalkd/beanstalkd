@@ -14,7 +14,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <sys/wait.h>
 #include "cut.h"
+
 
 #ifndef BOOL		/* Just in case -- helps in portability */
 #define BOOL int
@@ -28,10 +30,29 @@
 #define TRUE 1
 #endif
 
+typedef struct test_output *test_output;
+
+struct test_output {
+    test_output next;
+    int status;
+    const char *desc;
+    const char *group_name;
+    const char *test_name;
+    FILE *file;
+};
+
 static int            breakpoint = 0;
 static int            count = 0;
 static int any_problems = 0;
 static cut_fn cur_takedown;
+static test_output problem_reports = 0;
+
+static void
+die(const char *msg)
+{
+    perror(msg);
+    exit(3);
+}
 
 /* I/O Functions */
 
@@ -43,7 +64,7 @@ static void print_string( char *string )
 
 static void print_string_as_error( char *filename, int lineNumber, char *string )
 {
-  printf( "%s(%d): %s", filename, lineNumber, string );
+  printf( "  %s(%d): %s", filename, lineNumber, string );
   fflush( stdout );
 }
 
@@ -96,9 +117,33 @@ void cut_init( int brkpoint )
   }
 }
 
+#define BUF_SIZE 1024
+
 void cut_exit( void )
 {
-  exit(any_problems);
+    int r, s;
+    char buf[BUF_SIZE];
+    test_output to;
+
+    for (to = problem_reports; to; to = to->next) {
+        printf("\n%s in %s/%s", to->desc, to->group_name, to->test_name);
+        if (!WIFEXITED(to->status) || (WEXITSTATUS(to->status) != 255)) {
+            if (WIFEXITED(to->status)) {
+                printf(" (Exit Status %d)", WEXITSTATUS(to->status));
+            }
+            if (WIFSIGNALED(to->status)) {
+                printf(" (Signal %d)", WTERMSIG(to->status));
+            }
+        }
+        printf("\n");
+        rewind(to->file);
+        while (r = fread(buf, 1, BUF_SIZE, to->file)) {
+            s = fwrite(buf, 1, r, stdout);
+            if (r != s) die("fwrite");
+        }
+    }
+
+    exit(any_problems);
 }
 
 /* Test Progress Accounting functions */
@@ -136,7 +181,6 @@ void __cut_assert(
 {
   if (success) return;
   
-  new_line();
   print_string_as_error( filename, lineNumber, message );
   new_line();
   print_string_as_error( filename, lineNumber, "Failed expression: " );
@@ -144,25 +188,27 @@ void __cut_assert(
   new_line();
 
   cur_takedown();
+  fflush(stdout);
+  fflush(stderr);
   exit(-1);
 }
 
 
 /* Test Delineation and Teardown Support Functions */
 
-static void
-die(const char *msg)
-{
-    perror(msg);
-    exit(3);
-}
-
 void
 __cut_run(char *group_name, cut_fn bringup, cut_fn takedown, char *test_name,
         cut_fn test, char *filename, int lineno)
 {
     pid_t pid;
-    int status;
+    int status, r;
+    FILE *out;
+    test_output to;
+    char *problem_desc = 0;
+
+    out = tmpfile();
+    fflush(stdout);
+    fflush(stderr);
 
     if (pid = fork()) {
         if (pid < 0) die("\nfork()");
@@ -171,20 +217,49 @@ __cut_run(char *group_name, cut_fn bringup, cut_fn takedown, char *test_name,
         if (!status) {
             /* success */
             cut_mark_point('.', filename, lineno );
-        } else if (status == 65280) {
+        } else if (WIFEXITED(status) && (WEXITSTATUS(status) == 255)) {
             /* failure */
             cut_mark_point('F', filename, lineno );
             any_problems = 1;
+            problem_desc = "Failure";
         } else {
             /* error */
             cut_mark_point('E', filename, lineno );
             any_problems = 1;
+            problem_desc = "Error";
+        }
+
+        /* collect the output */
+        if (problem_desc) {
+            to = malloc(sizeof(struct test_output));
+            if (!to) die("malloc");
+
+            to->desc = problem_desc;
+            to->status = status;
+            to->group_name = group_name;
+            to->test_name = test_name;
+            to->file = out;
+            to->next = problem_reports;
+            problem_reports = to;
+        } else {
+            fclose(out);
+            out = 0;
         }
     } else {
+        r = dup2(fileno(out), fileno(stdout));
+        if (r < 0) die("dup2");
+        r = dup2(fileno(out), fileno(stderr));
+        if (r < 0) die("dup2");
+        r = fclose(out);
+        if (r) die("fclose");
+        out = 0;
+
         bringup();
         cur_takedown = takedown;
         test();
         takedown();
+        fflush(stdout);
+        fflush(stderr);
         exit(0);
     }
 }
