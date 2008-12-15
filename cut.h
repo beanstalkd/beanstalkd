@@ -29,6 +29,7 @@
 #define CUT_CUT_H_INCLUDED
 
 typedef void CUTTakedownFunction( void );
+typedef void(*fn)(void);
 
 void cut_start            ( char *, CUTTakedownFunction * );
 void cut_init             ( int breakpoint );
@@ -36,9 +37,15 @@ void cut_break_formatting ( void );
 void cut_resume_formatting( void );
 void cut_interject( const char *, ... );
 
-#define cut_end(t)           __cut_end( __FILE__, __LINE__, t )
+#define cut_run(G, T) __cut_run("group-" #G, \
+                          __CUT_BRINGUP__ ## G, \
+                          __CUT_TAKEDOWN__ ## G, \
+                          #T, \
+                          __CUT__ ## T, \
+                          __FILE__, \
+                          __LINE__);
+
 #define cut_mark_point()     __cut_mark_point(__FILE__,__LINE__)
-#define cut_check_errors()   __cut_check_errors( __FILE__, __LINE__ )
 #define ASSERT(X,msg)        __cut_assert(__FILE__,__LINE__,msg,#X,X)
 
 #define ASSERT_EQUALS(X,Y,msg)   __cut_assert_equals( __FILE__, __LINE__, msg, #X " == " #Y, ( (X) == (Y) ), X )
@@ -51,11 +58,10 @@ void cut_interject( const char *, ... );
  * macros instead.
  */
 
-void __cut_end          ( char *, int, char * );
+void __cut_run(char *, fn, fn, char *, fn, char *, int);
 void __cut_mark_point   ( char *, int );
 void __cut_assert       ( char *, int, char *, char *, int );
 void __cut_assert_equals( char *, int, char *, char *, int, int );
-int  __cut_check_errors ( char *, int );
 
 #endif
 

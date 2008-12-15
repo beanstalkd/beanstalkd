@@ -275,29 +275,6 @@ void EmitIndented(int indent,char *format, ...)
    fprintf( outfile, "\n" );
 }
 
-void EmitBringup(int indent,char *name)
-{
-    BlankLine();
-    EmitIndented(indent, "cut_start( \"group-%s\", __CUT_TAKEDOWN__%s );", 
-           name, name );
-    EmitIndented(indent, "__CUT_BRINGUP__%s();", name );
-    EmitIndented(indent, "cut_check_errors();");
-}
-
-void EmitTest(int indent,char *name)
-{
-    EmitIndented(indent, "cut_start( \"%s\", 0 );", name );
-    EmitIndented(indent, "__CUT__%s();", name );
-    EmitIndented(indent, "cut_end( \"%s\" );", name );
-}
-
-void EmitTakedown(int indent,char *name)
-{
-    EmitIndented(indent, "cut_end( \"group-%s\" );", name );
-    EmitIndented(indent, "__CUT_TAKEDOWN__%s();", name );
-    BlankLine();
-}
-
 void EmitUnitTesterBody()
 {
     TestItem *test;
@@ -311,9 +288,7 @@ void EmitUnitTesterBody()
 
     for (group = test_groups; group; group = group->next) {
        for (test = group->tests; test; test = test->next) {
-          EmitBringup(1, group->bringup);
-          EmitTest(1, test->name);
-          EmitTakedown(1, group->takedown);
+          EmitIndented(1, "cut_run(%s, %s);", group->bringup, test->name);
        }
     }
 

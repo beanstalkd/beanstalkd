@@ -379,3 +379,17 @@ void __cut_end( char *filename, int lineNumber, char *closingFrame )
     }
   }
 }
+
+void
+__cut_run(char *group_name, fn bringup, fn takedown, char *test_name, fn test,
+        char *filename, int lineno)
+{
+    cut_start(group_name, takedown);
+    bringup();
+    __cut_check_errors(filename, lineno);
+    cut_start(test_name, 0);
+    test();
+    __cut_end(filename, lineno, test_name);
+    __cut_end(filename, lineno, group_name);
+    takedown();
+}
