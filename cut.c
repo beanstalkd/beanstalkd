@@ -64,7 +64,7 @@ static void print_string( char *string )
 
 static void print_string_as_error( char *filename, int lineNumber, char *string )
 {
-  printf( "  %s(%d): %s", filename, lineNumber, string );
+  printf( "  %s:%d: %s", filename, lineNumber, string );
   fflush( stdout );
 }
 
@@ -181,10 +181,10 @@ void __cut_assert(
 {
   if (success) return;
   
-  print_string_as_error( filename, lineNumber, message );
-  new_line();
-  print_string_as_error( filename, lineNumber, "Failed expression: " );
+  print_string_as_error( filename, lineNumber, "(" );
   print_string( expression );
+  print_string(") ");
+  print_string( message );
   new_line();
 
   cur_takedown();
