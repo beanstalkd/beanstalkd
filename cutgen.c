@@ -310,11 +310,11 @@ void EmitUnitTesterBody()
     BlankLine();
 
     for (group = test_groups; group; group = group->next) {
-       EmitBringup(1, group->bringup);
        for (test = group->tests; test; test = test->next) {
-          EmitTest(2, test->name);
+          EmitBringup(1, group->bringup);
+          EmitTest(1, test->name);
+          EmitTakedown(1, group->takedown);
        }
-       EmitTakedown(1, group->takedown);
     }
 
     BlankLine();
