@@ -153,17 +153,14 @@ void cut_exit( void )
 static void
 cut_mark_point(char out, char *filename, int lineNumber )
 {
-  if( ( count % 10 ) == 0 )
-  {
-    if( ( count % 50 ) == 0 )
-      new_line();
-
+  if ((count % 10) == 0) {
+    if ((count % 50) == 0) new_line();
     print_integer_in_field( count, 5 );
   }
-  else
-    print_character(out);
 
+  print_character(out);
   count++;
+
   if( count == breakpoint )
   {
     print_string_as_error( filename, lineNumber, "Breakpoint hit" );
