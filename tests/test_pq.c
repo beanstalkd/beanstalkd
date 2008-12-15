@@ -15,15 +15,12 @@ __CUT_BRINGUP__pq()
 {
     job_init();
     TUBE_ASSIGN(default_tube, make_tube("default"));
-    /* When CUT 3.0 comes out it will fix this design flaw. For now we will
-     * just leak some queues during test. */
-    /*pq_init(q, job_pri_cmp);*/
+    pq_init(q, job_pri_cmp);
     j1 = make_job(1, 0, 1, 0, default_tube);
     j2 = make_job(2, 0, 1, 0, default_tube);
     j3a = make_job(3, 0, 1, 0, default_tube);
     j3b = make_job(3, 0, 1, 0, default_tube);
     j3c = make_job(3, 0, 1, 0, default_tube);
-    /*ASSERT(!!q, "Allocation should work");*/
     ASSERT(!!j1, "Allocation should work");
     ASSERT(!!j2, "Allocation should work");
     ASSERT(!!j3a, "Allocation should work");
@@ -34,14 +31,12 @@ __CUT_BRINGUP__pq()
 void
 __CUT__pq_test_empty_queue_should_have_no_items()
 {
-    pq_init(q, job_pri_cmp);
     ASSERT(q->used == 0, "q should be empty.");
 }
 
 void
 __CUT__pq_test_insert_one()
 {
-    pq_init(q, job_pri_cmp);
     pq_give(q, j1);
     ASSERT(q->used == 1, "q should contain one item.");
 }
@@ -52,7 +47,6 @@ __CUT__pq_test_insert_and_remove_one()
     int r;
     job j;
 
-    pq_init(q, job_pri_cmp);
     r = pq_give(q, j1);
     ASSERT(r, "insert should succeed");
 
@@ -67,7 +61,6 @@ __CUT__pq_test_priority()
     int r;
     job j;
 
-    pq_init(q, job_pri_cmp);
     r = pq_give(q, j2);
     ASSERT(r, "insert should succeed");
 
@@ -93,7 +86,6 @@ __CUT__pq_test_fifo_property()
     int r;
     job j;
 
-    pq_init(q, job_pri_cmp);
     r = pq_give(q, j3a);
     ASSERT(r, "insert should succeed");
     ASSERT(q->heap[0] == j3a, "j3a should be in pos 0");
@@ -124,8 +116,6 @@ __CUT__pq_test_many_jobs()
     int r, i;
     job j;
 
-    pq_init(q, job_pri_cmp);
-
     for (i = 0; i < HOW_MANY; i++) {
         j = make_job(1 + rand() % 8192, 0, 1, 0, default_tube);
         ASSERT(!!j, "allocation");
@@ -145,11 +135,5 @@ __CUT__pq_test_many_jobs()
 void
 __CUT_TAKEDOWN__pq()
 {
-    free(j1);
-    free(j2);
-    free(j3a);
-    free(j3b);
-    free(j3c);
-    TUBE_ASSIGN(default_tube, 0);
 }
 

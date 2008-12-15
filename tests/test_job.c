@@ -96,6 +96,5 @@ __CUT__job_test_hash_free_next()
 void
 __CUT_TAKEDOWN__job()
 {
-    TUBE_ASSIGN(default_tube, 0);
 }
 
