@@ -279,7 +279,6 @@ void EmitUnitTesterBody()
     }
 
     BlankLine();
-    Emit( "  printf(\"\\nDone.\\n\");" );
     Emit( "  cut_exit();\n" );
     Emit( "  return 0;\n}\n" );
 }

@@ -42,8 +42,7 @@ struct test_output {
 };
 
 static int            breakpoint = 0;
-static int            count = 0;
-static int any_problems = 0;
+static int count = 0, count_failures = 0, count_errors = 0;
 static cut_fn cur_takedown;
 static test_output problem_reports = 0;
 
@@ -125,6 +124,7 @@ void cut_exit( void )
     char buf[BUF_SIZE];
     test_output to;
 
+    printf("\n");
     for (to = problem_reports; to; to = to->next) {
         printf("\n%s in %s/%s", to->desc, to->group_name, to->test_name);
         if (!WIFEXITED(to->status) || (WEXITSTATUS(to->status) != 255)) {
@@ -143,7 +143,9 @@ void cut_exit( void )
         }
     }
 
-    exit(any_problems);
+    printf("\n%d tests; %d failures; %d errors.\n", count, count_failures,
+            count_errors);
+    exit(!!(count_failures + count_errors));
 }
 
 /* Test Progress Accounting functions */
@@ -220,12 +222,12 @@ __cut_run(char *group_name, cut_fn bringup, cut_fn takedown, char *test_name,
         } else if (WIFEXITED(status) && (WEXITSTATUS(status) == 255)) {
             /* failure */
             cut_mark_point('F', filename, lineno );
-            any_problems = 1;
+            count_failures++;
             problem_desc = "Failure";
         } else {
             /* error */
             cut_mark_point('E', filename, lineno );
-            any_problems = 1;
+            count_errors++;
             problem_desc = "Error";
         }
 
