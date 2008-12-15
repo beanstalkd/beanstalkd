@@ -41,7 +41,6 @@
 
 #define SEARCH_TOKEN_TEST_LENGTH       sizeof( SEARCH_TOKEN_TEST )-1
 #define SEARCH_TOKEN_BRINGUP_LENGTH    sizeof( SEARCH_TOKEN_BRINGUP )-1
-#define SEARCH_TOKEN_TAKEDOWN_LENGTH   sizeof( SEARCH_TOKEN_TAKEDOWN )-1
 
 #define terr(fmt, args...) do { fprintf(stderr, "\n"); twarn(fmt, ##args); exit(1); } while (0)
 #define terrx(fmt, args...) do { fprintf(stderr, "\n"); twarnx(fmt, ##args); exit(1); } while (0)
@@ -49,7 +48,6 @@
 typedef enum TestType {
    TYPE_TEST = 0,
    TYPE_BRINGUP = 1,
-   TYPE_TAKEDOWN = 2
 } TestType;
 
 typedef struct TestItem {
@@ -58,7 +56,7 @@ typedef struct TestItem {
 } TestItem;
 
 typedef struct TestGroup {
-   char bringup[MAX_SYMBOL_LENGTH], takedown[MAX_SYMBOL_LENGTH];
+   char name[MAX_SYMBOL_LENGTH];
    struct TestItem *tests;
    struct TestGroup *next;
 } TestGroup;
@@ -77,8 +75,7 @@ int NameAndTypeInTestList( char *name, TestType type )
    TestGroup *group;
 
    for (group = test_groups; group; group = group->next) {
-      if (!strcmp(group->bringup, name) && type == TYPE_BRINGUP) return 1;
-      if (!strcmp(group->takedown, name) && type == TYPE_TAKEDOWN) return 1;
+      if (!strcmp(group->name, name) && type == TYPE_BRINGUP) return 1;
       for (item = group->tests; item; item = item->next) {
          if (!strcmp(item->name, name)) return 1;
       }
@@ -99,13 +96,8 @@ void AppendToTestList( char *name, TestType type )
       if (!new) terr("malloc");
 
       new->next = test_groups;
-      strcpy(new->bringup, name);
+      strcpy(new->name, name);
       test_groups = new;
-   } else if (type == TYPE_TAKEDOWN) {
-      cur = test_groups;
-      if (!cur) terrx("no current test group");
-
-      strcpy(cur->takedown, name);
    } else {
       cur = test_groups;
       if (!cur) terrx("no current test group");
@@ -177,11 +169,6 @@ void ProcessTestFunction( char *line, int position )
     ProcessGenericFunction( line, position, TYPE_TEST, SEARCH_TOKEN_TEST_LENGTH );
 }
 
-void ProcessTakedownFunction( char *line, int position )
-{
-    ProcessGenericFunction( line, position, TYPE_TAKEDOWN, SEARCH_TOKEN_TAKEDOWN_LENGTH );
-}
-
 
 int OffsetOfSubstring( char *line, char *token )
 {
@@ -212,7 +199,6 @@ void ProcessSourceFile( char *filename )
       {
          CallIfSubstringFound( line, SEARCH_TOKEN_BRINGUP, ProcessBringupFunction );
          CallIfSubstringFound( line, SEARCH_TOKEN_TEST, ProcessTestFunction );
-         CallIfSubstringFound( line, SEARCH_TOKEN_TAKEDOWN, ProcessTakedownFunction );
       }
       
       fclose(source);
@@ -240,8 +226,8 @@ void ListExternalFunctions()
    TestItem *item;
 
    for (cur = test_groups; cur; cur = cur->next) {
-       EmitExternDeclarationFor(cur->bringup, SEARCH_TOKEN_BRINGUP);
-       EmitExternDeclarationFor(cur->takedown, SEARCH_TOKEN_TAKEDOWN);
+       EmitExternDeclarationFor(cur->name, SEARCH_TOKEN_BRINGUP);
+       EmitExternDeclarationFor(cur->name, SEARCH_TOKEN_TAKEDOWN);
        for (item = cur->tests; item; item = item->next) {
           EmitExternDeclarationFor(item->name, SEARCH_TOKEN_TEST);
        }
@@ -288,7 +274,7 @@ void EmitUnitTesterBody()
 
     for (group = test_groups; group; group = group->next) {
        for (test = group->tests; test; test = test->next) {
-          EmitIndented(1, "cut_run(%s, %s);", group->bringup, test->name);
+          EmitIndented(1, "cut_run(%s, %s);", group->name, test->name);
        }
     }
 
