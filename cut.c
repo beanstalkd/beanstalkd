@@ -31,6 +31,7 @@
 static int            breakpoint = 0;
 static int            count = 0;
 static int any_problems = 0;
+static cut_fn cur_takedown;
 
 /* I/O Functions */
 
@@ -142,6 +143,7 @@ void __cut_assert(
   print_string( expression );
   new_line();
 
+  cur_takedown();
   exit(-1);
 }
 
@@ -180,6 +182,7 @@ __cut_run(char *group_name, cut_fn bringup, cut_fn takedown, char *test_name,
         }
     } else {
         bringup();
+        cur_takedown = takedown;
         test();
         takedown();
         exit(0);
