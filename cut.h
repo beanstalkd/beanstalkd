@@ -48,8 +48,6 @@ void cut_interject( const char *, ... );
 #define cut_mark_point()     __cut_mark_point(__FILE__,__LINE__)
 #define ASSERT(X,msg)        __cut_assert(__FILE__,__LINE__,msg,#X,X)
 
-#define ASSERT_EQUALS(X,Y,msg)   __cut_assert_equals( __FILE__, __LINE__, msg, #X " == " #Y, ( (X) == (Y) ), X )
-
 #define STATIC_ASSERT(X)  extern bool __static_ASSERT_at_line_##__LINE__##__[ (0!=(X))*2-1 ];
 
 /*
@@ -61,7 +59,6 @@ void cut_interject( const char *, ... );
 void __cut_run(char *, fn, fn, char *, fn, char *, int);
 void __cut_mark_point   ( char *, int );
 void __cut_assert       ( char *, int, char *, char *, int );
-void __cut_assert_equals( char *, int, char *, char *, int, int );
 
 #endif
 

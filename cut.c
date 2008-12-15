@@ -252,34 +252,6 @@ void __cut_mark_point( char *filename, int lineNumber )
   }
 }
 
-void __cut_assert_equals( // DEPRECATED: Do not use in future software
-                         char *filename,
-                         int   lineNumber,
-                         char *message,
-                         char *expression,
-                         BOOL  success,
-                         int   expected
-                        )
-{
-  __cut_mark_point( filename, lineNumber );
-  
-  if( success != FALSE )
-    return;
-  
-  cut_break_formatting();
-  print_string_as_error( filename, lineNumber, message );
-  new_line();
-  print_string_as_error( filename, lineNumber, "Failed expression: " );
-  print_string( expression );
-  new_line();
-  print_string_as_error( filename, lineNumber, "Actual value: " );
-  print_integer_as_expected( expected );
-  new_line();
-
-  test_hit_error = TRUE;
-  cut_resume_formatting();
-}
-
 
 void __cut_assert(
                   char *filename,
