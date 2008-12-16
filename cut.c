@@ -15,8 +15,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include "cut.h"
 
+
+#define BUF_SIZE 1024
 
 #ifndef BOOL		/* Just in case -- helps in portability */
 #define BOOL int
@@ -45,12 +48,22 @@ static int            breakpoint = 0;
 static int count = 0, count_failures = 0, count_errors = 0;
 static cut_fn cur_takedown;
 static test_output problem_reports = 0;
+static const char *program;
 
 static void
-die(const char *msg)
+die(int code, const char *fmt, ...)
 {
-    perror(msg);
-    exit(3);
+    va_list v;
+
+    putc('\n', stderr);
+
+    va_start(v, fmt);
+    vfprintf(stderr, fmt, v);
+    va_end(v);
+
+    if (fmt && *fmt) fputs(": ", stderr);
+    fprintf(stderr, "%s\n", strerror(errno));
+    exit(code);
 }
 
 /* I/O Functions */
@@ -103,10 +116,11 @@ static void space( void )
 
 /* CUT Initialization and Takedown  Functions */
 
-void cut_init( int brkpoint )
+void cut_init(const char *prog_name, int brkpoint )
 {
   breakpoint = brkpoint;
   count = 0;
+  program = prog_name;
 
   if( brkpoint >= 0 )
   {
@@ -115,8 +129,6 @@ void cut_init( int brkpoint )
     new_line();
   }
 }
-
-#define BUF_SIZE 1024
 
 void cut_exit( void )
 {
@@ -139,7 +151,7 @@ void cut_exit( void )
         rewind(to->file);
         while (r = fread(buf, 1, BUF_SIZE, to->file)) {
             s = fwrite(buf, 1, r, stdout);
-            if (r != s) die("fwrite");
+            if (r != s) die(3, "fwrite");
         }
     }
 
@@ -192,8 +204,100 @@ void __cut_assert(
   exit(-1);
 }
 
+typedef void(*collect_fn)(void *);
 
-/* Test Delineation and Teardown Support Functions */
+static FILE *
+collect(pid_t *pid, collect_fn fn, void *data)
+{
+    int r;
+    FILE *out;
+
+    out = tmpfile();
+    if (!out) return 0;
+
+    fflush(stdout);
+    fflush(stderr);
+
+    if (*pid = fork()) {
+        if (*pid < 0) return 0;
+        return out;
+    } else {
+        r = dup2(fileno(out), fileno(stdout));
+        if (r < 0) die(3, "dup2");
+        r = fclose(out);
+        if (r) die(3, "fclose");
+        out = 0;
+
+        fn(data);
+        exit(0);
+    }
+}
+
+static void
+exec(void *data)
+{
+    int r;
+
+    char **info = (char **) data;
+    r = execvp(info[0], info);
+    die(5, "Wrong execvp");
+}
+
+/* Read the full symbol table (not just the dynamic symbols) and return the
+ * value of the specified symbol. If an error occurs, print an error message
+ * and exit.
+ *
+ * We cheat by using "nm" to parse the symbol table of the file on disk.
+ */
+void *
+__cut_debug_addr(const char *sym, const char *file, int line)
+{
+    void *val;
+    FILE *out;
+    pid_t pid;
+    int status, r;
+    char cmd[BUF_SIZE], s[BUF_SIZE];
+    char *args[] = { "sh", "-c", cmd, 0 };
+
+    sprintf(cmd, "nm %s | grep ' %s$'", program, sym);
+
+    out = collect(&pid, exec, args);
+    if (!out) die(1, "  %s:%d: collect", file, line);
+
+    pid = waitpid(pid, &status, 0);
+    if (pid < 1) die(1, "  %s:%d: wait", file, line);
+
+    rewind(out);
+    r = fread(s, 1, BUF_SIZE - 1, out);
+    if (!r) printf("  %s:%d: no symbol: %s\n", file, line, sym), exit(1);
+
+    s[r] = 0;
+
+    errno = 0;
+    val = (void *) strtoul(s, 0, 16);
+    if (errno) die(1, "  %s:%d: strtoul on ``%s''", file, line, s);
+    if (((size_t) val) < 100) {
+        die(1, "  %s:%d: strtoul on ``%s''", file, line, s);
+    }
+
+    return val;
+}
+
+static void
+run_in_child(void *data)
+{
+    int r;
+    cut_fn *fns = data, bringup = fns[0], test = fns[1], takedown = fns[2];
+
+    r = dup2(fileno(stdout), fileno(stderr));
+    if (r < 0) die(3, "dup2");
+    bringup();
+    cur_takedown = takedown;
+    test();
+    takedown();
+    fflush(stdout);
+    fflush(stderr);
+}
 
 void
 __cut_run(char *group_name, cut_fn bringup, cut_fn takedown, char *test_name,
@@ -204,61 +308,41 @@ __cut_run(char *group_name, cut_fn bringup, cut_fn takedown, char *test_name,
     FILE *out;
     test_output to;
     char *problem_desc = 0;
+    cut_fn fns[3] = { bringup, test, takedown };
 
-    out = tmpfile();
-    fflush(stdout);
-    fflush(stderr);
+    out = collect(&pid, run_in_child, fns);
+    if (!out) die(1, "  %s:%d: collect", filename, lineno);
+    if (pid < 0) die(3, "fork");
 
-    if (pid = fork()) {
-        if (pid < 0) die("\nfork()");
-        wait(&status);
-  
-        if (!status) {
-            /* success */
-            cut_mark_point('.', filename, lineno );
-        } else if (WIFEXITED(status) && (WEXITSTATUS(status) == 255)) {
-            /* failure */
-            cut_mark_point('F', filename, lineno );
-            count_failures++;
-            problem_desc = "Failure";
-        } else {
-            /* error */
-            cut_mark_point('E', filename, lineno );
-            count_errors++;
-            problem_desc = "Error";
-        }
+    r = waitpid(pid, &status, 0);
+    if (r != pid) die(3, "wait");
 
-        /* collect the output */
-        if (problem_desc) {
-            to = malloc(sizeof(struct test_output));
-            if (!to) die("malloc");
-
-            to->desc = problem_desc;
-            to->status = status;
-            to->group_name = group_name;
-            to->test_name = test_name;
-            to->file = out;
-            to->next = problem_reports;
-            problem_reports = to;
-        } else {
-            fclose(out);
-            out = 0;
-        }
+    if (!status) {
+        cut_mark_point('.', filename, lineno );
+    } else if (WIFEXITED(status) && (WEXITSTATUS(status) == 255)) {
+        cut_mark_point('F', filename, lineno );
+        count_failures++;
+        problem_desc = "Failure";
     } else {
-        r = dup2(fileno(out), fileno(stdout));
-        if (r < 0) die("dup2");
-        r = dup2(fileno(out), fileno(stderr));
-        if (r < 0) die("dup2");
-        r = fclose(out);
-        if (r) die("fclose");
-        out = 0;
-
-        bringup();
-        cur_takedown = takedown;
-        test();
-        takedown();
-        fflush(stdout);
-        fflush(stderr);
-        exit(0);
+        cut_mark_point('E', filename, lineno );
+        count_errors++;
+        problem_desc = "Error";
     }
+
+    if (!problem_desc) {
+        fclose(out);
+        return;
+    }
+
+    /* collect the output */
+    to = malloc(sizeof(struct test_output));
+    if (!to) die(3, "malloc");
+
+    to->desc = problem_desc;
+    to->status = status;
+    to->group_name = group_name;
+    to->test_name = test_name;
+    to->file = out;
+    to->next = problem_reports;
+    problem_reports = to;
 }

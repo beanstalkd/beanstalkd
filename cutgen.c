@@ -268,8 +268,8 @@ void EmitUnitTesterBody()
 
     Emit( "int main( int argc, char *argv[] )\n{" );
     Emit( "  if ( argc == 1 )" );
-    Emit( "    cut_init( -1 );" );
-    Emit( "  else cut_init( atoi( argv[1] ) );" );
+    Emit( "    cut_init(argv[0], -1 );" );
+    Emit( "  else cut_init(argv[0], atoi( argv[1] ) );" );
     BlankLine();
 
     for (group = test_groups; group; group = group->next) {

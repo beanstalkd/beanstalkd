@@ -30,7 +30,7 @@
 
 typedef void(*cut_fn)(void);
 
-void cut_init(int);
+void cut_init(const char *, int);
 void cut_exit(void);
 
 #define cut_run(G, T) __cut_run("group-" #G, \
@@ -40,6 +40,8 @@ void cut_exit(void);
                           __CUT__ ## T, \
                           __FILE__, \
                           __LINE__);
+
+#define ADDR(S) (__cut_debug_addr(#S, __FILE__, __LINE__))
 
 #define ASSERT(X,msg)        __cut_assert(__FILE__,__LINE__,msg,#X,X)
 
@@ -53,6 +55,7 @@ void cut_exit(void);
 
 void __cut_run(char *, cut_fn, cut_fn, char *, cut_fn, char *, int);
 void __cut_assert( char *, int, char *, char *, int );
+void *__cut_debug_value(const char *, const char *, int);
 
 #endif
 
