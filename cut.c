@@ -46,7 +46,7 @@ struct test_output {
 
 static int            breakpoint = 0;
 static int count = 0, count_failures = 0, count_errors = 0;
-static cut_fn cur_takedown;
+static cut_fn cur_takedown = 0;
 static test_output problem_reports = 0;
 static const char *program;
 
@@ -198,7 +198,7 @@ void __cut_assert(
   print_string( message );
   new_line();
 
-  cur_takedown();
+  if (cur_takedown) cur_takedown();
   fflush(stdout);
   fflush(stderr);
   exit(-1);
