@@ -17,15 +17,8 @@ aux_sources = \
 beanstalkd_SOURCES = beanstalkd.c $(aux_sources)
 
 tests = \
-	$(srcdir)/tests/test_conn.c \
 	$(srcdir)/tests/test_job.c \
-	$(srcdir)/tests/test_ms.c \
-	$(srcdir)/tests/test_net.c \
-	$(srcdir)/tests/test_pq.c \
-	$(srcdir)/tests/test_prot.c \
-	$(srcdir)/tests/test_reserve.c \
-	$(srcdir)/tests/test_tube.c \
-	$(srcdir)/tests/test_util.c
+	$(srcdir)/tests/test_pq.c
 
 EXTRA_DIST = cut.c cutgen.c $(tests) cut.h sh-tests check.sh check-one.sh \
 	binlog.h \
