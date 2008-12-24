@@ -42,6 +42,7 @@ static int binlog_index = 0;
 static int binlog_fd = -1;
 static int binlog_version = 1;
 static size_t bytes_written;
+static int lock_fd;
 
 static binlog first_binlog = NULL, last_binlog = NULL;
 
@@ -354,6 +355,29 @@ binlog_read(job binlog_jobs)
         }
 
     }
+}
+
+int
+binlog_lock()
+{
+    int r;
+    struct flock lock;
+    char path[PATH_MAX];
+
+    r = snprintf(path, PATH_MAX, "%s/lock", binlog_dir);
+    if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir), 0;
+
+    lock_fd = open(path, O_WRONLY|O_CREAT, 0600);
+    if (lock_fd == -1) return twarn("open"), 0;
+
+    lock.l_type = F_WRLCK;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = 0;
+    lock.l_len = 0;
+    r = fcntl(lock_fd, F_SETLK, &lock);
+    if (r) return twarn("fcntl"), 0;
+
+    return 1;
 }
 
 void

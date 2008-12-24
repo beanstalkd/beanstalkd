@@ -253,6 +253,13 @@ main(int argc, char **argv)
     job_init();
     prot_init();
 
+    /* We want to make sure that only one beanstalkd tries to use the binlog
+     * directory at a time. So acquire a lock now and never release it. */
+    if (binlog_dir) {
+        r = binlog_lock();
+        if (!r) twarnx("failed to lock binlog dir %s", binlog_dir), exit(10);
+    }
+
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
 

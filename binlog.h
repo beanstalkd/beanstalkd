@@ -32,6 +32,9 @@ struct binlog {
 extern char *binlog_dir;
 extern size_t binlog_size_limit;
 
+/* Return the number of locks acquired: either 0 or 1. */
+int binlog_lock();
+
 void binlog_write_job(job j);
 void binlog_read(job binlog_jobs);
 void binlog_close();
