@@ -177,6 +177,13 @@ parse_size_t(char *str)
     return size;
 }
 
+static char *
+require_arg(char *opt, char *arg)
+{
+    if (!arg) usage("option requires an argument", opt);
+    return arg;
+}
+
 static int
 parse_port(char *portstr)
 {
@@ -217,19 +224,20 @@ opts(int argc, char **argv)
                 detach = 1;
                 break;
             case 'p':
-                port = parse_port(argv[++i]);
+                port = parse_port(require_arg("-p", argv[++i]));
                 break;
             case 'l':
-                host_addr = parse_host(argv[++i]);
+                host_addr = parse_host(require_arg("-l", argv[++i]));
                 break;
             case 'z':
-                job_data_size_limit = parse_size_t(argv[++i]);
+                job_data_size_limit = parse_size_t(require_arg("-z",
+                                                               argv[++i]));
                 break;
             case 'u':
-                user = argv[++i];
+                user = require_arg("-u", argv[++i]);
                 break;
             case 'b':
-                binlog_dir = argv[++i];
+                binlog_dir = require_arg("-b", argv[++i]);
                 break;
             case 'h':
                 usage(NULL, NULL);
