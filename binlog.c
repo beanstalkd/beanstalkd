@@ -110,30 +110,49 @@ binlog_dref(binlog b)
 }
 
 static void
-binlog_replay(int fd, job binlog_jobs)
+binlog_warn(const char *msg, int fd, const char* path)
+{
+    warnx("WARNING, %s at %s:%u.\n%s", msg, path, lseek(fd, 0, SEEK_CUR),
+          "  Continuing with next file. You may be missing data.");
+}
+
+static void
+binlog_replay(int fd, job binlog_jobs, const char *path)
 {
     struct job js;
     tube t;
     job j;
     char tubename[MAX_TUBE_NAME_LEN];
     size_t namelen;
+    ssize_t r;
     int version;
 
-    if (read(fd, &version, sizeof(version)) < sizeof(version)) {
-        return twarn("read()");
+    r = read(fd, &version, sizeof(version));
+    if (r == -1) return twarn("read()");
+    if (r < sizeof(version)) {
+        return binlog_warn("version record is too short", fd, path);
     }
+
     if (version != binlog_version) {
-        return twarnx("binlog version mismatch %d %d", version, binlog_version);
+        return warnx("%s: binlog version mismatch %d %d", path, version,
+                     binlog_version);
     }
 
     while (read(fd, &namelen, sizeof(size_t)) == sizeof(size_t)) {
-        if (namelen > 0 && read(fd, tubename, namelen) != namelen) {
-            return twarnx("oops %x %d", namelen, (int)lseek(fd, SEEK_CUR, 0));
+        if (namelen > 0) {
+            r = read(fd, tubename, namelen);
+            if (r == -1) return twarn("read()");
+            if (r < namelen) {
+                lseek(fd, SEEK_CUR, 0);
+                return binlog_warn("tube name is too short", fd, path);
+            }
         }
 
         tubename[namelen] = '\0';
-        if (read(fd, &js, sizeof(struct job)) != sizeof(struct job)) {
-            return twarn("read()");
+        r = read(fd, &js, sizeof(struct job));
+        if (r == -1) return twarn("read()");
+        if (r < sizeof(struct job)) {
+          return binlog_warn("job record is too short", fd, path);
         }
 
         j = job_find(js.id);
@@ -155,9 +174,10 @@ binlog_replay(int fd, job binlog_jobs)
                 j->next = j->prev = j;
                 j->creation = js.creation;
                 job_insert(binlog_jobs, j);
-                if (read(fd, j->body, js.body_size) < js.body_size) {
-                    twarn("read()");
-                    return;
+                r = read(fd, j->body, js.body_size);
+                if (r == -1) return twarn("read()");
+                if (r < js.body_size) {
+                    return binlog_warn("job body is too short", fd, path);
                 }
             }
             break;
@@ -348,7 +368,7 @@ binlog_read(job binlog_jobs)
                 twarn("%s", path);
             } else {
                 b = binlog_iref(add_binlog(path));
-                binlog_replay(fd, binlog_jobs);
+                binlog_replay(fd, binlog_jobs, path);
                 close(fd);
                 binlog_dref(b);
             }
