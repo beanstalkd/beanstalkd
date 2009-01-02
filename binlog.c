@@ -177,7 +177,7 @@ binlog_replay(int fd, job binlog_jobs, const char *path)
                 r = read(fd, j->body, js.body_size);
                 if (r == -1) return twarn("read()");
                 if (r < js.body_size) {
-                    warnx("dropping imcomplete job %llu", j->id);
+                    warnx("dropping incomplete job %llu", j->id);
                     job_remove(j);
                     binlog_dref(j->binlog);
                     job_free(j);
