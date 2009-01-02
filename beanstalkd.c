@@ -272,7 +272,6 @@ main(int argc, char **argv)
     if (r == -1) twarnx("make_server_socket()"), exit(111);
 
     if (user) su(user);
-    if (detach) daemonize();
     event_init();
     set_sig_handlers();
     nudge_fd_limit();
@@ -281,6 +280,7 @@ main(int argc, char **argv)
     prot_replay_binlog();
     binlog_init();
 
+    if (detach) daemonize();
     event_dispatch();
     binlog_close();
     twarnx("got here for some reason");
