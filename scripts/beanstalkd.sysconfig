@@ -1,0 +1,12 @@
+# System configuration for the beanstalkd daemon
+
+# Available options correspond to the options to the 
+# beanstalkd commandline.
+
+BEANSTALKD_ADDR=0.0.0.0
+BEANSTALKD_PORT=11300
+BEANSTALKD_USER=beanstalkd
+
+# Job size is left to the default. Uncomment and set it
+# to a value to have it take affect.
+#BEANSTALKD_JOB_SIZE=

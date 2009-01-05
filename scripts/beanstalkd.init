@@ -1,0 +1,110 @@
+#!/bin/sh
+#
+# beanstalkd - a fast, distributed, in-memory workqueue service
+#
+# chkconfig:   - 57 47
+# description: a fast, distributed, in-memory workqueue service
+# processname:  beanstalkd
+# config:       /etc/sysconfig/beanstalkd
+#              
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 
+exec="/usr/bin/beanstalkd"
+prog=$(basename $exec)
+
+# default options, overruled by items in sysconfig
+BEANSTALKD_ADDR=0.0.0.0
+BEANSTALKD_PORT=11300
+BEANSTALKD_USER=beanstalkd
+
+[ -e /etc/sysconfig/beanstalkd ] && . /etc/sysconfig/beanstalkd
+
+lockfile=/var/lock/subsys/beanstalkd
+
+start() {
+    [ -x $exec ] || exit 5
+    echo -n $"Starting $prog: "
+    # if not running, start it up here, usually something like "daemon $exec"
+    options="-l ${BEANSTALKD_ADDR} -p ${BEANSTALKD_PORT} -u ${BEANSTALKD_USER}"
+    if [ "${BEANSTALKD_JOB_SIZE}" != ""  ]; then
+        options="${options} -z ${BEANSTALKD_JOB_SIZE}"
+    fi
+    daemon $exec -d $options
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && touch $lockfile
+    return $retval
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    # stop it here, often "killproc $prog"
+    killproc $prog -INT
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && rm -f $lockfile
+    return $retval
+}
+
+restart() {
+    stop
+    start
+}
+
+reload() {
+    restart
+}
+
+force_reload() {
+    restart
+}
+
+rh_status() {
+    # run checks to determine if the service is running or use generic status
+    status $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    reload)
+        rh_status_q || exit 7
+        $1
+        ;;
+    force-reload)
+        force_reload
+        ;;
+    status)
+        rh_status
+        ;;
+    condrestart|try-restart)
+        rh_status_q || exit 0
+        restart
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+        exit 2
+esac
+exit $?
+
