@@ -32,6 +32,6 @@ makefiles: configure Makefile.am
 clean:
 	@rm -rf *.lo *.la *.o *.a .libs Makefile Makefile.in stamp-h1 gmon.out beanstalkd
 	@rm -rf tests/*.lo tests/*.la tests/*.o tests/*.a tests/.libs tests/Makefile tests/Makefile.in tests/gmon.out tests/cutcheck* tests/cutgen
-	rm -rf aclocal.m4 autom4te.cache install.sh libtool 'configure.in~' missing config.h* configure
+	rm -rf aclocal.m4 autom4te.cache install.sh libtool 'configure.in~' missing config.h* configure check check-one
 	rm -f config.guess config.log config.status config.sub cscope.out install-sh
 
