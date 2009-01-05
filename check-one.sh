@@ -25,6 +25,11 @@ catch() {
 trap cleanup EXIT
 trap catch HUP INT QUIT TERM
 
+if [ ! -x ./beanstalkd ]; then
+  echo "Executable ./beanstalkd not found; do you need to compile first?"
+  exit 2
+fi
+
 ./beanstalkd -p $port >/dev/null 2>/dev/null &
 bpid=$!
 
