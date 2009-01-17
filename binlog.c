@@ -40,12 +40,14 @@ size_t binlog_size_limit = 10 << 20;
 
 char *binlog_dir = NULL;
 static int binlog_index = 0;
-static int binlog_fd = -1;
-static int binlog_version = 1;
+static int binlog_fd = -1, next_binlog_fd = -1;
+static int binlog_version = 2;
+static size_t binlog_space = 0, next_binlog_space = 0;
+static size_t binlog_reserved = 0, next_binlog_reserved = 0;
 static size_t bytes_written;
 static int lock_fd;
 
-static binlog first_binlog = NULL, last_binlog = NULL;
+static binlog first_binlog = NULL, last_binlog = NULL, next_binlog = NULL;
 
 static int
 binlog_scan_dir()
@@ -110,12 +112,19 @@ binlog_dref(binlog b)
     }
 }
 
+/*
 static void
-binlog_warn(const char *msg, int fd, const char* path)
+binlog_warn(int fd, const char* path, const char *msg)
 {
     warnx("WARNING, %s at %s:%u.\n%s", msg, path, lseek(fd, 0, SEEK_CUR),
-          "  Continuing with next file. You may be missing data.");
+          "  Continuing. You may be missing data.");
 }
+*/
+
+#define binlog_warn(fd, path, fmt, args...) \
+    warnx("WARNING, " fmt " at %s:%u. %s: ", \
+          ##args, path, lseek(fd, 0, SEEK_CUR), \
+          "Continuing. You may be missing data.")
 
 static void
 binlog_read_one(int fd, job binlog_jobs, const char *path)
@@ -131,7 +140,7 @@ binlog_read_one(int fd, job binlog_jobs, const char *path)
     r = read(fd, &version, sizeof(version));
     if (r == -1) return twarn("read()");
     if (r < sizeof(version)) {
-        return binlog_warn("version record is too short", fd, path);
+        return binlog_warn(fd, path, "EOF while reading version record");
     }
 
     if (version != binlog_version) {
@@ -145,7 +154,7 @@ binlog_read_one(int fd, job binlog_jobs, const char *path)
             if (r == -1) return twarn("read()");
             if (r < namelen) {
                 lseek(fd, SEEK_CUR, 0);
-                return binlog_warn("tube name is too short", fd, path);
+                return binlog_warn(fd, path, "EOF while reading tube name");
             }
         }
 
@@ -153,8 +162,10 @@ binlog_read_one(int fd, job binlog_jobs, const char *path)
         r = read(fd, &js, sizeof(struct job));
         if (r == -1) return twarn("read()");
         if (r < sizeof(struct job)) {
-          return binlog_warn("job record is too short", fd, path);
+          return binlog_warn(fd, path, "EOF while reading job record");
         }
+
+        if (!js.id) break;
 
         j = job_find(js.id);
         switch (js.state) {
@@ -175,6 +186,16 @@ binlog_read_one(int fd, job binlog_jobs, const char *path)
                 j->next = j->prev = j;
                 j->creation = js.creation;
                 job_insert(binlog_jobs, j);
+            }
+            if (js.body_size) {
+                if (js.body_size > j->body_size) {
+                    warnx("job size increased from %zu to %zu", j->body_size,
+                          js.body_size);
+                    job_remove(j);
+                    binlog_dref(j->binlog);
+                    job_free(j);
+                    return binlog_warn(fd, path, "EOF while reading job body");
+                }
                 r = read(fd, j->body, js.body_size);
                 if (r == -1) return twarn("read()");
                 if (r < js.body_size) {
@@ -182,7 +203,7 @@ binlog_read_one(int fd, job binlog_jobs, const char *path)
                     job_remove(j);
                     binlog_dref(j->binlog);
                     job_free(j);
-                    return binlog_warn("job body is too short", fd, path);
+                    return binlog_warn(fd, path, "EOF while reading job body");
                 }
             }
             break;
@@ -207,8 +228,8 @@ binlog_read_one(int fd, job binlog_jobs, const char *path)
     }
 }
 
-void
-binlog_close()
+static void
+binlog_close_last()
 {
     if (binlog_fd < 0) return;
     close(binlog_fd);
@@ -217,15 +238,35 @@ binlog_close()
 }
 
 static binlog
-add_binlog(char *path)
+make_binlog(char *path)
 {
     binlog b;
 
-    b = (binlog)malloc(sizeof(struct binlog) + strlen(path) + 1);
+    b = (binlog) malloc(sizeof(struct binlog) + strlen(path) + 1);
     if (!b) return twarnx("OOM"), NULL;
     strcpy(b->path, path);
     b->refs = 0;
     b->next = NULL;
+    return b;
+}
+
+static binlog
+make_next_binlog()
+{
+    int r;
+    char path[PATH_MAX];
+
+    if (!binlog_dir) return NULL;
+
+    r = snprintf(path, PATH_MAX, "%s/binlog.%d", binlog_dir, ++binlog_index);
+    if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir), NULL;
+
+    return make_binlog(path);
+}
+
+static binlog
+add_binlog(binlog b)
+{
     if (last_binlog) last_binlog->next = b;
     last_binlog = b;
     if (!first_binlog) first_binlog = b;
@@ -234,59 +275,82 @@ add_binlog(char *path)
 }
 
 static int
-binlog_open()
+binlog_open(binlog log)
 {
-    char path[PATH_MAX];
-    binlog b;
     int fd, r;
 
-    if (!binlog_dir) return -1;
-    r = snprintf(path, PATH_MAX, "%s/binlog.%d", binlog_dir, ++binlog_index);
-    if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir), -1;
+    if (!binlog_iref(log)) return -1;
 
-    if (!binlog_iref(add_binlog(path))) return -1;
-    fd = open(path, O_WRONLY | O_CREAT, 0400);
+    fd = open(log->path, O_WRONLY | O_CREAT, 0400);
 
-    if (fd < 0) {
-        twarn("Cannot open binlog %s", path);
-        return -1;
+    if (fd < 0) return twarn("Cannot open binlog %s", log->path), -1;
+
+    r = posix_fallocate(fd, 0, binlog_size_limit);
+    if (r) {
+        close(fd);
+        binlog_dref(log);
+        errno = r;
+        return twarn("Cannot allocate space for binlog %s", log->path), -1;
     }
-
 
     bytes_written = write(fd, &binlog_version, sizeof(int));
 
     if (bytes_written < sizeof(int)) {
         twarn("Cannot write to binlog");
         close(fd);
-        binlog_dref(last_binlog);
+        binlog_dref(log);
         return -1;
     }
 
     return fd;
 }
 
-static void
-binlog_open_next()
+/* returns 1 on success, 0 on error. */
+static int
+binlog_use_next()
 {
-    if (binlog_fd < 0) return;
-    close(binlog_fd);
-    binlog_dref(last_binlog);
-    binlog_fd = binlog_open();
+    if (binlog_fd < 0) return 0;
+    if (next_binlog_fd < 0) return 0;
+    if (binlog_reserved > next_binlog_space) return twarnx("overextended"), 0;
+
+    binlog_close_last();
+
+    binlog_fd = next_binlog_fd;
+    add_binlog(next_binlog);
+
+    next_binlog = NULL;
+    next_binlog_fd = -1;
+
+    binlog_space = next_binlog_space - binlog_reserved;
+    binlog_reserved = next_binlog_reserved + binlog_reserved;
+
+    next_binlog_reserved = next_binlog_space = 0;
+    return 1;
 }
 
 void
+binlog_close()
+{
+    binlog_use_next();
+    binlog_close_last();
+}
+
+/* Returns the number of jobs successfully written (either 0 or 1). */
+/* If we are not using the binlog at all (binlog_fd < 0), then we pretend to
+   have made a successful write and return 1. */
+int
 binlog_write_job(job j)
 {
-    size_t tube_namelen, to_write;
+    ssize_t written;
+    size_t tube_namelen, to_write = 0;
     struct iovec vec[4], *vptr;
-    int vcnt = 3;
+    int vcnt = 3, r;
 
-    if (binlog_fd < 0) return;
+    if (binlog_fd < 0) return 1;
     tube_namelen = 0;
 
     vec[0].iov_base = (char *) &tube_namelen;
-    vec[0].iov_len = sizeof(size_t);
-    to_write = sizeof(size_t);
+    to_write += vec[0].iov_len = sizeof(size_t);
 
     vec[1].iov_base = j->tube->name;
     vec[1].iov_len = 0;
@@ -294,38 +358,42 @@ binlog_write_job(job j)
     /* we could save some bytes in the binlog file by only saving some parts of
      * the job struct */
     vec[2].iov_base = (char *) j;
-    vec[2].iov_len = sizeof(struct job);
-    to_write += sizeof(struct job);
+    to_write += vec[2].iov_len = sizeof(struct job);
+
+    printf("writing job %lld state %d\n", j->id, j->state);
 
     if (j->state == JOB_STATE_READY || j->state == JOB_STATE_DELAYED) {
         if (!j->binlog) {
             tube_namelen = strlen(j->tube->name);
-            vec[1].iov_len = tube_namelen;
-            to_write += tube_namelen;
+            to_write += vec[1].iov_len = tube_namelen;
             vcnt = 4;
             vec[3].iov_base = j->body;
-            vec[3].iov_len = j->body_size;
-            to_write += j->body_size;
+            to_write += vec[3].iov_len = j->body_size;
         }
     } else if (j->state == JOB_STATE_INVALID) {
         if (j->binlog) binlog_dref(j->binlog);
         j->binlog = NULL;
     } else {
-        return twarnx("unserializable job state: %d", j->state);
+        return twarnx("unserializable job state: %d", j->state), 0;
     }
 
-    if ((bytes_written + to_write) > binlog_size_limit) binlog_open_next();
-    if (binlog_fd < 0) return;
+    if (to_write > binlog_reserved) {
+        r = binlog_use_next();
+        if (!r) return twarnx("failed to use next binlog"), 0;
+    }
 
     if (j->state && !j->binlog) j->binlog = binlog_iref(last_binlog);
 
     while (to_write > 0) {
-        size_t written = writev(binlog_fd, vec, vcnt);
+        written = writev(binlog_fd, vec, vcnt);
 
         if (written < 0) {
-            twarn("Cannot write to binlog");
-            binlog_close();
-            return;
+            if (errno == EAGAIN) continue;
+            if (errno == EINTR) continue;
+
+            twarn("writev");
+            binlog_close_last();
+            return 0;
         }
 
         bytes_written += written;
@@ -339,8 +407,74 @@ binlog_write_job(job j)
             vptr->iov_len -= written;
         }
     }
+
+    return 1;
 }
 
+/* Returns the number of bytes successfully reserved: either 0 or n. */
+static size_t
+binlog_reserve_space(size_t n)
+{
+    /* This value must be nonzero but is otherwise ignored. */
+    if (binlog_fd < 0) return 1;
+
+    if (n <= binlog_space) {
+        binlog_space -= n;
+        binlog_reserved += n;
+        return n;
+    }
+
+    if (n <= next_binlog_space) {
+        next_binlog_space -= n;
+        next_binlog_reserved += n;
+        return n;
+    }
+
+    /* The next binlog is already allocated and it is full. */
+    if (next_binlog_fd >= 0) return 0;
+
+    /* open a new binlog with more space to reserve */
+    next_binlog = make_next_binlog();
+    if (!next_binlog) return twarnx("error making next binlog"), 0;
+    next_binlog_fd = binlog_open(next_binlog);
+
+    /* open failed, so we can't reserve any space */
+    if (next_binlog_fd < 0) return 0;
+
+    next_binlog_space = binlog_size_limit - bytes_written - n;
+    next_binlog_reserved = n;
+
+    return n;
+}
+
+/* Returns the number of bytes reserved. */
+size_t
+binlog_reserve_space_put(job j)
+{
+    size_t z = 0;
+
+    /* reserve space for the initial job record */
+    z += sizeof(size_t);
+    z += strlen(j->tube->name);
+    z += sizeof(struct job);
+    z += j->body_size;
+
+    /* plus space for a delete to come later */
+    z += sizeof(size_t);
+    z += sizeof(struct job);
+
+    return binlog_reserve_space(z);
+}
+
+size_t
+binlog_reserve_space_update(job j)
+{
+    size_t z = 0;
+
+    z += sizeof(size_t);
+    z += sizeof(struct job);
+    return binlog_reserve_space(z);
+}
 
 void
 binlog_read(job binlog_jobs)
@@ -372,7 +506,7 @@ binlog_read(job binlog_jobs)
             if (fd < 0) {
                 twarn("%s", path);
             } else {
-                b = binlog_iref(add_binlog(path));
+                b = binlog_iref(add_binlog(make_binlog(path)));
                 binlog_read_one(fd, binlog_jobs, path);
                 close(fd);
                 binlog_dref(b);
@@ -408,7 +542,14 @@ binlog_lock()
 void
 binlog_init()
 {
-    binlog_fd = binlog_open();
+    binlog log;
+
+    if (!binlog_dir) return;
+
+    log = make_next_binlog();
+    if (!log) return twarnx("error making first binlog");
+    binlog_fd = binlog_open(log);
+    if (binlog_fd >= 0) add_binlog(log);
 }
 
 const char *

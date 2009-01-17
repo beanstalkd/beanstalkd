@@ -426,7 +426,7 @@ set_main_delay_timeout()
 }
 
 static int
-enqueue_job(job j, unsigned int delay)
+enqueue_job(job j, unsigned int delay, char update_store)
 {
     int r;
 
@@ -447,21 +447,37 @@ enqueue_job(job j, unsigned int delay)
             j->tube->stat.urgent_ct++;
         }
     }
-    binlog_write_job(j);
+
+    if (update_store) {
+        r = binlog_write_job(j);
+        if (!r) return -1;
+    }
+
     process_queue();
     return 1;
 }
 
-static void
-bury_job(job j)
+static int
+bury_job(job j, char update_store)
 {
+    size_t z;
+
+    if (update_store) {
+        z = binlog_reserve_space_update(j);
+        if (!z) return 0;
+        j->reserved_binlog_space += z;
+    }
+
     job_insert(&j->tube->buried, j);
     global_stat.buried_ct++;
     j->tube->stat.buried_ct++;
     j->state = JOB_STATE_BURIED;
     j->reserver = NULL;
     j->bury_ct++;
-    binlog_write_job(j);
+
+    if (update_store) return binlog_write_job(j);
+
+    return 1;
 }
 
 void
@@ -472,8 +488,8 @@ enqueue_reserved_jobs(conn c)
 
     while (job_list_any_p(&c->reserved_jobs)) {
         j = job_remove(c->reserved_jobs.next);
-        r = enqueue_job(j, 0);
-        if (!r) bury_job(j);
+        r = enqueue_job(j, 0, 0);
+        if (r < 1) bury_job(j, 0);
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
         c->soonest_job = NULL;
@@ -493,15 +509,21 @@ kick_buried_job(tube t)
 {
     int r;
     job j;
+    size_t z;
 
     if (!buried_job_p(t)) return 0;
     j = remove_buried_job(t->buried.next);
+
+    z = binlog_reserve_space_update(j);
+    if (!z) return pq_give(&t->delay, j), 0; /* put it back */
+    j->reserved_binlog_space += z;
+
     j->kick_ct++;
-    r = enqueue_job(j, 0);
-    if (r) return 1;
+    r = enqueue_job(j, 0, 1);
+    if (r == 1) return 1;
 
     /* ready queue is full, so bury it */
-    bury_job(j);
+    bury_job(j, 0);
     return 0;
 }
 
@@ -524,19 +546,25 @@ kick_delayed_job(tube t)
 {
     int r;
     job j;
+    size_t z;
 
     j = pq_take(&t->delay);
     if (!j) return 0;
+
+    z = binlog_reserve_space_update(j);
+    if (!z) return pq_give(&t->delay, j), 0; /* put it back */
+    j->reserved_binlog_space += z;
+
     j->kick_ct++;
-    r = enqueue_job(j, 0);
-    if (r) return 1;
+    r = enqueue_job(j, 0, 1);
+    if (r == 1) return 1;
 
     /* ready queue is full, so delay it again */
-    r = enqueue_job(j, j->delay);
-    if (r) return 0;
+    r = enqueue_job(j, j->delay, 0);
+    if (r == 1) return 0;
 
     /* last resort */
-    bury_job(j);
+    bury_job(j, 0);
     return 0;
 }
 
@@ -745,16 +773,22 @@ enqueue_incoming_job(conn c)
         return reply_serr(c, MSG_DRAINING);
     }
 
+    if (j->reserved_binlog_space) return reply_serr(c, MSG_INTERNAL_ERROR);
+    j->reserved_binlog_space = binlog_reserve_space_put(j);
+    if (!j->reserved_binlog_space) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
     /* we have a complete job, so let's stick it in the pqueue */
-    r = enqueue_job(j, j->delay);
+    r = enqueue_job(j, j->delay, 1);
+    if (r < 0) return reply_serr(c, MSG_INTERNAL_ERROR);
+
     op_ct[OP_PUT]++; /* stats */
     global_stat.total_jobs_ct++;
     j->tube->stat.total_jobs_ct++;
 
-    if (r) return reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j->id);
+    if (r == 1) return reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j->id);
 
     /* out of memory trying to grow the queue, so it gets buried */
-    bury_job(j);
+    bury_job(j, 0);
     reply_line(c, STATE_SENDWORD, MSG_BURIED_FMT, j->id);
 }
 
@@ -1019,6 +1053,7 @@ static void
 dispatch_cmd(conn c)
 {
     int r, i, timeout = -1;
+    size_t z;
     unsigned int count;
     job j;
     unsigned char type;
@@ -1174,8 +1209,10 @@ dispatch_cmd(conn c)
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->state = JOB_STATE_INVALID;
-        binlog_write_job(j);
+        r = binlog_write_job(j);
         job_free(j);
+
+        if (!r) return reply_serr(c, MSG_INTERNAL_ERROR);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
         break;
@@ -1195,14 +1232,26 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
+        /* We want to update the delay deadline on disk, so reserve space for
+         * that. */
+        if (delay) {
+            z = binlog_reserve_space_update(j);
+            if (!z) return reply_serr(c, MSG_OUT_OF_MEMORY);
+            j->reserved_binlog_space += z;
+        }
+
         j->pri = pri;
         j->delay = delay;
         j->release_ct++;
-        r = enqueue_job(j, delay);
-        if (r) return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
+
+        r = enqueue_job(j, delay, !!delay);
+        if (r < 0) return reply_serr(c, MSG_INTERNAL_ERROR);
+        if (r == 1) {
+            return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
+        }
 
         /* out of memory trying to grow the queue, so it gets buried */
-        bury_job(j);
+        bury_job(j, 0);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
     case OP_BURY:
@@ -1219,7 +1268,8 @@ dispatch_cmd(conn c)
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->pri = pri;
-        bury_job(j);
+        r = bury_job(j, 1);
+        if (!r) return reply_serr(c, MSG_INTERNAL_ERROR);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
     case OP_KICK:
@@ -1399,8 +1449,8 @@ h_conn_timeout(conn c)
 
         timeout_ct++; /* stats */
         j->timeout_ct++;
-        r = enqueue_job(remove_this_reserved_job(c, j), 0);
-        if (!r) bury_job(j); /* there was no room in the queue, so bury it */
+        r = enqueue_job(remove_this_reserved_job(c, j), 0, 0);
+        if (r < 1) bury_job(j, 0); /* out of memory, so bury it */
         r = conn_update_evq(c, c->evq.ev_events);
         if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
     }
@@ -1590,8 +1640,8 @@ h_delay()
     while ((j = delay_q_peek())) {
         if (j->deadline > t) break;
         j = delay_q_take();
-        r = enqueue_job(j, 0);
-        if (!r) bury_job(j); /* there was no room in the queue, so bury it */
+        r = enqueue_job(j, 0, 0);
+        if (r < 1) bury_job(j, 0); /* out of memory, so bury it */
     }
 
     set_main_delay_timeout();
@@ -1642,28 +1692,27 @@ prot_init()
 }
 
 void
-prot_replay_binlog()
+prot_replay_binlog(job binlog_jobs)
 {
-    struct job binlog_jobs;
     job j, nj;
     unsigned int delay;
+    int r;
 
-    binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
-    binlog_read(&binlog_jobs);
-
-    for (j = binlog_jobs.next ; j != &binlog_jobs ; j = nj) {
+    for (j = binlog_jobs->next ; j != binlog_jobs ; j = nj) {
         nj = j->next;
         job_remove(j);
+        binlog_reserve_space_update(j); /* reserve space for a delete */
         delay = 0;
         switch (j->state) {
         case JOB_STATE_BURIED:
-            bury_job(j);
+            bury_job(j, 0);
             break;
         case JOB_STATE_DELAYED:
             if (start_time < j->deadline) delay = j->deadline - start_time;
             /* fall through */
         default:
-            enqueue_job(j,delay);
+            r = enqueue_job(j, delay, 0);
+            if (r < 1) twarnx("error processing binlog job %llu", j->id);
         }
     }
 }

@@ -35,6 +35,6 @@ void enqueue_reserved_jobs(conn c);
 void enter_drain_mode(int sig);
 void h_accept(const int fd, const short which, struct event *ev);
 void prot_remove_tube(tube t);
-void prot_replay_binlog();
+void prot_replay_binlog(job binlog_jobs);
 
 #endif /*prot_h*/

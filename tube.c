@@ -43,7 +43,8 @@ make_tube(const char *name)
 
     pq_init(&t->ready, job_pri_cmp);
     pq_init(&t->delay, job_delay_cmp);
-    t->buried = (struct job) { &t->buried, &t->buried, 0 };
+    t->buried = (struct job) { };
+    t->buried.prev = t->buried.next = &t->buried;
     ms_init(&t->waiting, NULL, NULL);
 
     t->stat = (struct stats) {0, 0, 0, 0};

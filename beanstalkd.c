@@ -255,6 +255,7 @@ main(int argc, char **argv)
 {
     int r;
     struct event_base *ev_base;
+    struct job binlog_jobs = {};
 
     progname = argv[0];
     opts(argc, argv);
@@ -278,8 +279,11 @@ main(int argc, char **argv)
     nudge_fd_limit();
 
     unbrake((evh) h_accept);
-    prot_replay_binlog();
+
+    binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
+    binlog_read(&binlog_jobs);
     binlog_init();
+    prot_replay_binlog(&binlog_jobs);
 
     if (detach) {
         daemonize();

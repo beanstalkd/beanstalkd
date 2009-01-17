@@ -32,8 +32,11 @@ typedef int(*job_cmp_fn)(job, job);
 #define JOB_STATE_BURIED 3
 #define JOB_STATE_DELAYED 4
 
+/* If you modify this struct, you MUST increment binlog format version in
+ * binlog.c. */
 struct job {
-    job prev, next; /* linked list of jobs */
+
+    /* persistent fields; these get written to the binlog */
     unsigned long long int id;
     unsigned int pri;
     unsigned int delay;
@@ -45,12 +48,19 @@ struct job {
     unsigned int release_ct;
     unsigned int bury_ct;
     unsigned int kick_ct;
-    tube tube;
-    void *reserver;
-    void *binlog;
     char state;
+
+    /* bookeeping fields; these are in-memory only */
+    char pad[6];
+    tube tube;
+    job prev, next; /* linked list of jobs */
     job ht_next; /* Next job in a hash table list */
-    size_t heap_index; /* where is this job in a heap */
+    size_t heap_index; /* where is this job in its current heap */
+    void *binlog;
+    void *reserver;
+    size_t reserved_binlog_space;
+
+    /* variable-size job data; written separately to the binlog */
     char body[];
 };
 
