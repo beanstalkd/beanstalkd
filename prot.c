@@ -373,7 +373,7 @@ next_eligible_job()
                 t->name, t->waiting.used, t->ready.used);
         if (t->waiting.used && t->ready.used) {
             candidate = pq_peek(&t->ready);
-            if (!j || candidate->id < j->id) j = candidate;
+            if (!j || job_pri_cmp(candidate, j) < 0) j = candidate;
         }
         dprintf("i = %zu, tubes.used = %zu\n", i, tubes.used);
     }
