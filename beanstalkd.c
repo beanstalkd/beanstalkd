@@ -155,7 +155,7 @@ usage(char *msg, char *arg)
             "\n"
             "Options:\n"
             " -d       detach\n"
-            /*" -b DIR   binlog directory\n"*/
+            " -b DIR   binlog directory\n"
             " -l ADDR  listen on address (default is 0.0.0.0)\n"
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
@@ -236,11 +236,9 @@ opts(int argc, char **argv)
             case 'u':
                 user = require_arg("-u", argv[++i]);
                 break;
-            /*
             case 'b':
                 binlog_dir = require_arg("-b", argv[++i]);
                 break;
-            */
             case 'h':
                 usage(NULL, NULL);
             case 'v':
