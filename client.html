@@ -1,0 +1,75 @@
+<html>
+<head>
+<title>Beanstalkd - Software - xph.us</title>
+<link rel="stylesheet" href="/style.css" type="text/css">
+</head>
+<body>
+
+<!--#include virtual="menu" -->
+
+<h2>Erlang</h2>
+
+<p>Tim Fletcher has written an <a
+href=http://tfletcher.com/dev/erlang-beanstalk>Erlang client library for
+beanstalk</a>.</p>
+
+<h2>OCaml</h2>
+
+<p>Dustin Sallings has put on GitHub an <a
+href="http://github.com/dustin/beanstalk-client-ocaml">OCaml client library for
+beanstalkd</a>.</p>
+
+<h2>Perl</h2>
+
+<p>CPAN has two Perl clients:</p>
+
+<ul>
+<li><a href=http://search.cpan.org/dist/Beanstalk-Client/>Beanstalk::Client</a>
+(supports protocol 1.0)</li>
+<li><a href=http://search.cpan.org/dist/Queue-Beanstalk/>Queue::Beanstalk</a>
+(supports protocol 0.6)</li>
+</ul>
+
+<h2>PHP</h2>
+
+<p>SourceForge contains the <a
+href="http://sourceforge.net/projects/beanstalk/">PHP client library for
+beanstalk</a>.</p>
+
+<h2>Python</h2>
+
+<p>Google Code hosts the <a href=http://code.google.com/p/pybeanstalk/>Python
+client library for beanstalk</a>.</p>
+
+<h2>Ruby</h2>
+
+<p>RubyForge is home to the <a href=http://beanstalk.rubyforge.org/>Ruby client
+library for beanstalk</a>.</p>
+
+<p>To install it, just type:</p>
+
+<pre>
+$ gem install beanstalk-client
+</pre>
+
+<p>If you use Rails, be sure to check out the <a
+href=http://async-observer.rubyforge.org/>Async Observer</a> Rails plugin.</p>
+
+<h2>Others</h2>
+
+<p>Make your own client API. It's easy! The <a
+href=http://github.com/kr/beanstalkd/tree/v1.2/doc/protocol.txt?raw=true>1.2
+protocol doc</a> gives a complete description of the beanstalk protocol.</p>
+
+<p><b>Note:</b> as of version 1.0 the protocol will remain compatible until
+beanstalkd 2.0. Any client written to work with a 1.x beanstalkd will also
+work, unchanged, with any later beanstalkd before 2.0.</p>
+
+<p>You can find the bleeding-edge latest <a
+href="http://github.com/kr/beanstalkd/tree/master/doc/protocol.txt">protocol.txt
+in git</a>.
+
+<!--#set var="project" value="beanstalkd" -->
+<!--#include virtual="/inc" -->
+</body>
+</html>

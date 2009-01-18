@@ -1,0 +1,56 @@
+<html>
+<head>
+<title>Beanstalkd 0.7 release notes</title>
+<link rel="stylesheet" href="/style.css" type="text/css">
+</head>
+<body>
+
+<h1>Beanstalkd 0.7 Release Notes</h1>
+
+<p><a href=..>Back to beanstalkd home page</a>.</p>
+
+<pre>
+I'm happy to announce beanstalkd 0.7.
+
+This is a small release with one protocol change. This server won't
+work with a client designed for any earlier beanstalkd.
+
+
+WHAT'S NEW
+----------
+
+ * Added "-u" option to switch user and drop privileges.
+ * Return buried job id during a put command.
+ * Build fix on Ubuntu (and probably others).
+
+
+OUR URLS
+--------
+
+Download the 0.7 tarball directly:
+<a
+href=http://xph.us/software/beanstalkd/rel/beanstalkd-0.7.tar.gz>http://xph.us/software/beanstalkd/rel/beanstalkd-0.7.tar.gz</a>
+
+Learn all about beanstalk:
+<a
+href=http://xph.us/software/beanstalkd/>http://xph.us/software/beanstalkd/</a>
+
+Talk about beanstalk development or use at:
+<a
+href=http://groups.google.com/group/beanstalk-talk>http://groups.google.com/group/beanstalk-talk</a>
+
+
+KNOWN BUGS
+----------
+
+ * The min heap data structure is not dynamically-sized. This means a
+   fixed hard limit on the number of ready jobs (by default set to
+   around 16 million).
+
+
+</pre>
+
+<!--#set var="project" value="beanstalkd" -->
+<!--#include virtual="/inc" -->
+</body>
+</html>

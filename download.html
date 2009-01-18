@@ -1,0 +1,78 @@
+<html>
+<head>
+<title>Beanstalkd - Software - xph.us</title>
+<link rel="stylesheet" href="/style.css" type="text/css">
+</head>
+<body>
+
+<!--#include virtual="menu" -->
+
+<h2>Source</h2>
+
+<p><tt>beanstalkd</tt> is distributed under the GNU GPL version 3.</p>
+
+<h3>Release 1.2</h3>
+
+<ul> <li><a href="rel/beanstalkd-1.2.tar.gz"><tt>beanstalkd-1.2.tar.gz</tt>
+(116,172 bytes)</a> released on 17 January 2009.<br>Read <a
+href=rel/notes-1.2.html>1.2 release notes</a>.</li> </ul>
+
+<p>Also requires <a href=http://monkey.org/~provos/libevent/>libevent</a>
+&mdash; beanstalk is currently developed with libevent version
+1.4.7-stable.</p>
+
+<h2>Packages</h2>
+
+<h3>Fedora 9 and Fedora 10</h3>
+
+<p>Just type:</p>
+
+<pre><code>su -c 'yum install beanstalkd'</code></pre>
+
+<h4>CentOS and RHEL</h4>
+
+<p>You can find beanstalk in the EPEL testing repository for now. It should be
+automatically pushed to stable before 15 Feb 2009.</p>
+
+<p><a href="http://fedoraproject.org/wiki/EPEL">Information on EPEL</a></p>
+
+<p><a href="http://fedoraproject.org/wiki/EPEL/FAQ#howtouse">How to use
+EPEL</a></p>
+
+<p>To install immediately on CentOS or RHEL:</p>
+
+<pre><code>su -c 'rpm -Uvh http://download.fedora.redhat.com/pub/epel/5/i386/epel-release-5-3.noarch.rpm'
+su -c 'yum install beanstalkd --enablerepo=epel-testing'</code></pre>
+
+<p>You can drop the <code>--enablerepo</code> bits when the next stable epel is
+pushed.</p>
+
+<h3>Gentoo</h3>
+
+<p>Please see <a
+href=http://bugs.gentoo.org/show_bug.cgi?id=208963>http://bugs.gentoo.org/show_bug.cgi?id=208963</a>
+for information.</p>
+
+<h2>Client libraries</h2>
+
+<p>See the <a href=client.html>client library</a> page to find a library for
+your favorite language.</p>
+
+<h2>Version Control</h2>
+
+<p>Browse the source online at <a
+href=http://github.com/kr/beanstalkd>http://github.com/kr/beanstalkd</a>.</p>
+
+<p>To get your own copy and start hacking, just run:</p>
+
+<pre>
+git clone git://github.com/kr/beanstalkd.git
+</pre>
+
+<p>You can also find beanstalkd source at <a
+href=http://repo.or.cz/w/beanstalkd.git>repo.or.cz/w/beanstalkd.git</a>.</p>
+
+<!--#set var="project" value="beanstalkd" -->
+<!--#include virtual="/inc" -->
+</body>
+</html>

@@ -1,0 +1,60 @@
+<html>
+<head>
+<title>Beanstalkd 1.0 release notes</title>
+<link rel="stylesheet" href="/style.css" type="text/css">
+</head>
+<body>
+
+<h1>Beanstalkd 1.0 Release Notes</h1>
+
+<p><a href=..>Back to beanstalkd home page</a>.</p>
+
+<pre>
+Here's beanstalkd 1.0.
+
+There will be no incompatible protocol changes until version 2.0.
+
+I'll make compatible protocol changes on a case-by-case basis. The rule is
+this: a client written for version 1.0 will work unmodified with any later 1.x
+release of beanstalkd.
+
+This version of the protocol *is* compatible with 0.10 and 0.11.
+
+
+WHAT'S NEW
+----------
+
+ * Fix documentation of max job size.
+ * Fix a crash in the kick command.
+ * Fix a crash in the put command when out of memory.
+ * Some 64-bit debug build fixes.
+
+
+OUR URLS
+--------
+
+Download the 1.0 tarball directly:
+<a
+href=http://xph.us/software/beanstalkd/rel/beanstalkd-1.0.tar.gz>http://xph.us/software/beanstalkd/rel/beanstalkd-1.0.tar.gz</a>
+
+Learn all about beanstalk:
+<a
+href=http://xph.us/software/beanstalkd/>http://xph.us/software/beanstalkd/</a>
+
+Talk about beanstalk development or use at:
+<a
+href=http://groups.google.com/group/beanstalk-talk>http://groups.google.com/group/beanstalk-talk</a>
+
+
+BUGS
+----
+
+ * Please report any bugs to <a
+   href=http://groups.google.com/group/beanstalk-talk>http://groups.google.com/group/beanstalk-talk</a>
+
+</pre>
+
+<!--#set var="project" value="beanstalkd" -->
+<!--#include virtual="/inc" -->
+</body>
+</html>
