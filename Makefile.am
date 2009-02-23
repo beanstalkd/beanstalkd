@@ -17,8 +17,8 @@ aux_sources = \
 beanstalkd_SOURCES = beanstalkd.c $(aux_sources)
 
 tests = \
-	$(srcdir)/tests/test_job.c \
-	$(srcdir)/tests/test_pq.c
+	tests/test_job.c \
+	tests/test_pq.c
 
 EXTRA_DIST = cut.c cutgen.c $(tests) cut.h sh-tests check.sh check-one.sh \
 	binlog.h \
@@ -48,7 +48,7 @@ cutgen: cutgen.c
 
 tests/cutcheck.c: $(tests) cutgen
 	mkdir -p tests
-	./cutgen -o tests/cutcheck.c $(tests)
+	./cutgen -o tests/cutcheck.c $(tests:%=$(srcdir)/%)
 
 tests/cutcheck: tests/cutcheck.o cut.o $(aux_sources:.c=.o) $(tests:.c=.o)
 	$(LINK) $^ $(beanstalkd_LDADD) $(LIBS)
