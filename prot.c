@@ -1385,7 +1385,7 @@ h_conn_timeout(conn c)
     /* Check if any reserved jobs have run out of time. We should do this
      * whether or not the client is waiting for a new reservation. */
     while ((j = soonest_job(c))) {
-        if (j->deadline > time(NULL)) break;
+        if (j->deadline >= time(NULL)) break;
 
         /* This job is in the middle of being written out. If we return it to
          * the ready queue, someone might free it before we finish writing it
