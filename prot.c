@@ -1426,7 +1426,7 @@ reset_conn(conn c)
     if (r == -1) return twarnx("update events failed"), conn_close(c);
 
     /* was this a peek or stats command? */
-    if (!has_reserved_this_job(c, c->out_job)) job_free(c->out_job);
+    if (c->out_job && !c->out_job->id) job_free(c->out_job);
     c->out_job = NULL;
 
     c->reply_sent = 0; /* now that we're done, reset this */
