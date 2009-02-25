@@ -1391,7 +1391,10 @@ h_conn_timeout(conn c)
          * the ready queue, someone might free it before we finish writing it
          * out to the socket. So we'll copy it here and free the copy when it's
          * done sending. */
-        if (j == c->out_job) c->out_job = job_copy(c->out_job);
+        if (j == c->out_job) {
+            c->out_job = job_copy(c->out_job);
+            c->out_job->id = 0;
+        }
 
         timeout_ct++; /* stats */
         j->timeout_ct++;
