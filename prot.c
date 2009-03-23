@@ -1385,7 +1385,17 @@ h_conn_timeout(conn c)
     /* Check if any reserved jobs have run out of time. We should do this
      * whether or not the client is waiting for a new reservation. */
     while ((j = soonest_job(c))) {
-        if (j->deadline > time(NULL)) break;
+        if (j->deadline >= time(NULL)) break;
+
+        /* This job is in the middle of being written out. If we return it to
+         * the ready queue, someone might free it before we finish writing it
+         * out to the socket. So we'll copy it here and free the copy when it's
+         * done sending. */
+        if (j == c->out_job) {
+            c->out_job = job_copy(c->out_job);
+            c->out_job->id = 0;
+        }
+
         timeout_ct++; /* stats */
         j->timeout_ct++;
         r = enqueue_job(remove_this_reserved_job(c, j), 0);
@@ -1426,7 +1436,7 @@ reset_conn(conn c)
     if (r == -1) return twarnx("update events failed"), conn_close(c);
 
     /* was this a peek or stats command? */
-    if (!has_reserved_this_job(c, c->out_job)) job_free(c->out_job);
+    if (c->out_job && !c->out_job->id) job_free(c->out_job);
     c->out_job = NULL;
 
     c->reply_sent = 0; /* now that we're done, reset this */
