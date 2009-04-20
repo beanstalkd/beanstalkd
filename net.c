@@ -33,7 +33,7 @@ make_server_socket(struct in_addr host_addr, int port)
 {
     int fd, flags, r;
     struct linger linger = {0, 0};
-    struct sockaddr_in addr;
+    struct sockaddr_in addr = {}; /* initialize to 0 */
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1) return twarn("socket()"), -1;
@@ -49,8 +49,6 @@ make_server_socket(struct in_addr host_addr, int port)
     setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &flags, sizeof flags);
     setsockopt(fd, SOL_SOCKET, SO_LINGER,   &linger, sizeof linger);
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof flags);
-
-    /*memset(&addr, 0, sizeof addr);*/
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
