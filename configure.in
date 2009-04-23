@@ -108,6 +108,10 @@ else
     AC_MSG_ERROR([event_get_version() is missing, check config.log for more details])
   ])
 
+  AC_CHECK_LIB([event], [event_reinit], [], [
+    AC_MSG_ERROR([beanstalkd requires libevent version 1.4.1 or later.])
+  ])
+
   if test -f "$LIBEVENT_DIR/$LIBDIR/libevent.so"; then
     LIBEVENT="$LIBEVENT_DIR/$LIBDIR/libevent.so";
   else 

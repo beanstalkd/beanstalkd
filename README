@@ -4,7 +4,7 @@ See http://xph.us/software/beanstalkd/ for general info.
 
 To build beanstalkd, type "./configure" then "make".
 
-Requires libevent 1.4 or later. You can find libevent at
+Requires libevent 1.4.1 or later. You can find libevent at
 http://www.monkey.org/~provos/libevent/.
 
 To install, copy the file "beanstalkd" anywhere you like.
