@@ -100,6 +100,14 @@ else
   CFLAGS="$CFLAGS -I$LIBEVENT_DIR/include"
   LIBS="$LIBS -levent"
 
+  AC_CHECK_LIB([socket], [bind], [
+    LIBS="$LIBS -lsocket"
+  ])
+
+  AC_CHECK_LIB([nsl], [inet_aton], [
+    LIBS="$LIBS -lnsl"
+  ])
+
   if test "$BEAN_RPATH" != "no"; then
     LDFLAGS="$LDFLAGS $ld_runpath_switch$LIBEVENT_DIR/$LIBDIR"
   fi

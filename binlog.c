@@ -28,6 +28,7 @@
 #include <sys/uio.h>
 #include <sys/stat.h>
 #include <stdarg.h>
+#include <limits.h>
 
 #include "tube.h"
 #include "job.h"
