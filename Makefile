@@ -1,3 +1,3 @@
 
 push:
-	rsync -av --exclude .git --exclude Makefile . xph.us:beanstalkd/.
+	rsync -av --delete --exclude .git --exclude Makefile . xph.us:beanstalkd/.

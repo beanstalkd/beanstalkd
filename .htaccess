@@ -1,0 +1,2 @@
+Options +Includes +MultiViews +ExecCGI
+AddHandler server-parsed .html
