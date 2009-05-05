@@ -118,7 +118,7 @@ binlog_warn(const char *msg, int fd, const char* path)
 }
 
 static void
-binlog_replay(int fd, job binlog_jobs, const char *path)
+binlog_read_one(int fd, job binlog_jobs, const char *path)
 {
     struct job js;
     tube t;
@@ -373,7 +373,7 @@ binlog_read(job binlog_jobs)
                 twarn("%s", path);
             } else {
                 b = binlog_iref(add_binlog(path));
-                binlog_replay(fd, binlog_jobs, path);
+                binlog_read_one(fd, binlog_jobs, path);
                 close(fd);
                 binlog_dref(b);
             }
