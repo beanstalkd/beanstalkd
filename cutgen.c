@@ -86,7 +86,7 @@ int NameAndTypeInTestList( char *name, TestType type )
 
 void AppendToTestList( char *name, TestType type )
 {
-   TestGroup *new, *cur;
+   TestGroup *cur;
    TestItem *newt;
 
    if (type == TYPE_BRINGUP) {

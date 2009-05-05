@@ -55,7 +55,7 @@ void cut_exit(void);
 
 void __cut_run(char *, cut_fn, cut_fn, char *, cut_fn, char *, int);
 void __cut_assert( char *, int, char *, char *, int );
-void *__cut_debug_value(const char *, const char *, int);
+void *__cut_debug_addr(const char *, const char *, int);
 
 #endif
 

@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <sys/wait.h>
 #include <errno.h>
 #include "cut.h"
@@ -104,16 +105,6 @@ static void print_character( char ch )
   fflush( stdout );
 }
 
-static void dot( void )
-{
-  print_character( '.' );
-}
-
-static void space( void )
-{
-  print_character( ' ' );
-}
-
 /* CUT Initialization and Takedown  Functions */
 
 void cut_init(const char *prog_name, int brkpoint )
@@ -149,7 +140,7 @@ void cut_exit( void )
         }
         printf("\n");
         rewind(to->file);
-        while (r = fread(buf, 1, BUF_SIZE, to->file)) {
+        while ((r = fread(buf, 1, BUF_SIZE, to->file))) {
             s = fwrite(buf, 1, r, stdout);
             if (r != s) die(3, "fwrite");
         }
@@ -218,7 +209,7 @@ collect(pid_t *pid, collect_fn fn, void *data)
     fflush(stdout);
     fflush(stderr);
 
-    if (*pid = fork()) {
+    if ((*pid = fork())) {
         if (*pid < 0) return 0;
         return out;
     } else {
