@@ -24,6 +24,7 @@
 #include <sys/resource.h>
 #include <sys/uio.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 #include "stat.h"
 #include "prot.h"
@@ -192,7 +193,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "uptime: %u\n" \
     "binlog-oldest-index: %s\n" \
     "binlog-current-index: %s\n" \
-    "binlog-max-size: %u\n" \
+    "binlog-max-size: %zu\n" \
     "\r\n"
 
 #define STATS_TUBE_FMT "---\n" \
