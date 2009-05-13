@@ -34,6 +34,7 @@
 #include "job.h"
 #include "binlog.h"
 #include "util.h"
+#include "config.h"
 
 /* max size we will create a log file */
 size_t binlog_size_limit = 10 << 20;
@@ -285,7 +286,12 @@ binlog_open(binlog log)
 
     if (fd < 0) return twarn("Cannot open binlog %s", log->path), -1;
 
+#ifdef HAVE_POSIX_FALLOCATE
     r = posix_fallocate(fd, 0, binlog_size_limit);
+#else
+    #warning no known method to preallocate files on this platform
+    r = 0;
+#endif
     if (r) {
         close(fd);
         binlog_dref(log);
