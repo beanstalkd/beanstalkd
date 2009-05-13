@@ -278,7 +278,7 @@ add_binlog(binlog b)
 static int
 binlog_open(binlog log)
 {
-    int fd, r;
+    int fd;
 
     if (!binlog_iref(log)) return -1;
 
@@ -287,17 +287,44 @@ binlog_open(binlog log)
     if (fd < 0) return twarn("Cannot open binlog %s", log->path), -1;
 
 #ifdef HAVE_POSIX_FALLOCATE
-    r = posix_fallocate(fd, 0, binlog_size_limit);
-#else
-    #warning no known method to preallocate files on this platform
-    r = 0;
-#endif
-    if (r) {
-        close(fd);
-        binlog_dref(log);
-        errno = r;
-        return twarn("Cannot allocate space for binlog %s", log->path), -1;
+    {
+        int r;
+        r = posix_fallocate(fd, 0, binlog_size_limit);
+        if (r) {
+            close(fd);
+            binlog_dref(log);
+            errno = r;
+            return twarn("Cannot allocate space for binlog %s", log->path), -1;
+        }
     }
+#else
+    /* Allocate space in a slow but portable way. */
+    {
+        size_t i;
+        ssize_t w;
+        off_t p;
+        #define ZERO_BUF_SIZE 512
+        char buf[ZERO_BUF_SIZE] = {}; /* initialize to zero */
+
+        for (i = 0; i < binlog_size_limit; i += w) {
+            w = write(fd, &buf, ZERO_BUF_SIZE);
+            if (w == -1) {
+                twarn("Cannot allocate space for binlog %s", log->path);
+                close(fd);
+                binlog_dref(log);
+                return -1;
+            }
+        }
+
+        p = lseek(fd, 0, SEEK_SET);
+        if (p == -1) {
+            twarn("lseek");
+            close(fd);
+            binlog_dref(log);
+            return -1;
+        }
+    }
+#endif
 
     bytes_written = write(fd, &binlog_version, sizeof(int));
 
