@@ -40,7 +40,7 @@ check-cut: tests/cutcheck
 	tests/cutcheck
 
 check-shell: $(program)
-	$(srcdir)/check.sh $(srcdir)/sh-tests/*.commands
+	$(srcdir)/check.sh $(srcdir)/sh-tests/*.{commands,sh}
 
 check: check-cut check-shell
 

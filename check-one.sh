@@ -10,6 +10,9 @@ nc='nc -q 1'
 commands="$1"; shift
 expected="$1"; shift
 
+# Allow generic tests to specify their own behavior completely.
+test -x $commands && exec $commands
+
 cleanup() {
     {
         test -z "$bpid" || kill -9 $bpid
