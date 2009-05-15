@@ -64,7 +64,11 @@ dfork()
 static void
 daemonize()
 {
-    chdir("/");
+    int r;
+
+    r = chdir("/");
+    if (r) return twarn("chdir");
+
     nullfd(0, O_RDONLY);
     nullfd(1, O_WRONLY);
     nullfd(2, O_WRONLY);
