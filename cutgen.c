@@ -95,6 +95,7 @@ void AppendToTestList( char *name, TestType type )
       new = malloc(sizeof(struct TestGroup));
       if (!new) terr("malloc");
 
+      new->tests = 0;
       new->next = test_groups;
       strcpy(new->name, name);
       test_groups = new;
