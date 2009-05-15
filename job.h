@@ -87,6 +87,9 @@ void job_insert(job head, job j);
 
 unsigned long long int total_jobs();
 
+/* for unit tests */
+size_t get_all_jobs_used();
+
 void job_init();
 
 #endif /*job_h*/

@@ -263,6 +263,13 @@ total_jobs()
     return next_id - 1;
 }
 
+/* for unit tests */
+size_t
+get_all_jobs_used()
+{
+    return all_jobs_used;
+}
+
 void
 job_init()
 {

@@ -225,56 +225,6 @@ collect(pid_t *pid, collect_fn fn, void *data)
 }
 
 static void
-exec(void *data)
-{
-    int r;
-
-    char **info = (char **) data;
-    r = execvp(info[0], info);
-    die(5, "Wrong execvp");
-}
-
-/* Read the full symbol table (not just the dynamic symbols) and return the
- * value of the specified symbol. If an error occurs, print an error message
- * and exit.
- *
- * We cheat by using "nm" to parse the symbol table of the file on disk.
- */
-void *
-__cut_debug_addr(const char *sym, const char *file, int line)
-{
-    void *val;
-    FILE *out;
-    pid_t pid;
-    int status, r;
-    char cmd[BUF_SIZE], s[BUF_SIZE];
-    char *args[] = { "sh", "-c", cmd, 0 };
-
-    sprintf(cmd, "nm %s | grep ' %s$'", program, sym);
-
-    out = collect(&pid, exec, args);
-    if (!out) die(1, "  %s:%d: collect", file, line);
-
-    pid = waitpid(pid, &status, 0);
-    if (pid < 1) die(1, "  %s:%d: wait", file, line);
-
-    rewind(out);
-    r = fread(s, 1, BUF_SIZE - 1, out);
-    if (!r) printf("  %s:%d: no symbol: %s\n", file, line, sym), exit(1);
-
-    s[r] = 0;
-
-    errno = 0;
-    val = (void *) strtoul(s, 0, 16);
-    if (errno) die(1, "  %s:%d: strtoul on ``%s''", file, line, s);
-    if (((size_t) val) < 100) {
-        die(1, "  %s:%d: strtoul on ``%s''", file, line, s);
-    }
-
-    return val;
-}
-
-static void
 run_in_child(void *data)
 {
     int r;
@@ -294,7 +244,7 @@ void
 __cut_run(char *group_name, cut_fn bringup, cut_fn takedown, char *test_name,
         cut_fn test, char *filename, int lineno)
 {
-    pid_t pid;
+    pid_t pid = -1;
     int status, r;
     FILE *out;
     test_output to;

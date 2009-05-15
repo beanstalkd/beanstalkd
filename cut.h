@@ -41,8 +41,6 @@ void cut_exit(void);
                           __FILE__, \
                           __LINE__);
 
-#define ADDR(S) (__cut_debug_addr(#S, __FILE__, __LINE__))
-
 #define ASSERT(X,msg)        __cut_assert(__FILE__,__LINE__,msg,#X,X)
 
 #define STATIC_ASSERT(X)  extern bool __static_ASSERT_at_line_##__LINE__##__[ (0!=(X))*2-1 ];
@@ -55,7 +53,6 @@ void cut_exit(void);
 
 void __cut_run(char *, cut_fn, cut_fn, char *, cut_fn, char *, int);
 void __cut_assert( char *, int, char *, char *, int );
-void *__cut_debug_addr(const char *, const char *, int);
 
 #endif
 

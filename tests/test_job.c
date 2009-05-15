@@ -97,19 +97,18 @@ void
 __CUT__job_test_all_jobs_used()
 {
     job j, x;
-    size_t *all_jobs_used_ptr = ADDR(all_jobs_used);
 
     j = make_job(0, 0, 1, 0, default_tube);
-    ASSERT(*all_jobs_used_ptr == 1, "should match");
+    ASSERT(get_all_jobs_used() == 1, "should match");
 
     x = allocate_job(10);
-    ASSERT(*all_jobs_used_ptr == 1, "should match");
+    ASSERT(get_all_jobs_used() == 1, "should match");
 
     job_free(x);
-    ASSERT(*all_jobs_used_ptr == 1, "should match");
+    ASSERT(get_all_jobs_used() == 1, "should match");
 
     job_free(j);
-    ASSERT(*all_jobs_used_ptr == 0, "should match");
+    ASSERT(get_all_jobs_used() == 0, "should match");
 }
 
 void
