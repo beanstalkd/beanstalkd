@@ -6,6 +6,7 @@ tmpdir="$TMPDIR"
 test -z "$tmpdir" && tmpdir=/tmp
 tmpf="${tmpdir}/bnch$$"
 nc='nc -q 1'
+nc -q 1 2>&1 | grep -q option && nc='nc -w 1' # workaround for older netcat
 
 commands="$1"; shift
 expected="$1"; shift
@@ -37,7 +38,7 @@ fi
 bpid=$!
 
 sleep .1
-if ! ps $bpid >/dev/null; then
+if ! ps -p $bpid >/dev/null; then
   echo "Could not start beanstalkd for testing, port $port is taken"
   exit 2
 fi

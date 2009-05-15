@@ -8,6 +8,7 @@ out1="${tmpdir}/bnch$$.1"
 out2="${tmpdir}/bnch$$.2"
 logdir="${tmpdir}/bnch$$.d"
 nc='nc -q 1'
+nc -q 1 2>&1 | grep -q option && nc='nc -w 1' # workaround for older netcat
 
 killbeanstalkd() {
     {
@@ -41,7 +42,7 @@ mkdir -p $logdir
 bpid=$!
 
 sleep .1
-if ! ps $bpid >/dev/null; then
+if ! ps -p $bpid >/dev/null; then
   echo "Could not start beanstalkd for testing (possibly port $port is taken)"
   exit 2
 fi
@@ -64,7 +65,7 @@ sleep .1
 bpid=$!
 
 sleep .1
-if ! ps $bpid >/dev/null; then
+if ! ps -p $bpid >/dev/null; then
   echo "Could not start beanstalkd for testing (possibly port $port is taken)"
   exit 2
 fi
