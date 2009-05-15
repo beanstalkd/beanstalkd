@@ -39,7 +39,7 @@
 static char *user = NULL;
 static int detach = 0;
 static int port = 11300;
-static struct in_addr host_addr = { INADDR_ANY };
+static struct in_addr host_addr;
 
 static void
 nullfd(int fd, int flags)
@@ -260,6 +260,8 @@ main(int argc, char **argv)
     int r;
     struct event_base *ev_base;
     struct job binlog_jobs = {};
+
+    host_addr.s_addr = INADDR_ANY;
 
     progname = argv[0];
     opts(argc, argv);

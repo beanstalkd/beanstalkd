@@ -186,7 +186,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-workers: %u\n" \
     "current-waiting: %u\n" \
     "total-connections: %u\n" \
-    "pid: %u\n" \
+    "pid: %ld\n" \
     "version: %s\n" \
     "rusage-utime: %d.%06d\n" \
     "rusage-stime: %d.%06d\n" \
@@ -839,7 +839,7 @@ fmt_stats(char *buf, size_t size, void *x)
             count_cur_workers(),
             global_stat.waiting_ct,
             count_tot_conns(),
-            getpid(),
+            (long) getpid(),
             VERSION,
             (int) ru.ru_utime.tv_sec, (int) ru.ru_utime.tv_usec,
             (int) ru.ru_stime.tv_sec, (int) ru.ru_stime.tv_usec,

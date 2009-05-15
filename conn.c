@@ -69,12 +69,12 @@ make_conn(int fd, char start_state, tube use, tube watch)
     conn c;
 
     c = conn_alloc();
-    if (!c) return twarn("OOM"), NULL;
+    if (!c) return twarn("OOM"), (conn) 0;
 
     ms_init(&c->watch, (ms_event_fn) on_watch, (ms_event_fn) on_ignore);
     if (!ms_append(&c->watch, watch)) {
         conn_free(c);
-        return twarn("OOM"), NULL;
+        return twarn("OOM"), (conn) 0;
     }
 
     c->use = NULL; /* initialize */

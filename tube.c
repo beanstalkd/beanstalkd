@@ -92,7 +92,7 @@ make_and_insert_tube(const char *name)
     /* We want this global tube list to behave like "weak" refs, so don't
      * increment the ref count. */
     r = ms_append(&tubes, t);
-    if (!r) return tube_dref(t), NULL;
+    if (!r) return tube_dref(t), (tube) 0;
 
     return t;
 }

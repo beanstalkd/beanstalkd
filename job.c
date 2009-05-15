@@ -106,7 +106,7 @@ allocate_job(int body_size)
     job j;
 
     j = malloc(sizeof(struct job) + body_size);
-    if (!j) return twarnx("OOM"), NULL;
+    if (!j) return twarnx("OOM"), (job) 0;
 
     j->id = 0;
     j->state = JOB_STATE_INVALID;
@@ -130,7 +130,7 @@ make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
     job j;
 
     j = allocate_job(body_size);
-    if (!j) return twarnx("OOM"), NULL;
+    if (!j) return twarnx("OOM"), (job) 0;
 
     if (id) {
         j->id = id;
@@ -203,7 +203,7 @@ job_copy(job j)
     if (!j) return NULL;
 
     n = malloc(sizeof(struct job) + j->body_size);
-    if (!n) return twarnx("OOM"), NULL;
+    if (!n) return twarnx("OOM"), (job) 0;
 
     memcpy(n, j, sizeof(struct job) + j->body_size);
     n->next = n->prev = n; /* not in a linked list */

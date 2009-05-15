@@ -244,7 +244,7 @@ make_binlog(char *path)
     binlog b;
 
     b = (binlog) malloc(sizeof(struct binlog) + strlen(path) + 1);
-    if (!b) return twarnx("OOM"), NULL;
+    if (!b) return twarnx("OOM"), (binlog) 0;
     strcpy(b->path, path);
     b->refs = 0;
     b->next = NULL;
@@ -260,7 +260,7 @@ make_next_binlog()
     if (!binlog_dir) return NULL;
 
     r = snprintf(path, PATH_MAX, "%s/binlog.%d", binlog_dir, ++binlog_index);
-    if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir), NULL;
+    if (r > PATH_MAX) return twarnx("path too long: %s", binlog_dir), (binlog)0;
 
     return make_binlog(path);
 }
