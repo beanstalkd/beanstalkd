@@ -1,4 +1,5 @@
 AUTOMAKE_OPTIONS = foreign no-dependencies subdir-objects
+ACLOCAL_AMFLAGS = -I m4
 
 program = beanstalkd
 
