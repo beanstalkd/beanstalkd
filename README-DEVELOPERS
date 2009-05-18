@@ -2,7 +2,7 @@ See doc/protocol.txt for details of the on-the-wire protocol.
 
 Ensure you have autoconf, automake, and libtool installed.
 
-The first time you build beanstalkd, you must first run "bash buildconf.sh".
+The first time you build beanstalkd, you must first run "./autogen.sh".
 
 Then, do the common "./configure" followed by "make".
 
