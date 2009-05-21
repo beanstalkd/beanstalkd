@@ -180,7 +180,7 @@ binlog_read_one(int fd, job binlog_jobs, const char *path)
             break;
         case JOB_STATE_READY:
         case JOB_STATE_DELAYED:
-            if (!j) {
+            if (!j && namelen > 0) {
                 t = tube_find_or_make(tubename);
                 j = make_job_with_id(js.pri, js.delay, js.ttr, js.body_size,
                                      t, js.id);
