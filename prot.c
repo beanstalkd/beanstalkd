@@ -67,6 +67,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_LIST_TUBE_USED "list-tube-used"
 #define CMD_LIST_TUBES_WATCHED "list-tubes-watched"
 #define CMD_STATS_TUBE "stats-tube "
+#define CMD_QUIT "quit"
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
@@ -148,7 +149,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_PEEK_DELAYED 19
 #define OP_RESERVE_TIMEOUT 20
 #define OP_TOUCH 21
-#define TOTAL_OPS 22
+#define OP_QUIT 22
+#define TOTAL_OPS 23
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -265,7 +267,8 @@ static const char * op_names[] = {
     CMD_PEEK_READY,
     CMD_PEEK_DELAYED,
     CMD_RESERVE_TIMEOUT,
-    CMD_TOUCH
+    CMD_TOUCH,
+    CMD_QUIT
 };
 #endif
 
@@ -718,6 +721,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_LIST_TUBES_WATCHED, OP_LIST_TUBES_WATCHED);
     TEST_CMD(c->cmd, CMD_LIST_TUBE_USED, OP_LIST_TUBE_USED);
     TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
+    TEST_CMD(c->cmd, CMD_QUIT, OP_QUIT);
     return OP_UNKNOWN;
 }
 
@@ -1410,6 +1414,9 @@ dispatch_cmd(conn c)
         t = NULL;
 
         reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
+        break;
+    case OP_QUIT:
+        conn_close(c);
         break;
     default:
         return reply_msg(c, MSG_UNKNOWN_COMMAND);
