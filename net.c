@@ -42,7 +42,7 @@ make_server_socket(struct in_addr host_addr, int port)
     if (flags < 0) return twarn("getting flags"), close(fd), -1;
 
     r = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    if (flags < 0) return twarn("setting O_NONBLOCK"), close(fd), -1;
+    if (r == -1) return twarn("setting O_NONBLOCK"), close(fd), -1;
 
     flags = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof flags);
