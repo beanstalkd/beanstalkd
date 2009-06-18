@@ -430,6 +430,8 @@ to scalars. It contains these keys:
    reserved or delayed. If the job is reserved and this amount of time
    elapses before its state changes, it is considered to have timed out.
 
+ - "reserves" is the number of times this job has been reserved.
+
  - "timeouts" is the number of times this job has timed out during a
    reservation.
 

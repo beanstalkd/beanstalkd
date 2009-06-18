@@ -44,6 +44,7 @@ struct job {
     int body_size;
     time_t creation;
     time_t deadline;
+    unsigned int reserve_ct;
     unsigned int timeout_ct;
     unsigned int release_ct;
     unsigned int bury_ct;

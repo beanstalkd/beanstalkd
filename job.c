@@ -111,7 +111,7 @@ allocate_job(int body_size)
     j->id = 0;
     j->state = JOB_STATE_INVALID;
     j->creation = time(NULL);
-    j->timeout_ct = j->release_ct = j->bury_ct = j->kick_ct = 0;
+    j->reserve_ct = j->timeout_ct = j->release_ct = j->bury_ct = j->kick_ct = 0;
     j->body_size = body_size;
     j->next = j->prev = j; /* not in a linked list */
     j->ht_next = NULL;

@@ -218,6 +218,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "delay: %u\n" \
     "ttr: %u\n" \
     "time-left: %u\n" \
+    "reserves: %u\n" \
     "timeouts: %u\n" \
     "releases: %u\n" \
     "buries: %u\n" \
@@ -350,6 +351,7 @@ reserve_job(conn c, job j)
     j->deadline = time(NULL) + j->ttr;
     global_stat.reserved_ct++; /* stats */
     j->tube->stat.reserved_ct++;
+    j->reserve_ct++;
     conn_insert(&running, c);
     j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
@@ -980,6 +982,7 @@ fmt_job_stats(char *buf, size_t size, job j)
             j->delay,
             j->ttr,
             (unsigned int) (j->deadline - t),
+            j->reserve_ct,
             j->timeout_ct,
             j->release_ct,
             j->bury_ct,
