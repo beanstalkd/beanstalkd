@@ -167,7 +167,7 @@ job_free(job j)
 {
     if (j) {
         TUBE_ASSIGN(j->tube, NULL);
-        if (j->id) job_hash_free(j);
+        if (j->state != JOB_STATE_COPY) job_hash_free(j);
     }
 
     free(j);
@@ -212,6 +212,9 @@ job_copy(job j)
 
     n->tube = 0; /* Don't use memcpy for the tube, which we must refcount. */
     TUBE_ASSIGN(n->tube, j->tube);
+
+    /* Mark this job as a copy so it can be appropriately freed later on */
+    n->state = JOB_STATE_COPY;
 
     return n;
 }

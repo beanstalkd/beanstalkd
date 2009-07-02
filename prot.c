@@ -1447,7 +1447,6 @@ h_conn_timeout(conn c)
          * done sending. */
         if (j == c->out_job) {
             c->out_job = job_copy(c->out_job);
-            c->out_job->id = 0;
         }
 
         timeout_ct++; /* stats */
@@ -1490,7 +1489,7 @@ reset_conn(conn c)
     if (r == -1) return twarnx("update events failed"), conn_close(c);
 
     /* was this a peek or stats command? */
-    if (c->out_job && !c->out_job->id) job_free(c->out_job);
+    if (c->out_job && c->out_job->state == JOB_STATE_COPY) job_free(c->out_job);
     c->out_job = NULL;
 
     c->reply_sent = 0; /* now that we're done, reset this */

@@ -31,6 +31,7 @@ typedef int(*job_cmp_fn)(job, job);
 #define JOB_STATE_RESERVED 2
 #define JOB_STATE_BURIED 3
 #define JOB_STATE_DELAYED 4
+#define JOB_STATE_COPY 5
 
 /* If you modify this struct, you MUST increment binlog format version in
  * binlog.c. */
