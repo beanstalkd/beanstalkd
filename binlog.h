@@ -21,18 +21,10 @@
 
 #include "job.h"
 
-typedef struct binlog *binlog;
-
-struct binlog {
-  binlog next;
-  unsigned int refs;
-  char path[];
-};
-
 extern char *binlog_dir;
 extern size_t binlog_size_limit;
 
-void binlog_init();
+void binlog_init(job binlog_jobs);
 
 /* Return the number of locks acquired: either 0 or 1. */
 int binlog_lock();
@@ -42,8 +34,7 @@ int binlog_write_job(job j);
 size_t binlog_reserve_space_put(job j);
 size_t binlog_reserve_space_update(job j);
 
-void binlog_read(job binlog_jobs);
-void binlog_close();
+void binlog_shutdown();
 const char *binlog_oldest_index();
 const char *binlog_current_index();
 

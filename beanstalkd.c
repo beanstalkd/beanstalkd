@@ -98,7 +98,7 @@ su(const char *user) {
 void
 exit_cleanly(int sig)
 {
-    binlog_close();
+    binlog_shutdown();
     exit(0);
 }
 
@@ -287,8 +287,7 @@ main(int argc, char **argv)
     unbrake((evh) h_accept);
 
     binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
-    binlog_read(&binlog_jobs);
-    binlog_init();
+    binlog_init(&binlog_jobs);
     prot_replay_binlog(&binlog_jobs);
 
     if (detach) {
@@ -297,7 +296,7 @@ main(int argc, char **argv)
     }
 
     event_dispatch();
-    binlog_close();
+    binlog_shutdown();
     twarnx("got here for some reason");
     return 0;
 }
