@@ -531,16 +531,21 @@ maintain_invariant(size_t n)
 
         r = ensure_free_space(to_move);
         if (r != to_move) {
-            /* TODO unreserve n bytes */
-            return twarnx("ensure_free_space"), 0;
+            twarnx("ensure_free_space");
+            if (newest_binlog->reserved >= n) {
+                newest_binlog->reserved -= n;
+            } else {
+                twarnx("failed to unreserve %zd bytes", n); /* can't happen */
+            }
+            return 0;
         }
 
         move_reserved(to_move, current_binlog, newest_binlog);
         binlog_use_next();
     }
 
-    /* Invariant 2. */
 
+    /* Invariant 2. */
 
     z = sizeof(size_t) + sizeof(struct job);
     reserved_later = current_binlog->reserved - n;
@@ -554,8 +559,13 @@ maintain_invariant(size_t n)
 
     r = ensure_free_space(remainder);
     if (r != remainder) {
-        /* TODO unreserve n bytes */
-        return twarnx("ensure_free_space"), 0;
+        twarnx("ensure_free_space");
+        if (newest_binlog->reserved >= n) {
+            newest_binlog->reserved -= n;
+        } else {
+            twarnx("failed to unreserve %zd bytes", n); /* can't happen */
+        }
+        return 0;
     }
     move_reserved(remainder, current_binlog, newest_binlog);
 
