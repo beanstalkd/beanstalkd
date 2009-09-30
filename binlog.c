@@ -452,6 +452,8 @@ binlog_write_job(job j)
             vptr->iov_base = (char *) vptr->iov_base + written;
             vptr->iov_len -= written;
         }
+        current_binlog->reserved -= written;
+        j->reserved_binlog_space -= written;
     }
 
     return 1;
