@@ -381,8 +381,13 @@ binlog_shutdown()
     binlog_close(current_binlog);
 }
 
-/* Returns the number of jobs successfully written (either 0 or 1). */
-/* If we are not using the binlog at all (!current_binlog), then we pretend to
+/* Returns the number of jobs successfully written (either 0 or 1).
+
+   If this fails, something is seriously wrong. It should never fail because of
+   a full disk. (The binlog_reserve_space_* functions, on the other hand, can
+   fail because of a full disk.)
+
+   If we are not using the binlog at all (!current_binlog), then we pretend to
    have made a successful write and return 1. */
 int
 binlog_write_job(job j)
