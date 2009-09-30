@@ -164,9 +164,10 @@ usage(char *msg, char *arg)
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
             " -z SIZE  set the maximum job size in bytes (default is %d)\n"
+            " -s SIZE  set the size of each binlog file (default is %d)\n"
             " -v       show version information\n"
             " -h       show this help\n",
-            progname, JOB_DATA_SIZE_LIMIT_DEFAULT);
+            progname, JOB_DATA_SIZE_LIMIT_DEFAULT, BINLOG_SIZE_LIMIT_DEFAULT);
     exit(arg ? 5 : 0);
 }
 
@@ -236,6 +237,9 @@ opts(int argc, char **argv)
             case 'z':
                 job_data_size_limit = parse_size_t(require_arg("-z",
                                                                argv[++i]));
+                break;
+            case 's':
+                binlog_size_limit = parse_size_t(require_arg("-s", argv[++i]));
                 break;
             case 'u':
                 user = require_arg("-u", argv[++i]);

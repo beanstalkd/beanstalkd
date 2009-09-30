@@ -48,7 +48,7 @@ struct binlog {
 };
 
 /* max size we will create a log file */
-size_t binlog_size_limit = 10 << 20;
+size_t binlog_size_limit = BINLOG_SIZE_LIMIT_DEFAULT;
 
 char *binlog_dir = NULL;
 static int binlog_index = 0;
@@ -245,8 +245,8 @@ binlog_close(binlog b)
     if (!b) return;
     if (b->fd < 0) return;
     close(b->fd);
-    binlog_dref(b);
     b->fd = -1;
+    binlog_dref(b);
 }
 
 static binlog
@@ -295,6 +295,8 @@ binlog_open(binlog log, size_t *written)
     int fd;
     size_t bytes_written;
 
+    if (written) *written = 0;
+
     if (!binlog_iref(log)) return;
 
     fd = open(log->path, O_WRONLY | O_CREAT, 0400);
@@ -342,6 +344,7 @@ binlog_open(binlog log, size_t *written)
 #endif
 
     bytes_written = write(fd, &binlog_version, sizeof(int));
+    if (written) *written = bytes_written;
 
     if (bytes_written < sizeof(int)) {
         twarn("Cannot write to binlog");
@@ -350,7 +353,6 @@ binlog_open(binlog log, size_t *written)
         return;
     }
 
-    if (written) *written = bytes_written;
     log->fd = fd;
 }
 
@@ -410,8 +412,6 @@ binlog_write_job(job j)
      * the job struct */
     vec[2].iov_base = (char *) j;
     to_write += vec[2].iov_len = sizeof(struct job);
-
-    printf("writing job %lld state %d\n", j->id, j->state);
 
     if (j->state == JOB_STATE_READY || j->state == JOB_STATE_DELAYED) {
         if (!j->binlog) {
@@ -506,7 +506,7 @@ ensure_free_space(size_t n)
 {
     binlog fb;
 
-    if (newest_binlog->free >= n) return n;
+    if (newest_binlog && newest_binlog->free >= n) return n;
 
     /* open a new binlog */
     fb = make_future_binlog();
@@ -657,6 +657,7 @@ binlog_init(job binlog_jobs)
     int binlog_index_min;
     struct stat sbuf;
     int fd, idx, r;
+    size_t n;
     char path[PATH_MAX];
     binlog b;
 
@@ -696,12 +697,10 @@ binlog_init(job binlog_jobs)
 
 
     /* Set up for writing out new jobs */
+    n = ensure_free_space(1);
+    if (!n) return twarnx("error making first writable binlog");
 
-    b = make_next_binlog();
-    if (!b) return twarnx("error making first binlog");
-    binlog_open(b, 0);
-    if (b->fd >= 0) add_binlog(b);
-    current_binlog = b;
+    current_binlog = newest_binlog;
 }
 
 const char *

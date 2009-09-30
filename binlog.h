@@ -23,6 +23,7 @@
 
 extern char *binlog_dir;
 extern size_t binlog_size_limit;
+#define BINLOG_SIZE_LIMIT_DEFAULT (10 << 20)
 
 void binlog_init(job binlog_jobs);
 
