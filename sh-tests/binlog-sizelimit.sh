@@ -11,6 +11,13 @@ logdir="${tmpdir}/bnch$$.d"
 nc='nc -q 1'
 nc -q 1 2>&1 | grep -q option && nc='nc -w 1' # workaround for older netcat
 
+fail() {
+    printf 'On line '
+    caller
+    echo ' ' "$@"
+    exit 1
+}
+
 killbeanstalkd() {
     {
         test -z "$bpid" || kill -9 $bpid
@@ -27,6 +34,11 @@ cleanup() {
 catch() {
     echo '' Interrupted
     exit 3
+}
+
+# Yuck.
+fsize() {
+    ls -l -- "$@" | awk '{ print $5 }'
 }
 
 trap cleanup EXIT
@@ -49,7 +61,7 @@ if ! ps -p $bpid >/dev/null; then
 fi
 
 # Check that the first binlog file is the proper size.
-test "$(stat --printf=%s "$logdir"/binlog.1)" -eq $size || exit 1
+test "$(fsize "$logdir"/binlog.1)" -eq $size || fail first binlog wrong size
 
 # Insert enough jobs to create a second binlog file
 $nc $server $port <<EOF > "$out1"
@@ -121,10 +133,10 @@ res=$?
 test "$res" -eq 0 || exit $res
 
 # Check that the first binlog file is still the proper size.
-test "$(stat --printf=%s "$logdir"/binlog.1)" -eq $size || exit 1
+test "$(fsize "$logdir"/binlog.1)" -eq $size || fail first binlog changed
 
 # Check that the second binlog file is the proper size.
-test "$(stat --printf=%s "$logdir"/binlog.2)" -eq $size || exit 1
+test "$(fsize "$logdir"/binlog.2)" -eq $size || fail second binlog changed
 
 killbeanstalkd
 

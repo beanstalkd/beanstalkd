@@ -12,7 +12,7 @@ logdir="${tmpdir}/bnch$$.d"
 nc='nc -q 1'
 nc -q 1 2>&1 | grep -q option && nc='nc -w 1' # workaround for older netcat
 
-if test `type -t fiu-run` = unfound
+if test "`type -t fiu-run`" = ''
 then
   echo ...skipped. '(requires fiu tools from http://blitiri.com.ar/p/libfiu/)'
   exit 0
@@ -41,6 +41,11 @@ cleanup() {
 catch() {
     echo '' Interrupted
     exit 3
+}
+
+# Yuck.
+fsize() {
+    ls -l -- "$@" | awk '{ print $5 }'
 }
 
 trap cleanup EXIT
@@ -87,7 +92,7 @@ res=$?
 test "$res" -eq 0 || exit $res
 
 # Check that the second binlog file is present
-test "$(stat --printf=%s "$logdir"/binlog.2)" -eq $size || {
+test "$(fsize "$logdir"/binlog.2)" -eq $size || {
     fail Second binlog file is missing
 }
 
