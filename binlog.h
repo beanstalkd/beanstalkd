@@ -25,6 +25,9 @@ extern char *binlog_dir;
 extern size_t binlog_size_limit;
 #define BINLOG_SIZE_LIMIT_DEFAULT (10 << 20)
 
+extern int enable_fsync;
+extern size_t fsync_throttle_ms;
+
 void binlog_init(job binlog_jobs);
 
 /* Return the number of locks acquired: either 0 or 1. */

@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <event.h>
+#include <limits.h>
 
 #include "net.h"
 #include "util.h"
@@ -160,6 +161,9 @@ usage(char *msg, char *arg)
             "Options:\n"
             " -d       detach\n"
             " -b DIR   binlog directory\n"
+            " -f MS    fsync at most once every MS milliseconds"
+                       " (use -f 0 for \"always fsync\")\n"
+            " -F       never fsync (default)\n"
             " -l ADDR  listen on address (default is 0.0.0.0)\n"
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
@@ -240,6 +244,13 @@ opts(int argc, char **argv)
                 break;
             case 's':
                 binlog_size_limit = parse_size_t(require_arg("-s", argv[++i]));
+                break;
+            case 'f':
+                fsync_throttle_ms = parse_size_t(require_arg("-f", argv[++i]));
+                enable_fsync = 1;
+                break;
+            case 'F':
+                enable_fsync = 0;
                 break;
             case 'u':
                 user = require_arg("-u", argv[++i]);

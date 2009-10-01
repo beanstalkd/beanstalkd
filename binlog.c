@@ -57,6 +57,10 @@ struct binlog {
 /* max size we will create a log file */
 size_t binlog_size_limit = BINLOG_SIZE_LIMIT_DEFAULT;
 
+int enable_fsync = 0;
+size_t fsync_throttle_ms = 0;
+uint64_t last_fsync = 0;
+
 char *binlog_dir = NULL;
 static int binlog_index = 0;
 static int binlog_version = 3;
@@ -407,6 +411,7 @@ binlog_write_job(job j)
     size_t tube_namelen, to_write = 0;
     struct iovec vec[4], *vptr;
     int vcnt = 3, r;
+    uint64_t now;
 
     if (!current_binlog) return 1;
     tube_namelen = 0;
@@ -466,6 +471,13 @@ binlog_write_job(job j)
         }
         current_binlog->reserved -= written;
         j->reserved_binlog_space -= written;
+    }
+
+    now = now_usec() / 1000; /* usec -> msec */
+    if (enable_fsync && now - last_fsync >= fsync_throttle_ms) {
+        r = fdatasync(current_binlog->fd);
+        if (r == -1) return twarn("fdatasync"), 0;
+        last_fsync = now;
     }
 
     return 1;
