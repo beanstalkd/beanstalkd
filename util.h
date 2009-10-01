@@ -26,6 +26,7 @@
 #endif /* else we get int types from config.h */
 
 #include <stdlib.h>
+#include <sys/time.h>
 
 #define min(a,b) ((a)<(b)?(a):(b))
 
