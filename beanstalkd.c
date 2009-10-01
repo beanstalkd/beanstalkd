@@ -125,6 +125,10 @@ set_sig_handlers()
     sa.sa_handler = exit_cleanly;
     r = sigaction(SIGINT, &sa, 0);
     if (r == -1) twarn("sigaction(SIGINT)"), exit(111);
+
+    sa.sa_handler = exit_cleanly;
+    r = sigaction(SIGTERM, &sa, 0);
+    if (r == -1) twarn("sigaction(SIGTERM)"), exit(111);
 }
 
 /* This is a workaround for a mystifying workaround in libevent's epoll
