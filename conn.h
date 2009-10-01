@@ -20,7 +20,6 @@
 #define conn_h
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <event.h>
 #include "ms.h"
 #include "tube.h"

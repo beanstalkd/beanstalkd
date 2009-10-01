@@ -25,7 +25,7 @@
 # include <stdint.h>
 #endif /* else we get int types from config.h */
 
-#include <time.h>
+#include "util.h"
 
 typedef struct job *job;
 typedef int(*job_cmp_fn)(job, job);
@@ -46,11 +46,11 @@ struct job {
     /* persistent fields; these get written to the binlog */
     uint64_t id;
     uint32_t pri;
-    uint32_t delay;
-    uint32_t ttr;
+    usec delay;
+    usec ttr;
     int32_t body_size;
-    time_t creation;
-    time_t deadline;
+    usec created_at;
+    usec deadline_at;
     uint32_t reserve_ct;
     uint32_t timeout_ct;
     uint32_t release_ct;
@@ -75,7 +75,7 @@ struct job {
 #define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
 
 job allocate_job(int body_size);
-job make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
+job make_job_with_id(unsigned int pri, usec delay, usec ttr,
              int body_size, tube tube, uint64_t id);
 void job_free(job j);
 

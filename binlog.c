@@ -63,7 +63,7 @@ uint64_t last_fsync = 0;
 
 char *binlog_dir = NULL;
 static int binlog_index = 0;
-static int binlog_version = 4;
+static int binlog_version = 5;
 static int lock_fd;
 
 static binlog oldest_binlog = 0,
@@ -208,7 +208,7 @@ binlog_read_log_file(binlog b, job binlog_jobs)
                 j = make_job_with_id(js.pri, js.delay, js.ttr, js.body_size,
                                      t, js.id);
                 j->next = j->prev = j;
-                j->creation = js.creation;
+                j->created_at = js.created_at;
                 job_insert(binlog_jobs, j);
             }
             if (js.body_size) {
@@ -234,7 +234,7 @@ binlog_read_log_file(binlog b, job binlog_jobs)
         }
         if (j) {
             j->state = js.state;
-            j->deadline = js.deadline;
+            j->deadline_at = js.deadline_at;
             j->pri = js.pri;
             j->delay = js.delay;
             j->ttr = js.ttr;

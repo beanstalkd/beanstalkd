@@ -110,7 +110,7 @@ allocate_job(int body_size)
 
     j->id = 0;
     j->state = JOB_STATE_INVALID;
-    j->creation = time(NULL);
+    j->created_at = now_usec();
     j->reserve_ct = j->timeout_ct = j->release_ct = j->bury_ct = j->kick_ct = 0;
     j->body_size = body_size;
     j->next = j->prev = j; /* not in a linked list */
@@ -124,7 +124,7 @@ allocate_job(int body_size)
 }
 
 job
-make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
+make_job_with_id(unsigned int pri, usec delay, usec ttr,
                  int body_size, tube tube, uint64_t id)
 {
     job j;
@@ -188,8 +188,8 @@ job_pri_cmp(job a, job b)
 int
 job_delay_cmp(job a, job b)
 {
-    if (a->deadline > b->deadline) return 1;
-    if (a->deadline < b->deadline) return -1;
+    if (a->deadline_at > b->deadline_at) return 1;
+    if (a->deadline_at < b->deadline_at) return -1;
     if (a->id > b->id) return 1;
     if (a->id < b->id) return -1;
     return 0;

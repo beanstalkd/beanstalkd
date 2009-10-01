@@ -214,10 +214,10 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "tube: %s\n" \
     "state: %s\n" \
     "pri: %u\n" \
-    "age: %u\n" \
-    "delay: %u\n" \
-    "ttr: %u\n" \
-    "time-left: %u\n" \
+    "age: %llu\n" \
+    "delay: %llu\n" \
+    "ttr: %llu\n" \
+    "time-left: %llu\n" \
     "reserves: %u\n" \
     "timeouts: %u\n" \
     "releases: %u\n" \
@@ -236,7 +236,7 @@ static struct stats global_stat = {0, 0, 0, 0, 0};
 static tube default_tube;
 
 static int drain_mode = 0;
-static time_t start_time;
+static usec started_at;
 static uint64_t op_ct[TOTAL_OPS], timeout_ct = 0;
 
 
@@ -348,7 +348,7 @@ remove_waiting_conn(conn c)
 static void
 reserve_job(conn c, job j)
 {
-    j->deadline = time(NULL) + j->ttr;
+    j->deadline_at = now_usec() + j->ttr;
     global_stat.reserved_ct++; /* stats */
     j->tube->stat.reserved_ct++;
     j->reserve_ct++;
@@ -356,7 +356,7 @@ reserve_job(conn c, job j)
     j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
     j->reserver = c;
-    if (c->soonest_job && j->deadline < c->soonest_job->deadline) {
+    if (c->soonest_job && j->deadline_at < c->soonest_job->deadline_at) {
         c->soonest_job = j;
     }
     return reply_job(c, j, MSG_RESERVED);
@@ -413,7 +413,7 @@ delay_q_peek()
         t = tubes.items[i];
         nj = pq_peek(&t->delay);
         if (!nj) continue;
-        if (!j || nj->deadline < j->deadline) j = nj;
+        if (!j || nj->deadline_at < j->deadline_at) j = nj;
     }
 
     return j;
@@ -424,17 +424,17 @@ set_main_delay_timeout()
 {
     job j;
 
-    set_main_timeout((j = delay_q_peek()) ? j->deadline : 0);
+    set_main_timeout((j = delay_q_peek()) ? j->deadline_at : 0);
 }
 
 static int
-enqueue_job(job j, unsigned int delay, char update_store)
+enqueue_job(job j, usec delay, char update_store)
 {
     int r;
 
     j->reserver = NULL;
     if (delay) {
-        j->deadline = time(NULL) + delay;
+        j->deadline_at = now_usec() + delay;
         r = pq_give(&j->tube->delay, j);
         if (!r) return 0;
         j->state = JOB_STATE_DELAYED;
@@ -648,7 +648,7 @@ touch_job(conn c, job j)
 {
     j = find_reserved_job_in_conn(c, j);
     if (j) {
-        j->deadline = time(NULL) + j->ttr;
+        j->deadline_at = now_usec() + j->ttr;
         c->soonest_job = NULL;
     }
     return j;
@@ -797,7 +797,7 @@ enqueue_incoming_job(conn c)
 static unsigned int
 uptime()
 {
-    return time(NULL) - start_time;
+    return (now_usec() - started_at) / 1000000;
 }
 
 static int
@@ -881,20 +881,25 @@ read_pri(unsigned int *pri, const char *buf, char **end)
 }
 
 /* Read a delay value from the given buffer and place it in delay.
- * The interface and behavior are the same as in read_pri(). */
+ * The interface and behavior are analogous to read_pri(). */
 static int
-read_delay(unsigned int *delay, const char *buf, char **end)
+read_delay(usec *delay, const char *buf, char **end)
 {
-    time_t now = time(NULL);
-    return read_pri(delay, buf, end) ? : (now + *delay < now);
+    int r;
+    unsigned int delay_sec;
+
+    r = read_pri(&delay_sec, buf, end);
+    if (r) return r;
+    *delay = delay_sec * 1000000;
+    return 0;
 }
 
 /* Read a timeout value from the given buffer and place it in ttr.
- * The interface and behavior are the same as in read_pri(). */
+ * The interface and behavior are the same as in read_delay(). */
 static int
-read_ttr(unsigned int *ttr, const char *buf, char **end)
+read_ttr(usec *ttr, const char *buf, char **end)
 {
-    return read_pri(ttr, buf, end);
+    return read_delay(ttr, buf, end);
 }
 
 static void
@@ -970,18 +975,18 @@ do_list_tubes(conn c, ms l)
 static int
 fmt_job_stats(char *buf, size_t size, job j)
 {
-    time_t t;
+    usec t;
 
-    t = time(NULL);
+    t = now_usec();
     return snprintf(buf, size, JOB_STATS_FMT,
             j->id,
             j->tube->name,
             job_state(j),
             j->pri,
-            (unsigned int) (t - j->creation),
-            j->delay,
-            j->ttr,
-            (unsigned int) (j->deadline - t),
+            (t - j->created_at) / 1000000,
+            j->delay / 1000000,
+            j->ttr / 1000000,
+            (j->deadline_at - t) / 1000000,
             j->reserve_ct,
             j->timeout_ct,
             j->release_ct,
@@ -1061,7 +1066,8 @@ dispatch_cmd(conn c)
     job j;
     unsigned char type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
-    unsigned int pri, delay, ttr, body_size;
+    unsigned int pri, body_size;
+    usec delay, ttr;
     uint64_t id;
     tube t = NULL;
 
@@ -1439,7 +1445,7 @@ h_conn_timeout(conn c)
     /* Check if any reserved jobs have run out of time. We should do this
      * whether or not the client is waiting for a new reservation. */
     while ((j = soonest_job(c))) {
-        if (j->deadline >= time(NULL)) break;
+        if (j->deadline_at >= now_usec()) break;
 
         /* This job is in the middle of being written out. If we return it to
          * the ready queue, someone might free it before we finish writing it
@@ -1636,11 +1642,11 @@ h_delay()
 {
     int r;
     job j;
-    time_t t;
+    usec t;
 
-    t = time(NULL);
+    t = now_usec();
     while ((j = delay_q_peek())) {
-        if (j->deadline > t) break;
+        if (j->deadline_at > t) break;
         j = delay_q_take();
         r = enqueue_job(j, 0, 0);
         if (r < 1) bury_job(j, 0); /* out of memory, so bury it */
@@ -1684,7 +1690,7 @@ h_accept(const int fd, const short which, struct event *ev)
 void
 prot_init()
 {
-    start_time = time(NULL);
+    started_at = now_usec();
     memset(op_ct, 0, sizeof(op_ct));
 
     ms_init(&tubes, NULL, NULL);
@@ -1697,7 +1703,7 @@ void
 prot_replay_binlog(job binlog_jobs)
 {
     job j, nj;
-    unsigned int delay;
+    usec delay;
     int r;
 
     for (j = binlog_jobs->next ; j != binlog_jobs ; j = nj) {
@@ -1710,7 +1716,9 @@ prot_replay_binlog(job binlog_jobs)
             bury_job(j, 0);
             break;
         case JOB_STATE_DELAYED:
-            if (start_time < j->deadline) delay = j->deadline - start_time;
+            if (started_at < j->deadline_at) {
+                delay = j->deadline_at - started_at;
+            }
             /* fall through */
         default:
             r = enqueue_job(j, delay, 0);

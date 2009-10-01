@@ -74,8 +74,6 @@ put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-put 0 0 100 50
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
 
 diff - "$out1" <<EOF
@@ -84,7 +82,6 @@ INSERTED 2
 INSERTED 3
 INSERTED 4
 INSERTED 5
-INSERTED 6
 EOF
 res=$?
 test "$res" -eq 0 || exit $res
@@ -112,9 +109,9 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
 
 diff - "$out1" <<EOF
+INSERTED 6
 INSERTED 7
 INSERTED 8
-INSERTED 9
 OUT_OF_MEMORY
 OUT_OF_MEMORY
 EOF
@@ -131,9 +128,11 @@ delete 3
 delete 4
 delete 5
 delete 6
+delete 7
 EOF
 
 diff - "$out1" <<EOF
+DELETED
 DELETED
 DELETED
 DELETED
@@ -163,10 +162,10 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
 
 diff - "$out1" <<EOF
+INSERTED 11
 INSERTED 12
 INSERTED 13
 INSERTED 14
-INSERTED 15
 EOF
 res=$?
 test "$res" -eq 0 || exit $res
@@ -184,18 +183,14 @@ if ! ps -p $bpid >/dev/null; then
 fi
 
 $nc $server $port <<EOF > "$out2"
-delete 7
 delete 8
-delete 9
+delete 11
 delete 12
 delete 13
 delete 14
-delete 15
 EOF
 
 diff - "$out2" <<EOF
-DELETED
-DELETED
 DELETED
 DELETED
 DELETED

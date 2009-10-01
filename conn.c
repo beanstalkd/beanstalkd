@@ -18,7 +18,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
 #include <errno.h>
 #include <limits.h>
 
@@ -27,7 +26,7 @@
 #include "util.h"
 #include "prot.h"
 
-#define SAFETY_MARGIN 1 /* seconds */
+#define SAFETY_MARGIN (1 * SECOND)
 
 /* Doubly-linked list of free connections. */
 static struct conn pool = { &pool, &pool, 0 };
@@ -151,19 +150,20 @@ conn_set_evq(conn c, const int events, evh handler)
 {
     int r, margin = 0, should_timeout = 0;
     struct timeval tv = {INT_MAX, 0};
+    usec t = UINT64_MAX;
 
     event_set(&c->evq, c->fd, events, handler, c);
 
-    if (conn_waiting(c)) margin = 1;
+    if (conn_waiting(c)) margin = SAFETY_MARGIN;
     if (has_reserved_job(c)) {
-        time_t t = soonest_job(c)->deadline - time(NULL) - margin;
-        tv.tv_sec = t > 0 ? t : 0;
+        t = soonest_job(c)->deadline_at - now_usec() - margin;
         should_timeout = 1;
     }
     if (c->pending_timeout >= 0) {
-        tv.tv_sec = min(tv.tv_sec, c->pending_timeout);
+        t = min(t, c->pending_timeout * SECOND);
         should_timeout = 1;
     }
+    if (should_timeout) timeval_from_usec(&tv, t);
 
     r = event_add(&c->evq, should_timeout ? &tv : NULL);
     if (r == -1) return twarn("event_add() err %d", errno), -1;
@@ -226,7 +226,7 @@ soonest_job(conn c)
 
     if (soonest == NULL) {
         for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
-            if (j->deadline <= (soonest ? : j)->deadline) soonest = j;
+            if (j->deadline_at <= (soonest ? : j)->deadline_at) soonest = j;
         }
     }
     c->soonest_job = soonest;
@@ -244,10 +244,10 @@ has_reserved_this_job(conn c, job j)
 int
 conn_has_close_deadline(conn c)
 {
-    time_t t = time(NULL);
+    usec t = now_usec();
     job j = soonest_job(c);
 
-    return j && t >= j->deadline - SAFETY_MARGIN;
+    return j && t >= j->deadline_at - SAFETY_MARGIN;
 }
 
 int

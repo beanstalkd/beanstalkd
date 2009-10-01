@@ -17,7 +17,6 @@
 #ifndef net_h
 #define net_h
 
-#include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -26,11 +25,12 @@
 
 #include "event.h"
 #include "conn.h"
+#include "util.h"
 
 int make_server_socket(struct in_addr host_addr, int port);
 
 void brake();
 void unbrake(evh h);
-void set_main_timeout(time_t deadline);
+void set_main_timeout(usec deadline_at);
 
 #endif /*net_h*/

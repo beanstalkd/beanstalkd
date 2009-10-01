@@ -72,8 +72,6 @@ put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-put 0 0 100 50
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
 
 diff - "$out1" <<EOF
@@ -81,7 +79,6 @@ INSERTED 1
 INSERTED 2
 INSERTED 3
 INSERTED 4
-INSERTED 5
 OUT_OF_MEMORY
 OUT_OF_MEMORY
 EOF
@@ -104,10 +101,10 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
 
 diff - "$out1" <<EOF
+INSERTED 7
 INSERTED 8
 INSERTED 9
 INSERTED 10
-INSERTED 11
 EOF
 res=$?
 test "$res" -eq 0 || exit $res
@@ -129,15 +126,13 @@ delete 1
 delete 2
 delete 3
 delete 4
-delete 5
+delete 7
 delete 8
 delete 9
 delete 10
-delete 11
 EOF
 
 diff - "$out2" <<EOF
-DELETED
 DELETED
 DELETED
 DELETED

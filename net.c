@@ -25,7 +25,7 @@
 static int listen_socket = -1;
 static struct event listen_evq;
 static evh accept_handler;
-static time_t main_deadline = 0;
+static usec main_deadline = 0;
 static int brakes_are_on = 1, after_startup = 0;
 
 int
@@ -99,12 +99,15 @@ unbrake(evh h)
 }
 
 void
-set_main_timeout(time_t deadline)
+set_main_timeout(usec deadline_at)
 {
     int r;
-    struct timeval tv = {deadline - time(NULL), 0};
+    struct timeval tv;
+    usec now = now_usec();
 
-    main_deadline = deadline;
-    r = event_add(&listen_evq, deadline ? &tv : NULL);
+    timeval_from_usec(&tv, deadline_at - now);
+
+    main_deadline = deadline_at;
+    r = event_add(&listen_evq, deadline_at ? &tv : NULL);
     if (r == -1) twarn("event_add()");
 }
