@@ -16,6 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
+#if HAVE_STDINT_H
+# include <stdint.h>
+#endif /* else we get int types from config.h */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>

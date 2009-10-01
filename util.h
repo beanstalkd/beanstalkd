@@ -19,6 +19,12 @@
 #ifndef util_h
 #define util_h
 
+#include "config.h"
+
+#if HAVE_STDINT_H
+# include <stdint.h>
+#endif /* else we get int types from config.h */
+
 #define min(a,b) ((a)<(b)?(a):(b))
 
 void v();
