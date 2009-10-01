@@ -17,11 +17,14 @@ aux_sources = \
 	util.c
 beanstalkd_SOURCES = beanstalkd.c $(aux_sources)
 
+EXTRA_PROGRAMS = cutgen
+cutgen_SOURCES = cutgen.c
+
 tests = \
 	tests/test_job.c \
 	tests/test_pq.c
 
-EXTRA_DIST = cut.c cutgen.c $(tests) cut.h sh-tests check.sh check-one.sh \
+EXTRA_DIST = cut.c $(tests) cut.h sh-tests check.sh check-one.sh \
 	binlog.h \
 	conn.h \
 	job.h \
@@ -37,15 +40,13 @@ EXTRA_DIST = cut.c cutgen.c $(tests) cut.h sh-tests check.sh check-one.sh \
 dist_doc_DATA = doc/protocol.txt
 dist_man_MANS = doc/beanstalkd.1
 
-check-cut: tests/cutcheck 
+check-cut: tests/cutcheck
 	tests/cutcheck
 
 check-shell: $(program)
 	$(srcdir)/check.sh $(srcdir)/sh-tests/*.{commands,sh}
 
 check: check-cut check-shell
-
-cutgen: cutgen.c
 
 tests/cutcheck.c: $(tests) cutgen
 	mkdir -p tests

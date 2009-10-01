@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +36,6 @@
 #include "net.h"
 #include "util.h"
 #include "prot.h"
-#include "config.h"
 #include "binlog.h"
 
 static char *user = NULL;
