@@ -174,6 +174,9 @@ usage(char *msg, char *arg)
             " -u USER  become user and group\n"
             " -z SIZE  set the maximum job size in bytes (default is %d)\n"
             " -s SIZE  set the size of each binlog file (default is %d)\n"
+#ifndef HAVE_POSIX_FALLOCATE
+            "            (will be rounded up to a multiple of 512 bytes)\n"
+#endif
             " -v       show version information\n"
             " -h       show this help\n",
             progname, JOB_DATA_SIZE_LIMIT_DEFAULT, BINLOG_SIZE_LIMIT_DEFAULT);

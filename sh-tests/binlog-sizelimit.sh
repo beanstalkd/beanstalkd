@@ -3,7 +3,7 @@
 server=localhost
 port=11400
 tmpdir="$TMPDIR"
-size=1000
+size=1024
 test -z "$tmpdir" && tmpdir=/tmp
 out1="${tmpdir}/bnch$$.1"
 out2="${tmpdir}/bnch$$.2"
