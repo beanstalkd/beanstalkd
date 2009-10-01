@@ -18,6 +18,13 @@ then
   exit 0
 fi
 
+fail() {
+    printf 'On line '
+    caller
+    echo ' ' "$@"
+    exit 1
+}
+
 killbeanstalkd() {
     {
         test -z "$bpid" || kill -9 $bpid
@@ -83,7 +90,9 @@ res=$?
 test "$res" -eq 0 || exit $res
 
 # Check that the second binlog file is present
-test "$(stat --printf=%s "$logdir"/binlog.2)" -eq $size || exit 1
+test "$(stat --printf=%s "$logdir"/binlog.2)" -eq $size || {
+    fail Second binlog file is missing
+}
 
 # Make beanstalkd think the disk is full now.
 fiu-ctrl -e posix/io/oc/open -i $ENOSPC $bpid
@@ -113,7 +122,7 @@ res=$?
 test "$res" -eq 0 || exit $res
 
 # Check that the first binlog file is still there
-test -e "$logdir"/binlog.1 || exit 1
+test -e "$logdir"/binlog.1 || fail First binlog file is missing
 
 $nc $server $port <<EOF > "$out1"
 delete 1
@@ -136,7 +145,7 @@ res=$?
 test "$res" -eq 0 || exit $res
 
 # Check that the first binlog file was deleted
-test ! -e "$logdir"/binlog.1 || exit 1
+test ! -e "$logdir"/binlog.1 || fail First binlog file is still there
 
 # Now make beanstalkd think the disk once again has space.
 fiu-ctrl -d posix/io/oc/open $bpid
