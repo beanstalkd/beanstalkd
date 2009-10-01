@@ -105,6 +105,7 @@ else
   LIBS="$LIBS -levent"
 
   AC_CHECK_FUNCS([posix_fallocate])
+  AC_CHECK_FUNCS([fdatasync])
 
   AC_CHECK_LIB([socket], [bind], [
     LIBS="$LIBS -lsocket"

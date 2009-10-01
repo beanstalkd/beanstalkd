@@ -41,6 +41,7 @@
 #include "job.h"
 #include "binlog.h"
 #include "util.h"
+#include "port.h"
 
 typedef struct binlog *binlog;
 

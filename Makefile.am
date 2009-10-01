@@ -10,6 +10,7 @@ aux_sources = \
 	job.c \
 	ms.c \
 	net.c \
+	port.c \
 	pq.c \
 	primes.c \
 	prot.c \
@@ -30,6 +31,7 @@ EXTRA_DIST = cut.c $(tests) cut.h sh-tests check.sh check-one.sh \
 	job.h \
 	ms.h \
 	net.h \
+	port.h \
 	pq.h \
 	primes.h \
 	prot.h \
