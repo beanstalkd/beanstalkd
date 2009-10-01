@@ -583,6 +583,8 @@ maintain_invariant(size_t n)
 static size_t
 binlog_reserve_space(size_t n)
 {
+    size_t r;
+
     /* This return value must be nonzero but is otherwise ignored. */
     if (!current_binlog) return 1;
 
@@ -592,7 +594,8 @@ binlog_reserve_space(size_t n)
         return maintain_invariant(n);
     }
 
-    ensure_free_space(n);
+    r = ensure_free_space(n);
+    if (r != n) return twarnx("ensure_free_space"), 0;
 
     newest_binlog->free -= n;
     newest_binlog->reserved += n;
