@@ -302,6 +302,31 @@ add_binlog(binlog b)
     return b;
 }
 
+static int
+beanstalkd_fallocate(int fd, off_t offset, off_t len)
+{
+    off_t i;
+    ssize_t w;
+    off_t p;
+    #define ZERO_BUF_SIZE 512
+    char buf[ZERO_BUF_SIZE] = {}; /* initialize to zero */
+
+    /* we only support a 0 offset */
+    if (offset != 0) return EINVAL;
+
+    if (len <= 0) return EINVAL;
+
+    for (i = 0; i < len; i += w) {
+        w = write(fd, &buf, ZERO_BUF_SIZE);
+        if (w == -1) return errno;
+    }
+
+    p = lseek(fd, 0, SEEK_SET);
+    if (p == -1) return errno;
+
+    return 0;
+}
+
 static void
 binlog_open(binlog log, size_t *written)
 {
@@ -320,6 +345,9 @@ binlog_open(binlog log, size_t *written)
     {
         int r;
         r = posix_fallocate(fd, 0, binlog_size_limit);
+        if (r == EINVAL) {
+            r = beanstalkd_fallocate(fd, 0, binlog_size_limit);
+        }
         if (r) {
             close(fd);
             binlog_dref(log);
@@ -330,28 +358,13 @@ binlog_open(binlog log, size_t *written)
 #else
     /* Allocate space in a slow but portable way. */
     {
-        size_t i;
-        ssize_t w;
-        off_t p;
-        #define ZERO_BUF_SIZE 512
-        char buf[ZERO_BUF_SIZE] = {}; /* initialize to zero */
-
-        for (i = 0; i < binlog_size_limit; i += w) {
-            w = write(fd, &buf, ZERO_BUF_SIZE);
-            if (w == -1) {
-                twarn("Cannot allocate space for binlog %s", log->path);
-                close(fd);
-                binlog_dref(log);
-                return;
-            }
-        }
-
-        p = lseek(fd, 0, SEEK_SET);
-        if (p == -1) {
-            twarn("lseek");
+        int r;
+        r = beanstalkd_fallocate(fd, 0, binlog_size_limit);
+        if (r) {
             close(fd);
             binlog_dref(log);
-            return;
+            errno = r;
+            return twarn("Cannot allocate space for binlog %s", log->path);
         }
     }
 #endif
