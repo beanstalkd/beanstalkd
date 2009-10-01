@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "util.h"
 
@@ -59,3 +60,29 @@ warnx(const char *fmt, ...)
     vwarnx(NULL, fmt, args);
     va_end(args);
 }
+
+usec
+usec_from_timeval(struct timeval *tv)
+{
+    return ((usec) tv->tv_sec) * SECOND + tv->tv_usec;
+}
+
+void
+timeval_from_usec(struct timeval *tv, usec t)
+{
+    tv->tv_sec = t / SECOND;
+    tv->tv_usec = t % SECOND;
+}
+
+usec
+now_usec(void)
+{
+    int r;
+    struct timeval tv;
+
+    r = gettimeofday(&tv, 0);
+    if (r != 0) return warnx("gettimeofday"), -1; // can't happen
+
+    return usec_from_timeval(&tv);
+}
+

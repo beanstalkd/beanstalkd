@@ -25,6 +25,8 @@
 # include <stdint.h>
 #endif /* else we get int types from config.h */
 
+#include <stdlib.h>
+
 #define min(a,b) ((a)<(b)?(a):(b))
 
 void v();
@@ -44,5 +46,14 @@ extern char *progname;
 #else
 #define dprintf(fmt, ...) ((void) 0)
 #endif
+
+typedef uint64_t usec;
+#define USEC (1)
+#define MSEC (1000 * USEC)
+#define SECOND (1000 * MSEC)
+
+usec now_usec(void);
+usec usec_from_timeval(struct timeval *tv);
+void timeval_from_usec(struct timeval *tv, usec t);
 
 #endif /*util_h*/
