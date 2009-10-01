@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <stddef.h>
 
 #include "tube.h"
 #include "job.h"
@@ -52,12 +53,14 @@ size_t binlog_size_limit = BINLOG_SIZE_LIMIT_DEFAULT;
 
 char *binlog_dir = NULL;
 static int binlog_index = 0;
-static int binlog_version = 2;
+static int binlog_version = 3;
 static int lock_fd;
 
 static binlog oldest_binlog = 0,
               current_binlog = 0,
               newest_binlog = 0;
+
+static const size_t job_record_size = offsetof(struct job, pad);
 
 static int
 binlog_scan_dir()
@@ -170,9 +173,9 @@ binlog_read_log_file(binlog b, job binlog_jobs)
         }
 
         tubename[namelen] = '\0';
-        r = read(b->fd, &js, sizeof(struct job));
+        r = read(b->fd, &js, job_record_size);
         if (r == -1) return twarn("read()");
-        if (r < sizeof(struct job)) {
+        if (r < job_record_size) {
           return binlog_warn(b, "EOF while reading job record");
         }
 
@@ -408,10 +411,8 @@ binlog_write_job(job j)
     vec[1].iov_base = j->tube->name;
     vec[1].iov_len = 0;
 
-    /* we could save some bytes in the binlog file by only saving some parts of
-     * the job struct */
     vec[2].iov_base = (char *) j;
-    to_write += vec[2].iov_len = sizeof(struct job);
+    to_write += vec[2].iov_len = job_record_size;
 
     if (j->state == JOB_STATE_READY || j->state == JOB_STATE_DELAYED) {
         if (!j->binlog) {
@@ -554,7 +555,7 @@ maintain_invariant(size_t n)
 
     /* Invariant 2. */
 
-    z = sizeof(size_t) + sizeof(struct job);
+    z = sizeof(size_t) + job_record_size;
     reserved_later = current_binlog->reserved - n;
     remainder = reserved_later % z;
     if (remainder == 0) return n;
@@ -611,12 +612,12 @@ binlog_reserve_space_put(job j)
     /* reserve space for the initial job record */
     z += sizeof(size_t);
     z += strlen(j->tube->name);
-    z += sizeof(struct job);
+    z += job_record_size;
     z += j->body_size;
 
     /* plus space for a delete to come later */
     z += sizeof(size_t);
-    z += sizeof(struct job);
+    z += job_record_size;
 
     return binlog_reserve_space(z);
 }
@@ -627,7 +628,7 @@ binlog_reserve_space_update(job j)
     size_t z = 0;
 
     z += sizeof(size_t);
-    z += sizeof(struct job);
+    z += job_record_size;
     return binlog_reserve_space(z);
 }
 

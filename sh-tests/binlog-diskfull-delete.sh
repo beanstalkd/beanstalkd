@@ -65,6 +65,10 @@ put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+put 0 0 100 50
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+put 0 0 100 50
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
 
 diff - "$out1" <<EOF
@@ -72,9 +76,14 @@ INSERTED 1
 INSERTED 2
 INSERTED 3
 INSERTED 4
+INSERTED 5
+INSERTED 6
 EOF
 res=$?
 test "$res" -eq 0 || exit $res
+
+# Check that the second binlog file is present
+test "$(stat --printf=%s "$logdir"/binlog.2)" -eq $size || exit 1
 
 # Make beanstalkd think the disk is full now.
 fiu-ctrl -e posix/io/oc/open -i $ENOSPC $bpid
@@ -89,11 +98,14 @@ put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+put 0 0 100 50
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
 
 diff - "$out1" <<EOF
-INSERTED 5
-INSERTED 6
+INSERTED 7
+INSERTED 8
+INSERTED 9
 OUT_OF_MEMORY
 OUT_OF_MEMORY
 EOF
@@ -108,9 +120,13 @@ delete 1
 delete 2
 delete 3
 delete 4
+delete 5
+delete 6
 EOF
 
 diff - "$out1" <<EOF
+DELETED
+DELETED
 DELETED
 DELETED
 DELETED
@@ -138,10 +154,10 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 EOF
 
 diff - "$out1" <<EOF
-INSERTED 9
-INSERTED 10
-INSERTED 11
 INSERTED 12
+INSERTED 13
+INSERTED 14
+INSERTED 15
 EOF
 res=$?
 test "$res" -eq 0 || exit $res
@@ -159,15 +175,17 @@ if ! ps -p $bpid >/dev/null; then
 fi
 
 $nc $server $port <<EOF > "$out2"
-delete 5
-delete 6
+delete 7
+delete 8
 delete 9
-delete 10
-delete 11
 delete 12
+delete 13
+delete 14
+delete 15
 EOF
 
 diff - "$out2" <<EOF
+DELETED
 DELETED
 DELETED
 DELETED
