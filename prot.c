@@ -237,7 +237,7 @@ static tube default_tube;
 
 static int drain_mode = 0;
 static time_t start_time;
-static unsigned long long int op_ct[TOTAL_OPS], timeout_ct = 0;
+static uint64_t op_ct[TOTAL_OPS], timeout_ct = 0;
 
 
 /* Doubly-linked list of connections with at least one reserved job. */
@@ -655,7 +655,7 @@ touch_job(conn c, job j)
 }
 
 static job
-peek_job(unsigned long long int id)
+peek_job(uint64_t id)
 {
     return job_find(id);
 }
@@ -1062,7 +1062,7 @@ dispatch_cmd(conn c)
     unsigned char type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
     unsigned int pri, delay, ttr, body_size;
-    unsigned long long int id;
+    uint64_t id;
     tube t = NULL;
 
     /* NUL-terminate this string so we can use strtol and friends */

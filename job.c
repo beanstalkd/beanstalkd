@@ -24,7 +24,7 @@
 #include "primes.h"
 #include "util.h"
 
-static unsigned long long int next_id = 1;
+static uint64_t next_id = 1;
 
 static int cur_prime = 0;
 
@@ -37,7 +37,7 @@ static int hash_table_was_oom = 0;
 static void rehash();
 
 static int
-_get_job_hash_index(unsigned long long int job_id)
+_get_job_hash_index(uint64_t job_id)
 {
     return job_id % all_jobs_cap;
 }
@@ -90,7 +90,7 @@ rehash()
 }
 
 job
-job_find(unsigned long long int job_id)
+job_find(uint64_t job_id)
 {
     job jh = NULL;
     int index = _get_job_hash_index(job_id);
@@ -125,7 +125,7 @@ allocate_job(int body_size)
 
 job
 make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
-                 int body_size, tube tube, unsigned long long id)
+                 int body_size, tube tube, uint64_t id)
 {
     job j;
 
@@ -260,7 +260,7 @@ job_insert(job head, job j)
     head->prev = j;
 }
 
-unsigned long long int
+uint64_t
 total_jobs()
 {
     return next_id - 1;

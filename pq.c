@@ -157,7 +157,7 @@ pq_peek(pq q)
 job
 pq_remove(pq q, job j)
 {
-    unsigned long long int id;
+    uint64_t id;
     unsigned int pri;
 
     if (j->heap_index >= q->used) return NULL;

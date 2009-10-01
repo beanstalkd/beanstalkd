@@ -19,6 +19,12 @@
 #ifndef job_h
 #define job_h
 
+#include "config.h"
+
+#if HAVE_STDINT_H
+# include <stdint.h>
+#endif /* else we get int types from config.h */
+
 #include <time.h>
 
 typedef struct job *job;
@@ -38,19 +44,19 @@ typedef int(*job_cmp_fn)(job, job);
 struct job {
 
     /* persistent fields; these get written to the binlog */
-    unsigned long long int id;
-    unsigned int pri;
-    unsigned int delay;
-    unsigned int ttr;
-    int body_size;
+    uint64_t id;
+    uint32_t pri;
+    uint32_t delay;
+    uint32_t ttr;
+    int32_t body_size;
     time_t creation;
     time_t deadline;
-    unsigned int reserve_ct;
-    unsigned int timeout_ct;
-    unsigned int release_ct;
-    unsigned int bury_ct;
-    unsigned int kick_ct;
-    char state;
+    uint32_t reserve_ct;
+    uint32_t timeout_ct;
+    uint32_t release_ct;
+    uint32_t bury_ct;
+    uint32_t kick_ct;
+    uint8_t state;
 
     /* bookeeping fields; these are in-memory only */
     char pad[6];
@@ -70,11 +76,11 @@ struct job {
 
 job allocate_job(int body_size);
 job make_job_with_id(unsigned int pri, unsigned int delay, unsigned int ttr,
-             int body_size, tube tube, unsigned long long id);
+             int body_size, tube tube, uint64_t id);
 void job_free(job j);
 
 /* Lookup a job by job ID */
-job job_find(unsigned long long int job_id);
+job job_find(uint64_t job_id);
 
 int job_pri_cmp(job a, job b);
 int job_delay_cmp(job a, job b);
@@ -87,7 +93,7 @@ int job_list_any_p(job head);
 job job_remove(job j);
 void job_insert(job head, job j);
 
-unsigned long long int total_jobs();
+uint64_t total_jobs();
 
 /* for unit tests */
 size_t get_all_jobs_used();

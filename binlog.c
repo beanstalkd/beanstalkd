@@ -63,7 +63,7 @@ uint64_t last_fsync = 0;
 
 char *binlog_dir = NULL;
 static int binlog_index = 0;
-static int binlog_version = 3;
+static int binlog_version = 4;
 static int lock_fd;
 
 static binlog oldest_binlog = 0,
