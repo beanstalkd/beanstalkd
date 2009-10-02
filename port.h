@@ -16,9 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef port_h
+#define port_h
 
 #include "config.h"
 
 #ifndef HAVE_FDATASYNC
 int fdatasync(int fd);
 #endif
+
+#endif /*port_h*/
