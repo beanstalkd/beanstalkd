@@ -4,14 +4,14 @@
 %define beanstalkd_logdir    %{_localstatedir}/log/beanstalkd
 
 Name:           beanstalkd
-Version:        1.2
+Version:        @VERSION@
 Release:        0%{?dist}
-Summary:        A fast, distributed, in-memory workqueue service
+Summary:        A simple, fast workqueue service
 
 Group:          System Environment/Daemons
 License:        GPLv3+
 URL:            http://xph.us/software/%{name}/
-Source0:        http://xph.us/software/%{name}/rel/%{name}-%{version}.tar.gz 
+Source0:        http://xph.us/dist/%{name}/rel/%{name}-%{version}.tar.gz
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:   libevent-devel
@@ -23,10 +23,9 @@ Requires(postun):   /sbin/service
 
 
 %description
-beanstalkd is a fast, distributed, in-memory workqueue service. Its
-interface is generic, but was originally designed for reducing the
-latency of page views in high-volume web applications by running most
-time-consuming tasks asynchronously.
+Beanstalk is a simple, fast workqueue service. Its interface is generic, but
+was originally designed for reducing the latency of page views in high-volume
+web applications by running time-consuming tasks asynchronously.
 
 
 %prep
@@ -78,6 +77,10 @@ fi
 
 
 %changelog
+* Thu Oct 1 2009 Keith Rarick <kr@xph.us> - 1.4-0
+- Convert this file to an autoconf template
+- Tweak the summary and description
+
 * Sun Jan 4 2009 Ask Bjørn Hansen <ask@develooper.com> - 1.2-0
 - 1.2-tobe
 - Use man page and .init/sysconfig scripts from .tar.gz

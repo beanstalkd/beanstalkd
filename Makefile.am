@@ -26,6 +26,7 @@ tests = \
 	tests/test_pq.c
 
 EXTRA_DIST = cut.c $(tests) cut.h sh-tests check.sh check-one.sh \
+	beanstalkd.spec.in
 	binlog.h \
 	conn.h \
 	job.h \

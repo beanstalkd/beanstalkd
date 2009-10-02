@@ -180,7 +180,7 @@ AC_TYPE_UINT16_T
 
 AC_SUBST(INSTALL_STRIP_FLAG)
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile beanstalkd.spec])
 AC_OUTPUT
 
 dnl vim700: ts=2 sw=2 et

@@ -29,3 +29,4 @@ cutgen
 stamp-h1
 .*.swp
 .dotest
+beanstalkd.spec
