@@ -5,7 +5,7 @@ title: Download
 
 ## Source
 
-`beanstalkd` is distributed under the GNU GPL version 3.
+Beanstalk is distributed under the GNU GPL version 3.
 
 ### Release 1.3
 
@@ -52,16 +52,14 @@ Just type:
 See the [client library](client.html) page to find a library for your favorite
 language.
 
-## Version Control
+## Git
 
-Browse the source online at
-[github.com/kr/beanstalkd](http://github.com/kr/beanstalkd).
+Browse the source online at <http://github.com/kr/beanstalkd>.
 
 To get your own copy and start hacking, just run:
 
     git clone git://github.com/kr/beanstalkd.git
 
-You can also find beanstalkd source at
-[repo.or.cz/w/beanstalkd.git](http://repo.or.cz/w/beanstalkd.git).
+You can also find beanstalkd source at <http://repo.or.cz/w/beanstalkd.git>.
 
 [libevent]: http://monkey.org/~provos/libevent/

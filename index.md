@@ -7,13 +7,13 @@ Beanstalk is a simple, fast workqueue service. Its interface is generic, but
 was originally designed for reducing the latency of page views in high-volume
 web applications by running time-consuming tasks asynchronously.
 
-## 23 March 2009
+### 23 March 2009
 
 Made release 1.3.
 
 [More news...](news.html)
 
-## How to run it
+## Run It
 
 First, run `beanstalkd` on one or more machines. There is no configuration
 file and only a handful of command-line options.
@@ -23,7 +23,7 @@ file and only a handful of command-line options.
 This starts up `beanstalkd` as a daemon listening on address
 10.0.1.5, port 11300.
 
-## How to use it
+## Use It
 
 Here's an example in Ruby (see the [client libraries](client.html) to find
 your favorite language).

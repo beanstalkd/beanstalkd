@@ -48,8 +48,16 @@ div#content {
   overflow: hidden;
 }
 
-p, h1, h2, h3, h4, li, dd, blockquote {
+h1, h2, h4, li, dd, blockquote {
   padding: 0 5px;
+}
+
+p, h3, li {
+  padding: 0 125px;
+}
+
+li > p {
+  padding: 0;
 }
 
 p, h1, h2, h3, h4, pre, ul, ol, dl, blockquote {
@@ -90,23 +98,11 @@ code {
 }
 
 pre {
-  line-height: 16px;
+  font-size: 18px;
+  line-height: 24px;
   background: #333;
   color: #fff;
-  padding: 8px 5px;
-}
-
-pre.l0 {
-  margin-bottom: 32px;
-}
-
-pre.l1 {
-  margin-top: -4px;
-  margin-bottom: 20px;
-}
-
-pre.l2 {
-  margin-bottom: 24px;
+  padding: 12px 10px;
 }
 
 h1 {
@@ -114,13 +110,17 @@ h1 {
 }
 
 h2 {
+  font-weight: bold;
+  color: #555;
+  float: left;
+  width: 100px;
+}
+
+h3 {
   /*font-size: 18.6667px;*/
   font-weight: bold;
   margin-bottom: 0;
   color: #555;
-}
-
-h3 {
 }
 
 h4, h5, h6 {
