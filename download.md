@@ -15,7 +15,7 @@ Beanstalk is distributed under the GNU GPL version 3.
 ### Release {{ post.version }}
 
 [`beanstalkd-{{ post.version }}.tar.gz`]({{ post.dist }})
-({{ post.size }} bytes) released on {{ post.date | date_to_string }}.  
+({{ post.size }} bytes) released on {{ post.date | date_to_long_string }}.  
 Read [{{ post.version }} release notes](/beanstalkd{{ post.url }}).
 
       {% assign want = false %}

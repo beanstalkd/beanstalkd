@@ -7,7 +7,7 @@ title: News
 
 {% for post in site.posts %}
 
-### {{ post.date | date_to_string }}
+### {{ post.date | date_to_long_string }}
 
 [{{ post.title }}](/beanstalkd{{ post.url }})
 

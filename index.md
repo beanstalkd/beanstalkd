@@ -9,7 +9,7 @@ web applications by running time-consuming tasks asynchronously.
 
 {% for post in site.posts limit:1 %}
 
-### {{ post.date | date_to_string }}
+### {{ post.date | date_to_long_string }}
 
 [{{ post.title }}](/beanstalkd{{ post.url }})
 
