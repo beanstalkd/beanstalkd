@@ -9,7 +9,7 @@ title: News
 
 ### {{ post.date | date_to_string }}
 
-[{{ post.title }}]({{ post.url }})
+[{{ post.title }}](/beanstalkd{{ post.url }})
 
 {% endfor %}
 

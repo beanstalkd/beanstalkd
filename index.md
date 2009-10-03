@@ -11,7 +11,7 @@ web applications by running time-consuming tasks asynchronously.
 
 ### {{ post.date | date_to_string }}
 
-[{{ post.title }}]({{ post.url }})
+[{{ post.title }}](/beanstalkd{{ post.url }})
 
 {% endfor %}
 
