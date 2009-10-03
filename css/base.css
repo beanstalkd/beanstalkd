@@ -48,11 +48,11 @@ div#content {
   overflow: hidden;
 }
 
-h1, h2, h4, li, dd, blockquote {
+h2, h4, li, dd, blockquote {
   padding: 0 5px;
 }
 
-p, h3, li {
+p, h1, h3, li {
   padding: 0 125px;
 }
 
@@ -176,6 +176,7 @@ header {
 header h1 {
   font-size: 18px;
   margin: 0;
+  padding: 0 5px;
 }
 
 nav {

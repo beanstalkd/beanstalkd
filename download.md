@@ -7,11 +7,21 @@ title: Download
 
 Beanstalk is distributed under the GNU GPL version 3.
 
-### Release 1.3
+{% assign want = true %}
+{% for post in site.posts %}
+  {% if want %}
+    {% if post.version %}
 
- * [`beanstalkd-1.3.tar.gz`](/dist/beanstalkd/beanstalkd-1.3.tar.gz)
-    (116,114 bytes) released on 23 March 2009.  
-    Read [1.3 release notes](rel/notes-1.3.html).
+### Release {{ post.version }}
+
+[`beanstalkd-{{ post.version }}.tar.gz`]({{ post.dist }})
+({{ post.size }} bytes) released on {{ post.date | date_to_string }}.  
+Read [{{ post.version }} release notes]({{ post.url }}).
+
+      {% assign want = false %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
 
 Also requires [libevent][libevent]
 version 1.4.1 or later.

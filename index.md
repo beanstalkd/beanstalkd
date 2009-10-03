@@ -7,9 +7,13 @@ Beanstalk is a simple, fast workqueue service. Its interface is generic, but
 was originally designed for reducing the latency of page views in high-volume
 web applications by running time-consuming tasks asynchronously.
 
-### 23 March 2009
+{% for post in site.posts limit:1 %}
 
-Made release 1.3.
+### {{ post.date | date_to_string }}
+
+[{{ post.title }}]({{ post.url }})
+
+{% endfor %}
 
 [More news...](news.html)
 
