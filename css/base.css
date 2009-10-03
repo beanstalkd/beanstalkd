@@ -227,3 +227,9 @@ header a:link, header a:visited, nav a:link, nav a:visited {
   line-height: 24px;
   color: #777;
 }
+
+#content ul li {
+  list-style: disc;
+  padding: 0;
+  margin: 0 125px;
+}
