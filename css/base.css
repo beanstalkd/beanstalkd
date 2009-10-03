@@ -1,0 +1,228 @@
+
+
+/*
+Copyright (c) 2008, Yahoo! Inc. All rights reserved.
+Code licensed under the BSD License:
+http://developer.yahoo.net/yui/license.txt
+version: 2.6.0
+*/
+body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td,menu{margin:0;padding:0;}
+table{border-collapse:collapse;border-spacing:0;}
+fieldset,img{border:0;}
+address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal;}
+li{list-style:none;}
+caption,th{text-align:left;}
+h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}
+q:before,q:after{content:'';}
+abbr,acronym{border:0;font-variant:normal;}
+sup{vertical-align:text-top;}
+sub{vertical-align:text-bottom;}
+input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;}
+input,textarea,select{*font-size:100%;}
+legend{color:#000;}
+del,ins{text-decoration:none;}
+/* end of Yahoo code */
+
+html {
+  font-family: Calibri, "Trebuchet MS", sans-serif;
+  font-size: 18px;
+  line-height: 24px;
+  /*font-size-adjust: 0.49;*/
+
+  color: #333;
+  background: #fff;
+}
+
+body {
+  position: relative;
+  width: 710px;
+  margin: 0 auto;
+}
+
+body.grid {
+  background-image: url(/img/grid-110x24-10-2x4-red.png);
+}
+
+div#content {
+  padding-top: 96px;
+  overflow: hidden;
+}
+
+p, h1, h2, h3, h4, li, dd, blockquote {
+  padding: 0 5px;
+}
+
+p, h1, h2, h3, h4, pre, ul, ol, dl, blockquote {
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+blockquote {
+  background: #eee;
+  font-style: oblique;
+  padding: 24px 10px;
+}
+
+dt {
+  float: left;
+  width: 100px;
+  text-align: right;
+  padding: 0 5px;
+  font-weight: bold;
+}
+
+dd {
+  margin-left: 120px;
+}
+
+acronym {
+  text-transform: lowercase;
+  font-variant: small-caps;
+}
+
+code {
+  font-family: Consolas, monospace;
+  line-height: 1px; /* hack */
+}
+
+pre {
+  line-height: 16px;
+  background: #333;
+  color: #fff;
+  padding: 8px 5px;
+}
+
+pre.l0 {
+  margin-bottom: 32px;
+}
+
+pre.l1 {
+  margin-top: -4px;
+  margin-bottom: 20px;
+}
+
+pre.l2 {
+  margin-bottom: 24px;
+}
+
+h1 {
+  font-size: 24px;
+}
+
+h2 {
+  /*font-size: 18.6667px;*/
+  font-weight: bold;
+  margin-bottom: 0;
+  color: #555;
+}
+
+h3 {
+}
+
+h4, h5, h6 {
+  background: red;
+}
+
+em {
+  font-style: italic;
+}
+
+strong {
+  font-weight: bold;
+}
+
+a:link, a:visited {
+  text-decoration: none;
+  font-weight: bold;
+  color: #46bf22;
+}
+
+a[href]:hover {
+  text-decoration: underline;
+}
+
+a[sprite] {
+  background: url(/img/sprites.png) -2px 50px no-repeat;
+  background-position: -2px -(2 + attr(sprite, int) * 20)px; /* CSS3 please? */
+  padding-left: 20px;
+}
+
+ul.simple, ol.simple {
+  padding-left: 5px;
+  margin-bottom: 24px;
+}
+
+ul.simple li, ol.simple li {
+  list-style: disc;
+  padding-left: 0px;
+}
+
+header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  border-top: 24px solid #62c349;
+  border-bottom: 3px solid #777;
+
+  padding-top: 24px;
+}
+
+header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+nav {
+  position: absolute;
+  top: 24px;
+  right: 0;
+
+  font-size: 14px;
+}
+
+nav > menu > li {
+  display: inline-block;
+  padding: 0;
+  border-left: 2px solid white;
+}
+
+nav > menu > li > a {
+  display: inline-block;
+  width: 105px;
+  padding: 25px 0 2px 13px;
+}
+
+nav > menu > li > a[href]:hover {
+  background: #777;
+  color: #fff;
+  text-decoration: none;
+}
+
+header a:link, header a:visited, nav a:link, nav a:visited {
+  color: #333;
+}
+
+#footer {
+  margin-top: 24px;
+  border-top: 3px solid #777;
+  border-top: 3px solid #62c349;
+  border-bottom: 48px solid #777;
+  border-bottom: 48px solid #62c349;
+  padding: 21px 0 0 0;
+}
+
+#footer address {
+  padding: 0 5px;
+}
+
+#footer address, #footer a {
+  font-size: 14px;
+  line-height: 24px;
+  color: #777;
+}
