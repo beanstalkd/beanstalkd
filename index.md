@@ -7,12 +7,11 @@ Beanstalk is a simple, fast workqueue service. Its interface is generic, but
 was originally designed for reducing the latency of page views in high-volume
 web applications by running time-consuming tasks asynchronously.
 
-Due to popular demand, the next release, **1.4**, will offer persistence.
+## 23 March 2009
 
-Philotic, Inc. developed beanstalk to improve the response time for the
-[Causes on Facebook][cof] application (with over 9.5 million users). Beanstalk
-decreased the average response time for the most common pages to a tiny
-fraction of the original, significantly improving the user experience.
+Made release 1.3.
+
+[More news...](news.html)
 
 ## How to run it
 
@@ -42,6 +41,13 @@ Then start another process to take jobs out of the queue and run them:
       puts job.body # prints "hello"
       job.delete
     end
+
+## History
+
+Philotic, Inc. developed beanstalk to improve the response time for the
+[Causes on Facebook][cof] application (with over 9.5 million users). Beanstalk
+decreased the average response time for the most common pages to a tiny
+fraction of the original, significantly improving the user experience.
 
 ## Bugs
 
