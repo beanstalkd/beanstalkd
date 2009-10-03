@@ -1,0 +1,27 @@
+---
+layout: none
+---
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+ <title>News for beanstalkd</title>
+ <link href="http://kr.github.com/beanstalkd/news.atom" rel="self"/>
+ <link href="http://kr.github.com/beanstalkd/"/>
+ <updated>{{ site.time|date_to_xmlschema }}</updated>
+ <id>http://kr.github.com/beanstalkd/</id>
+ <author>
+   <name>Keith Rarick</name>
+   <email>kr@xph.us</email>
+ </author>
+
+ {% for post in site.posts %}
+ <entry>
+   <title>{{ post.title }}</title>
+   <link href="http://kr.github.com/beanstalkd{{ post.url }}"/>
+   <updated>{{ post.date|date_to_xmlschema }}</updated>
+   <id>http://kr.github.com/beanstalkd{{ post.id }}</id>
+   <content type="html">{{ post.content|xml_escape }}</content>
+ </entry>
+ {% endfor %}
+
+</feed>
