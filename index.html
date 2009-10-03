@@ -3,28 +3,28 @@ layout: base
 title: About
 ---
 
-<p><tt>beanstalkd</tt> is a fast, distributed, in-memory workqueue service. Its
-interface is generic, but was originally designed for reducing the
-latency of page views in high-volume web applications by running most
-time-consuming tasks asynchronously.</p>
+<p><code>beanstalkd</code> is a fast, distributed, in-memory workqueue service.
+Its interface is generic, but was originally designed for reducing the latency
+of page views in high-volume web applications by running most time-consuming
+tasks asynchronously.</p>
 
 <p>Due to popular demand, the next release, <b>1.4</b>, will offer
 persistence.</p>
 
-<p>Philotic, Inc. developed <tt>beanstalkd</tt> to improve the response time
-for the <a href=http://apps.facebook.com/causes/>Causes on Facebook</a>
-application (with over 9.5 million users). <tt>beanstalkd</tt>
-decreased the average response time for the most common pages to a tiny
-fraction of the original, significantly improving the user experience.</p>
+<p>Philotic, Inc. developed <code>beanstalkd</code> to improve the response
+time for the <a href=http://apps.facebook.com/causes/>Causes on Facebook</a>
+application (with over 9.5 million users). <code>beanstalkd</code> decreased
+the average response time for the most common pages to a tiny fraction of the
+original, significantly improving the user experience.</p>
 
 <h2>How to run it</h2>
 
-<p>First, run <tt>beanstalkd</tt> on one or more machines. There is no
+<p>First, run <code>beanstalkd</code> on one or more machines. There is no
 configuration file and only a handful of command-line options.</p>
 
 <pre>$ ./beanstalkd -d -l 10.0.1.5 -p 11300</pre>
 
-<p>This starts up <tt>beanstalkd</tt> as a daemon listening on address
+<p>This starts up <code>beanstalkd</code> as a daemon listening on address
 10.0.1.5, port 11300.</p>
 
 <h2>How to use it</h2>
