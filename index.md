@@ -24,7 +24,9 @@ web applications by running time-consuming tasks asynchronously.
 First, run `beanstalkd` on one or more machines. There is no configuration
 file and only a handful of command-line options.
 
-    $ ./beanstalkd -d -l 10.0.1.5 -p 11300
+{% highlight bash %}
+$ ./beanstalkd -d -l 10.0.1.5 -p 11300
+{% endhighlight %}
 
 This starts up `beanstalkd` as a daemon listening on address
 10.0.1.5, port 11300.
@@ -36,17 +38,21 @@ your favorite language).
 
 First, have one process put a job into the queue:
 
-    beanstalk = Beanstalk::Pool.new(['10.0.1.5:11300'])
-    beanstalk.put('hello')
+{% highlight ruby %}
+beanstalk = Beanstalk::Pool.new(['10.0.1.5:11300'])
+beanstalk.put('hello')
+{% endhighlight %}
 
 Then start another process to take jobs out of the queue and run them:
 
-    beanstalk = Beanstalk::Pool.new(['10.0.1.5:11300'])
-    loop do
-      job = beanstalk.reserve
-      puts job.body # prints "hello"
-      job.delete
-    end
+{% highlight ruby %}
+beanstalk = Beanstalk::Pool.new(['10.0.1.5:11300'])
+loop do
+  job = beanstalk.reserve
+  puts job.body # prints "hello"
+  job.delete
+end
+{% endhighlight %}
 
 ## History
 
