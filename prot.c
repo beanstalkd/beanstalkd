@@ -27,6 +27,7 @@
 #include <sys/uio.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <inttypes.h>
 
 #include "stat.h"
 #include "prot.h"
@@ -157,29 +158,29 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-jobs-reserved: %u\n" \
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
-    "cmd-put: %llu\n" \
-    "cmd-peek: %llu\n" \
-    "cmd-peek-ready: %llu\n" \
-    "cmd-peek-delayed: %llu\n" \
-    "cmd-peek-buried: %llu\n" \
-    "cmd-reserve: %llu\n" \
-    "cmd-reserve-with-timeout: %llu\n" \
-    "cmd-delete: %llu\n" \
-    "cmd-release: %llu\n" \
-    "cmd-use: %llu\n" \
-    "cmd-watch: %llu\n" \
-    "cmd-ignore: %llu\n" \
-    "cmd-bury: %llu\n" \
-    "cmd-kick: %llu\n" \
-    "cmd-touch: %llu\n" \
-    "cmd-stats: %llu\n" \
-    "cmd-stats-job: %llu\n" \
-    "cmd-stats-tube: %llu\n" \
-    "cmd-list-tubes: %llu\n" \
-    "cmd-list-tube-used: %llu\n" \
-    "cmd-list-tubes-watched: %llu\n" \
-    "job-timeouts: %llu\n" \
-    "total-jobs: %llu\n" \
+    "cmd-put: %" PRIu64 "\n" \
+    "cmd-peek: %" PRIu64 "\n" \
+    "cmd-peek-ready: %" PRIu64 "\n" \
+    "cmd-peek-delayed: %" PRIu64 "\n" \
+    "cmd-peek-buried: %" PRIu64 "\n" \
+    "cmd-reserve: %" PRIu64 "\n" \
+    "cmd-reserve-with-timeout: %" PRIu64 "\n" \
+    "cmd-delete: %" PRIu64 "\n" \
+    "cmd-release: %" PRIu64 "\n" \
+    "cmd-use: %" PRIu64 "\n" \
+    "cmd-watch: %" PRIu64 "\n" \
+    "cmd-ignore: %" PRIu64 "\n" \
+    "cmd-bury: %" PRIu64 "\n" \
+    "cmd-kick: %" PRIu64 "\n" \
+    "cmd-touch: %" PRIu64 "\n" \
+    "cmd-stats: %" PRIu64 "\n" \
+    "cmd-stats-job: %" PRIu64 "\n" \
+    "cmd-stats-tube: %" PRIu64 "\n" \
+    "cmd-list-tubes: %" PRIu64 "\n" \
+    "cmd-list-tube-used: %" PRIu64 "\n" \
+    "cmd-list-tubes-watched: %" PRIu64 "\n" \
+    "job-timeouts: %" PRIu64 "\n" \
+    "total-jobs: %" PRIu64 "\n" \
     "max-job-size: %zu\n" \
     "current-tubes: %zu\n" \
     "current-connections: %u\n" \
@@ -204,21 +205,21 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-jobs-reserved: %u\n" \
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
-    "total-jobs: %llu\n" \
+    "total-jobs: %" PRIu64 "\n" \
     "current-using: %u\n" \
     "current-watching: %u\n" \
     "current-waiting: %u\n" \
     "\r\n"
 
 #define JOB_STATS_FMT "---\n" \
-    "id: %llu\n" \
+    "id: %" PRIu64 "\n" \
     "tube: %s\n" \
     "state: %s\n" \
     "pri: %u\n" \
-    "age: %llu\n" \
-    "delay: %llu\n" \
-    "ttr: %llu\n" \
-    "time-left: %llu\n" \
+    "age: %" PRIu64 "\n" \
+    "delay: %" PRIu64 "\n" \
+    "ttr: %" PRIu64 "\n" \
+    "time-left: %" PRIu64 "\n" \
     "reserves: %u\n" \
     "timeouts: %u\n" \
     "releases: %u\n" \

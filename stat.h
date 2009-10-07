@@ -19,12 +19,18 @@
 #ifndef stat_h
 #define stat_h
 
+#include "config.h"
+
+#if HAVE_STDINT_H
+# include <stdint.h>
+#endif /* else we get int types from config.h */
+
 struct stats {
     unsigned int urgent_ct;
     unsigned int waiting_ct;
     unsigned int buried_ct;
     unsigned int reserved_ct;
-    long long unsigned int total_jobs_ct;
+    uint64_t total_jobs_ct;
 };
 
 #endif /*stat_h*/
