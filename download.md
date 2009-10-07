@@ -51,6 +51,14 @@ To install immediately on CentOS or RHEL:
 You can drop the `--enablerepo` bits when the next stable epel is
 pushed.
 
+### Arch Linux
+
+You'll need to install [yaourt](http://archlinux.fr/yaourt-en).
+
+Then, you can just install beanstalk using this command:
+
+    yaourt -S beanstalkd
+
 ### Gentoo
 
 Just type:
