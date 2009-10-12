@@ -361,6 +361,8 @@ variations. All but the first operate only on the currently used tube.
 
  - "peek-buried\r\n" - return the next job in the list of buried jobs.
 
+ - "quit\r\n" - close the connection.
+
 There are two possible responses, either a single line:
 
  - "NOT_FOUND\r\n" if the requested job doesn't exist or there are no jobs in
@@ -631,3 +633,6 @@ OK <bytes>\r\n
  - <data> is a sequence of bytes of length <bytes> from the previous line. It
    is a YAML file containing watched tube names as a list of strings.
 
+The quit command simply closes the connection. Its form is:
+
+quit\r\n
