@@ -18,6 +18,7 @@
 #define net_h
 
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
