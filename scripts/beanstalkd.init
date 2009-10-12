@@ -1,12 +1,20 @@
 #!/bin/sh
 #
-# beanstalkd - a fast, distributed, in-memory workqueue service
+# beanstalkd - a simple, fast workqueue service
 #
 # chkconfig:   - 57 47
-# description: a fast, distributed, in-memory workqueue service
+# description: a simple, fast workqueue service
 # processname:  beanstalkd
 # config:       /etc/sysconfig/beanstalkd
 #              
+
+### BEGIN INIT INFO
+# Provides: beanstalkd
+# Required-Start: $local_fs $network $remote_fs
+# Required-Stop: $local_fs $network $remote_fs
+# Short-Description: start and stop beanstalkd
+# Description: a simple, fast workqueue service
+### END INIT INFO
 
 # Source function library.
 . /etc/rc.d/init.d/functions
@@ -33,9 +41,26 @@ start() {
     echo -n $"Starting $prog: "
     # if not running, start it up here, usually something like "daemon $exec"
     options="-l ${BEANSTALKD_ADDR} -p ${BEANSTALKD_PORT} -u ${BEANSTALKD_USER}"
-    if [ "${BEANSTALKD_JOB_SIZE}" != ""  ]; then
-        options="${options} -z ${BEANSTALKD_JOB_SIZE}"
+    if [ "${BEANSTALKD_MAX_JOB_SIZE}" != ""  ]; then
+        options="${options} -z ${BEANSTALKD_MAX_JOB_SIZE}"
     fi
+
+    if [ "${BEANSTALKD_BINLOG_DIR}" != "" ]; then
+        if [ ! -d "${BEANSTALKD_BINLOG_DIR}" ]; then
+            echo "Creating binlog directory (${BEANSTALKD_BINLOG_DIR})"
+            mkdir -p ${BEANSTALKD_BINLOG_DIR} && chown ${BEANSTALKD_USER}:${BEANSTALKD_USER} ${BEANSTALKD_BINLOG_DIR}
+        fi
+        options="${options} -b ${BEANSTALKD_BINLOG_DIR}"
+        if [ "${BEANSTALKD_BINLOG_FSYNC_PERIOD}" != "" ]; then
+            options="${options} -f ${BEANSTALKD_BINLOG_FSYNC_PERIOD}"
+        else
+            options="${options} -F"
+        fi
+        if [ "${BEANSTALKD_BINLOG_SIZE}" != "" ]; then
+            options="${options} -s ${BEANSTALKD_BINLOG_SIZE}"
+        fi
+    fi
+
     daemon $exec -d $options
     retval=$?
     echo
