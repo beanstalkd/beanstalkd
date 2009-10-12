@@ -23,11 +23,11 @@ sequence of bytes. The server never inspects or modifies a job body and always
 sends it back in its original form. It is up to the clients to agree on a
 meaningful interpretation of job bodies.
 
-There is no command to close the connection -- the client may simply close the
-TCP connection when it no longer has use for the server. However, beanstalkd
-performs very well with a large number of open connections, so it is usually
-better for the client to keep its connection open and reuse it as much as
-possible. This also avoids the overhead of establishing new TCP connections.
+The client may issue the "quit" command, or simply close the TCP connection
+when it no longer has use for the server. However, beanstalkd performs very
+well with a large number of open connections, so it is usually better for the
+client to keep its connection open and reuse it as much as possible. This also
+avoids the overhead of establishing new TCP connections.
 
 If a client violates the protocol (such as by sending a request that is not
 well-formed or a command that does not exist) or if the server has an error,
