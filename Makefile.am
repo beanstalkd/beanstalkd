@@ -25,7 +25,15 @@ tests = \
 	tests/test_job.c \
 	tests/test_pq.c
 
-EXTRA_DIST = cut.c $(tests) cut.h sh-tests check.sh check-one.sh \
+scripts = \
+	scripts/beanstalkd.init \
+	scripts/beanstalkd.sysconfig
+
+readme = \
+	README-DEVELOPERS \
+	README-TESTS
+
+EXTRA_DIST = cut.c $(tests) $(scripts) $(readme) cut.h sh-tests check.sh check-one.sh \
 	beanstalkd.spec \
 	binlog.h \
 	conn.h \

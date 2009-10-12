@@ -50,7 +50,7 @@ make install DESTDIR=$RPM_BUILD_ROOT
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-%{_sbindir}/useradd -c "beanstalkd user" -s /bin/false -r -d %{beanstalkd_home} %{beanstalkd_user} 2>/dev/null || :
+%{_sbindir}/useradd -c "beanstalkd user" -s /bin/false -r -m -d %{beanstalkd_home} %{beanstalkd_user} 2>/dev/null || :
 
 %post
 /sbin/chkconfig --add %{name}
