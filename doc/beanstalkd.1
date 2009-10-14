@@ -1,6 +1,6 @@
-.TH BEANSTALKD 1 "November 21, 2008"
+.TH BEANSTALKD 1 "October 14, 2009"
 .SH NAME
-beastalkd \- A fast, distributed, in-memory work-queue service
+beastalkd \- A simple, fast work queue.
 .SH SYNOPSIS
 .B beanstalkd
 .RI [ options ]
@@ -8,35 +8,68 @@ beastalkd \- A fast, distributed, in-memory work-queue service
 .SH DESCRIPTION
 This manual page documents briefly the
 .B beanstalkd
-work-queue service
-.PP
-.B beanstalkd
-is a fast, distributed, in-memory work-queue service. Its
-interface is generic, but was originally designed for reducing the
-latency of page views in high-volume web applications by running most
-time-consuming tasks asynchronously.
+work-queue service.
+The beanstalk interface is generic, but was originally
+designed for reducing the latency of page views in high-volume web applications
+by running time-consuming tasks asynchronously.
 .br
 .SH OPTIONS
-These programs follow the usual GNU command line syntax. A summary of options 
-is included below.
+A summary of options is included below.
+.TP
+.B \-b <dir>
+Use a binlog to keep jobs on persistent storage in <dir>. Upon startup,
+beanstalkd will recover any binlog that is present in <dir>, then, during
+normal operation, append new jobs and changes in state to the binlog.
 .TP
 .B \-d
 Detach and run beanstalkd as a daemon.
 .TP
-.B \-l <addr>
-Listen on address ADDR (default is 0.0.0.0)
+.B \-f <ms>
+Call
+.BR fsync (2)
+at most once every <ms> milliseconds. This will recuce disk activity
+and improve speed at the cost of safety. A power failure could result in the
+loss of up to <ms> milliseconds of history.
+
+A <ms> value of 0 will cause beanstalkd to call fsync every time it writes to
+the binlog.
+
+This option has no effect without the
+.B \-b
+option.
 .TP
-.B \-u <user>
-Become the user USER and its primary group.
-.TP
-.B \-p <port>
-Listen on TCP port PORT (default is 11300).
-.TP
-.B \-z <size>
-The maximum size in bytes of a job.
+.B \-F
+Never call
+.BR fsync (2)
+function. This is like
+.B \-f
+with a <ms> value of infinity.
+
+This option has no effect without the
+.B \-b
+option.
 .TP
 .B \-h
 Show the command line help and summary of options.
+.TP
+.B \-l <addr>
+Listen on address <addr> (default is 0.0.0.0)
+.TP
+.B \-p <port>
+Listen on TCP port <port> (default is 11300).
+.TP
+.B \-s <bytes>
+The maximum size in bytes of each binlog file.
+
+This option has no effect without the
+.B \-b
+option.
+.TP
+.B \-u <user>
+Become the user <user> and its primary group.
+.TP
+.B \-z <bytes>
+The maximum size in bytes of a job.
 .SH LICENSE
 The beanstalkd daemon is copyright Keith Rarick and Philotic Inc. and is
 distributed under the GNU General Public License version 3 or later.

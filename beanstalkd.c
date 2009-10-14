@@ -172,8 +172,8 @@ usage(char *msg, char *arg)
             " -l ADDR  listen on address (default is 0.0.0.0)\n"
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
-            " -z SIZE  set the maximum job size in bytes (default is %d)\n"
-            " -s SIZE  set the size of each binlog file (default is %d)\n"
+            " -z BYTES set the maximum job size in bytes (default is %d)\n"
+            " -s BYTES set the size of each binlog file (default is %d)\n"
 #ifndef HAVE_POSIX_FALLOCATE
             "            (will be rounded up to a multiple of 512 bytes)\n"
 #endif
