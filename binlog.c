@@ -173,6 +173,10 @@ binlog_read_log_file(binlog b, job binlog_jobs)
     }
 
     while (read(b->fd, &namelen, sizeof(size_t)) == sizeof(size_t)) {
+        if (namelen >= MAX_TUBE_NAME_LEN) {
+            return binlog_warn(b, "namelen %d exceeds maximum of %d", namelen, MAX_TUBE_NAME_LEN - 1);
+        }
+
         if (namelen > 0) {
             r = read(b->fd, tubename, namelen);
             if (r == -1) return twarn("read()");
