@@ -211,7 +211,7 @@ binlog_read_log_file(binlog b, job binlog_jobs)
                 j->created_at = js.created_at;
                 job_insert(binlog_jobs, j);
             }
-            if (js.body_size) {
+            if (js.body_size && namelen > 0) { /* namelen > 0 only on new jobs */
                 if (js.body_size > j->body_size) {
                     warnx("job size increased from %zu to %zu", j->body_size,
                           js.body_size);
