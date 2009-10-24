@@ -213,22 +213,6 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-waiting: %u\n" \
     "\r\n"
 
-#define JOB_STATS_FMT "---\n" \
-    "id: %" PRIu64 "\n" \
-    "tube: %s\n" \
-    "state: %s\n" \
-    "pri: %u\n" \
-    "age: %" PRIu64 "\n" \
-    "delay: %" PRIu64 "\n" \
-    "ttr: %" PRIu64 "\n" \
-    "time-left: %" PRIu64 "\n" \
-    "reserves: %u\n" \
-    "timeouts: %u\n" \
-    "releases: %u\n" \
-    "buries: %u\n" \
-    "kicks: %u\n" \
-    "\r\n"
-
 /* this number is pretty arbitrary */
 #define BUCKET_BUF_SIZE 1024
 
@@ -982,9 +966,30 @@ static int
 fmt_job_stats(char *buf, size_t size, job j)
 {
     usec t;
+    uint64_t time_left;
 
     t = now_usec();
-    return snprintf(buf, size, JOB_STATS_FMT,
+    if (j->state == JOB_STATE_RESERVED || j->state == JOB_STATE_DELAYED) {
+        time_left = (j->deadline_at - t) / 1000000;
+    } else {
+        time_left = 0;
+    }
+    return snprintf(buf, size,
+            "id: %" PRIu64 "\n"
+            "tube: %s\n"
+            "state: %s\n"
+            "pri: %u\n"
+            "age: %" PRIu64 "\n"
+            "delay: %" PRIu64 "\n"
+            "ttr: %" PRIu64 "\n"
+            "time-left: %" PRIu64 "\n"
+            "reserves: %u\n"
+            "timeouts: %u\n"
+            "releases: %u\n"
+            "buries: %u\n"
+            "kicks: %u\n"
+            "\r\n",
+
             j->id,
             j->tube->name,
             job_state(j),
@@ -992,7 +997,7 @@ fmt_job_stats(char *buf, size_t size, job j)
             (t - j->created_at) / 1000000,
             j->delay / 1000000,
             j->ttr / 1000000,
-            (j->deadline_at - t) / 1000000,
+            time_left,
             j->reserve_ct,
             j->timeout_ct,
             j->release_ct,
