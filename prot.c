@@ -880,7 +880,7 @@ read_delay(usec *delay, const char *buf, char **end)
 
     r = read_pri(&delay_sec, buf, end);
     if (r) return r;
-    *delay = delay_sec * 1000000;
+    *delay = ((usec) delay_sec) * 1000000;
     return 0;
 }
 
