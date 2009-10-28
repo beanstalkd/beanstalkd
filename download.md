@@ -28,6 +28,12 @@ version 1.4.1 or later.
 
 ## Packages
 
+### MacPorts
+
+Just type:
+
+    sudo port install beanstalkd
+
 ### Fedora 9 and Fedora 10
 
 Just type:
