@@ -484,6 +484,10 @@ to scalars. It contains these keys:
  - "current-waiting" is the number of open connections that have issued a
    reserve command while watching this tube but not yet received a response.
 
+ - "pause" is the number of seconds the tube has been paused for
+
+ - "cmd-pause-tube" is the cumulative number of pause-tube commands for this tube
+
 The stats command gives statistical information about the system as a whole.
 Its form is:
 
@@ -550,6 +554,8 @@ of strings to scalars. It contains these keys:
 
  - "cmd-list-tubes-watched" is the cumulative number of list-tubes-watched
    commands.
+
+ - "cmd-pause-tube" is the cumulative number of pause-tube commands
 
  - "job-timeouts" is the cumulative count of times a job has timed out.
 
@@ -636,3 +642,19 @@ OK <bytes>\r\n
 The quit command simply closes the connection. Its form is:
 
 quit\r\n
+
+The pause-tube command can delay any new job being reserved for a given time. Its form is:
+
+pause-tube <tube-name> <delay>\r\n
+
+ - <tube> is the tube to pause
+
+ - <delay> is an integer number of seconds to wait before reserving any more
+   jobs from the queue
+
+There are two possible responses:
+
+ - "PAUSED\r\n" to indicate success.
+
+ - "NOT_FOUND\r\n" if the tube does not exist.
+

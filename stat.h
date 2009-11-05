@@ -30,6 +30,7 @@ struct stats {
     unsigned int waiting_ct;
     unsigned int buried_ct;
     unsigned int reserved_ct;
+    unsigned int pause_ct;
     uint64_t total_jobs_ct;
 };
 

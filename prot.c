@@ -70,6 +70,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_LIST_TUBES_WATCHED "list-tubes-watched"
 #define CMD_STATS_TUBE "stats-tube "
 #define CMD_QUIT "quit"
+#define CMD_PAUSE_TUBE "pause-tube"
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
@@ -93,6 +94,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_LIST_TUBE_USED_LEN CONSTSTRLEN(CMD_LIST_TUBE_USED)
 #define CMD_LIST_TUBES_WATCHED_LEN CONSTSTRLEN(CMD_LIST_TUBES_WATCHED)
 #define CMD_STATS_TUBE_LEN CONSTSTRLEN(CMD_STATS_TUBE)
+#define CMD_PAUSE_TUBE_LEN CONSTSTRLEN(CMD_PAUSE_TUBE)
 
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
@@ -152,7 +154,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_RESERVE_TIMEOUT 20
 #define OP_TOUCH 21
 #define OP_QUIT 22
-#define TOTAL_OPS 23
+#define OP_PAUSE_TUBE 23
+#define TOTAL_OPS 24
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -181,6 +184,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "cmd-list-tubes: %" PRIu64 "\n" \
     "cmd-list-tube-used: %" PRIu64 "\n" \
     "cmd-list-tubes-watched: %" PRIu64 "\n" \
+    "cmd-pause-tube: %" PRIu64 "\n" \
     "job-timeouts: %" PRIu64 "\n" \
     "total-jobs: %" PRIu64 "\n" \
     "max-job-size: %zu\n" \
@@ -211,6 +215,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-using: %u\n" \
     "current-watching: %u\n" \
     "current-waiting: %u\n" \
+    "cmd-pause-tube: %u\n" \
+    "pause: %" PRIu64 "\n" \
     "\r\n"
 
 /* this number is pretty arbitrary */
@@ -255,7 +261,8 @@ static const char * op_names[] = {
     CMD_PEEK_DELAYED,
     CMD_RESERVE_TIMEOUT,
     CMD_TOUCH,
-    CMD_QUIT
+    CMD_QUIT,
+    CMD_PAUSE_TUBE
 };
 #endif
 
@@ -352,7 +359,7 @@ reserve_job(conn c, job j)
 }
 
 static job
-next_eligible_job()
+next_eligible_job(usec now)
 {
     tube t;
     size_t i;
@@ -361,8 +368,12 @@ next_eligible_job()
     dprintf("tubes.used = %zu\n", tubes.used);
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
-        dprintf("for %s t->waiting.used=%zu t->ready.used=%d\n",
-                t->name, t->waiting.used, t->ready.used);
+        dprintf("for %s t->waiting.used=%zu t->ready.used=%d t->pause=%" PRIu64 "\n",
+                t->name, t->waiting.used, t->ready.used, t->pause);
+        if (t->pause) {
+            if (t->deadline_at > now) continue;
+            t->pause = 0;
+        }
         if (t->waiting.used && t->ready.used) {
             candidate = pq_peek(&t->ready);
             if (!j || job_pri_cmp(candidate, j) < 0) j = candidate;
@@ -377,9 +388,10 @@ static void
 process_queue()
 {
     job j;
+    usec now = now_usec();
 
     dprintf("processing queue\n");
-    while ((j = next_eligible_job())) {
+    while ((j = next_eligible_job(now))) {
         dprintf("got eligible job %llu in %s\n", j->id, j->tube->name);
         j = pq_take(&j->tube->ready);
         ready_ct--;
@@ -408,12 +420,33 @@ delay_q_peek()
     return j;
 }
 
+static tube
+pause_tube_peek()
+{
+    int i;
+    tube t, nt = NULL;
+
+    for (i = 0; i < tubes.used; i++) {
+        t = tubes.items[i];
+        if (t->pause) {
+            if (!nt || t->deadline_at < nt->deadline_at) nt = t;
+        }
+    }
+
+    return nt;
+}
+
 static void
 set_main_delay_timeout()
 {
-    job j;
+    job j = delay_q_peek();
+    tube t = pause_tube_peek();
+    usec deadline_at = t ? t->deadline_at : 0;
 
-    set_main_timeout((j = delay_q_peek()) ? j->deadline_at : 0);
+    if (j && (!deadline_at || j->deadline_at < deadline_at)) deadline_at = j->deadline_at;
+
+    dprintf("deadline_at=%" PRIu64 "\n", deadline_at);
+    set_main_timeout(deadline_at);
 }
 
 static int
@@ -710,6 +743,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_LIST_TUBE_USED, OP_LIST_TUBE_USED);
     TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
     TEST_CMD(c->cmd, CMD_QUIT, OP_QUIT);
+    TEST_CMD(c->cmd, CMD_PAUSE_TUBE, OP_PAUSE_TUBE);
     return OP_UNKNOWN;
 }
 
@@ -822,6 +856,7 @@ fmt_stats(char *buf, size_t size, void *x)
             op_ct[OP_LIST_TUBES],
             op_ct[OP_LIST_TUBE_USED],
             op_ct[OP_LIST_TUBES_WATCHED],
+            op_ct[OP_PAUSE_TUBE],
             timeout_ct,
             global_stat.total_jobs_ct,
             job_data_size_limit,
@@ -890,6 +925,20 @@ static int
 read_ttr(usec *ttr, const char *buf, char **end)
 {
     return read_delay(ttr, buf, end);
+}
+
+/* Read a tube name from the given buffer moving the buffer to the name start */
+static int
+read_tube_name(char **tubename, char *buf, char **end)
+{
+    size_t len;
+
+    while (buf[0] == ' ') buf++;
+    len = strspn(buf, NAME_CHARS);
+    if (len == 0) return -1;
+    if (tubename) *tubename = buf;
+    if (end) *end = buf + len;
+    return 0;
 }
 
 static void
@@ -1018,7 +1067,9 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.total_jobs_ct,
             t->using_ct,
             t->watching_ct,
-            t->stat.waiting_ct);
+            t->stat.waiting_ct,
+            t->stat.pause_ct,
+            t->pause / 1000000);
 }
 
 static void
@@ -1434,6 +1485,26 @@ dispatch_cmd(conn c)
     case OP_QUIT:
         conn_close(c);
         break;
+    case OP_PAUSE_TUBE:
+        op_ct[type]++;
+
+        r = read_tube_name(&name, c->cmd + CMD_PAUSE_TUBE_LEN, &delay_buf);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+
+        r = read_delay(&delay, delay_buf, NULL);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+
+        *delay_buf = '\0';
+        t = tube_find(name);
+        if (!t) return reply_msg(c, MSG_NOTFOUND);
+
+        t->deadline_at = now_usec() + delay;
+        t->pause = delay;
+        t->stat.pause_ct++;
+        set_main_delay_timeout();
+
+        reply_line(c, STATE_SENDWORD, "PAUSED\r\n");
+        break;
     default:
         return reply_msg(c, MSG_UNKNOWN_COMMAND);
     }
@@ -1656,14 +1727,27 @@ h_delay()
 {
     int r;
     job j;
-    usec t;
+    usec now;
+    int i;
+    tube t;
 
-    t = now_usec();
+    now = now_usec();
     while ((j = delay_q_peek())) {
-        if (j->deadline_at > t) break;
+        if (j->deadline_at > now) break;
         j = delay_q_take();
         r = enqueue_job(j, 0, 0);
         if (r < 1) bury_job(j, 0); /* out of memory, so bury it */
+    }
+
+    for (i = 0; i < tubes.used; i++) {
+        t = tubes.items[i];
+
+        dprintf("h_delay for %s t->waiting.used=%zu t->ready.used=%d t->pause=%" PRIu64 "\n",
+                t->name, t->waiting.used, t->ready.used, t->pause);
+        if (t->pause && t->deadline_at <= now) {
+            t->pause = 0;
+            process_queue();
+        }
     }
 
     set_main_delay_timeout();

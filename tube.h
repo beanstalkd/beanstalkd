@@ -40,6 +40,8 @@ struct tube {
     struct stats stat;
     unsigned int using_ct;
     unsigned int watching_ct;
+    usec pause;
+    usec deadline_at;
 };
 
 extern struct ms tubes;
