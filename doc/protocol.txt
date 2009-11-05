@@ -484,9 +484,12 @@ to scalars. It contains these keys:
  - "current-waiting" is the number of open connections that have issued a
    reserve command while watching this tube but not yet received a response.
 
- - "pause" is the number of seconds the tube has been paused for
+ - "pause" is the number of seconds the tube has been paused for.
 
- - "cmd-pause-tube" is the cumulative number of pause-tube commands for this tube
+ - "cmd-pause-tube" is the cumulative number of pause-tube commands for this
+   tube.
+
+ - "pause-time-left" is the number of seconds until the tube is un-paused.
 
 The stats command gives statistical information about the system as a whole.
 Its form is:
