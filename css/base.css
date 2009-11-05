@@ -233,3 +233,7 @@ header a:link, header a:visited, nav a:link, nav a:visited {
   padding: 0;
   margin: 0 125px;
 }
+
+#feed {
+  float: right;
+}

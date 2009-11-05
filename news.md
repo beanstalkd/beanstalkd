@@ -5,6 +5,9 @@ title: News
 
 ## Changes
 
+<a id='feed' href='http://feeds.feedburner.com/beanstalkd'><img
+  src='/img/feed-icon.png' alt='Subscribe' /></a>
+
 {% for post in site.posts %}
 
 ### {{ post.date | date_to_long_string }}
