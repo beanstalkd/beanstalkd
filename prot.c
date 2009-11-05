@@ -217,6 +217,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-waiting: %u\n" \
     "cmd-pause-tube: %u\n" \
     "pause: %" PRIu64 "\n" \
+    "pause-time-left: %" PRIu64 "\n" \
     "\r\n"
 
 /* this number is pretty arbitrary */
@@ -1057,6 +1058,13 @@ fmt_job_stats(char *buf, size_t size, job j)
 static int
 fmt_stats_tube(char *buf, size_t size, tube t)
 {
+    uint64_t time_left;
+
+    if (t->pause > 0) {
+        time_left = (t->deadline_at - now_usec()) / 1000000;
+    } else {
+        time_left = 0;
+    }
     return snprintf(buf, size, STATS_TUBE_FMT,
             t->name,
             t->stat.urgent_ct,
@@ -1069,7 +1077,8 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->watching_ct,
             t->stat.waiting_ct,
             t->stat.pause_ct,
-            t->pause / 1000000);
+            t->pause / 1000000,
+            time_left);
 }
 
 static void
