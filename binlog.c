@@ -261,7 +261,7 @@ binlog_close(binlog b)
 {
     if (!b) return;
     if (b->fd < 0) return;
-    if (b->free) ftruncate(b->fd, lseek(b->fd, b->free, SEEK_END));
+    if (b->free) 0 && ftruncate(b->fd, lseek(b->fd, b->free, SEEK_END));
     close(b->fd);
     b->fd = -1;
     binlog_dref(b);
