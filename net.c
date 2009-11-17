@@ -105,7 +105,7 @@ set_main_timeout(usec deadline_at)
     struct timeval tv;
     usec now = now_usec();
 
-    timeval_from_usec(&tv, deadline_at - now);
+    timeval_from_usec(&tv, (deadline_at > now) ? deadline_at - now : 1);
 
     main_deadline = deadline_at;
     r = event_add(&listen_evq, deadline_at ? &tv : NULL);
