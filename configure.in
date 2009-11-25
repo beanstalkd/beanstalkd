@@ -192,7 +192,13 @@ AC_TYPE_UINT16_T
 
 AC_SUBST(INSTALL_STRIP_FLAG)
 
-AC_CONFIG_FILES([Makefile beanstalkd.spec])
+# This is a distributed file -- we don't want make distclean to delete it.
+# Automake "helpfully" causes make distclean to delete files listed in
+# AC_CONFIG_FILES, but it doesn't know about shell variables. We can use
+# that limitation to preserve beanstalkd.spec.
+generate_but_do_not_delete_upon_distclean=beanstalkd.spec
+
+AC_CONFIG_FILES([Makefile $generate_but_do_not_delete_upon_distclean])
 AC_OUTPUT
 
 dnl vim700: ts=2 sw=2 et
