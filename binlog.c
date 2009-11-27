@@ -259,9 +259,18 @@ binlog_read_log_file(binlog b, job binlog_jobs)
 static void
 binlog_close(binlog b)
 {
+    int r;
+
     if (!b) return;
     if (b->fd < 0) return;
-    if (b->free) (void) ftruncate(b->fd, lseek(b->fd, b->free, SEEK_END));
+    if (b->free) {
+        // Some compilers give a warning if the return value of ftruncate is
+        // ignored. So we pretend to use it.
+        r = ftruncate(b->fd, lseek(b->fd, b->free, SEEK_END));
+        if (r == -1) {
+            // Nothing we can do. The user might see warnings next startup.
+        }
+    }
     close(b->fd);
     b->fd = -1;
     binlog_dref(b);
