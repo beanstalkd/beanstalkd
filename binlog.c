@@ -452,7 +452,8 @@ binlog_write_job(job j)
     vec[2].iov_base = (char *) j;
     to_write += vec[2].iov_len = job_record_size;
 
-    if (j->state == JOB_STATE_READY || j->state == JOB_STATE_DELAYED) {
+    if (j->state == JOB_STATE_READY || j->state == JOB_STATE_DELAYED ||
+        j->state == JOB_STATE_BURIED) {
         if (!j->binlog) {
             tube_namelen = strlen(j->tube->name);
             to_write += vec[1].iov_len = tube_namelen;
