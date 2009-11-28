@@ -107,6 +107,7 @@ put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+quit
 EOF
 
 diff - "$out1" <<EOF

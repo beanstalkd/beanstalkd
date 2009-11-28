@@ -93,6 +93,7 @@ watch test
 reserve
 delete 1
 delete 2
+quit
 EOF
 
 diff - "$out2" <<EOF

@@ -50,6 +50,7 @@ fi
 $nc $server $port <<EOF > "$out1"
 put 0 0 100 0
 
+quit
 EOF
 
 diff - "$out1" <<EOF
@@ -72,6 +73,7 @@ fi
 
 $nc $server $port <<EOF > "$out2"
 delete 1
+quit
 EOF
 
 diff - "$out2" <<EOF

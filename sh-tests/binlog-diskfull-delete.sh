@@ -79,6 +79,7 @@ put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+quit
 EOF
 
 diff - "$out1" <<EOF
@@ -111,6 +112,7 @@ put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+quit
 EOF
 
 diff - "$out1" <<EOF
@@ -134,6 +136,7 @@ delete 4
 delete 5
 delete 6
 delete 7
+quit
 EOF
 
 diff - "$out1" <<EOF
@@ -164,6 +167,7 @@ put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 put 0 0 100 50
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+quit
 EOF
 
 diff - "$out1" <<EOF
@@ -193,6 +197,7 @@ delete 11
 delete 12
 delete 13
 delete 14
+quit
 EOF
 
 diff - "$out2" <<EOF
