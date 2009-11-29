@@ -87,6 +87,7 @@ rehash()
             store_job(j);
         }
     }
+    free(old);
 }
 
 job
