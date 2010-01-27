@@ -220,6 +220,22 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "pause-time-left: %" PRIu64 "\n" \
     "\r\n"
 
+#define STATS_JOB_FMT "---\n" \
+    "id: %" PRIu64 "\n" \
+    "tube: %s\n" \
+    "state: %s\n" \
+    "pri: %u\n" \
+    "age: %" PRIu64 "\n" \
+    "delay: %" PRIu64 "\n" \
+    "ttr: %" PRIu64 "\n" \
+    "time-left: %" PRIu64 "\n" \
+    "reserves: %u\n" \
+    "timeouts: %u\n" \
+    "releases: %u\n" \
+    "buries: %u\n" \
+    "kicks: %u\n" \
+    "\r\n"
+
 /* this number is pretty arbitrary */
 #define BUCKET_BUF_SIZE 1024
 
@@ -1027,23 +1043,7 @@ fmt_job_stats(char *buf, size_t size, job j)
     } else {
         time_left = 0;
     }
-    return snprintf(buf, size,
-            "---\n"
-            "id: %" PRIu64 "\n"
-            "tube: %s\n"
-            "state: %s\n"
-            "pri: %u\n"
-            "age: %" PRIu64 "\n"
-            "delay: %" PRIu64 "\n"
-            "ttr: %" PRIu64 "\n"
-            "time-left: %" PRIu64 "\n"
-            "reserves: %u\n"
-            "timeouts: %u\n"
-            "releases: %u\n"
-            "buries: %u\n"
-            "kicks: %u\n"
-            "\r\n",
-
+    return snprintf(buf, size, STATS_JOB_FMT,
             j->id,
             j->tube->name,
             job_state(j),
