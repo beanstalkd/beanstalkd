@@ -1028,6 +1028,7 @@ fmt_job_stats(char *buf, size_t size, job j)
         time_left = 0;
     }
     return snprintf(buf, size,
+            "---\n"
             "id: %" PRIu64 "\n"
             "tube: %s\n"
             "state: %s\n"
