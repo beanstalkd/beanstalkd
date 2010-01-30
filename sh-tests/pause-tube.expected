@@ -54,7 +54,8 @@ cmd-pause-tube: 3
 pause: 3
 pause-time-left: 2
 
-OK 131
+OK 135
+---
 id: 2
 tube: default
 state: ready
@@ -71,7 +72,8 @@ kicks: 0
 
 RESERVED 2 1
 2
-OK 134
+OK 138
+---
 id: 2
 tube: default
 state: reserved
