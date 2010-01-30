@@ -5,8 +5,7 @@ port=11400
 tmpdir="$TMPDIR"
 test -z "$tmpdir" && tmpdir=/tmp
 tmpf="${tmpdir}/bnch$$"
-nc='nc -q 10'
-nc -q 10 2>&1 | grep -q "illegal option" && nc='nc -w 10' # workaround for older netcat
+nc='./sh-tests/netcat.py'
 
 commands="$1"; shift
 expected="$1"; shift

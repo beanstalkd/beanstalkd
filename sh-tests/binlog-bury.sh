@@ -7,8 +7,7 @@ test -z "$tmpdir" && tmpdir=/tmp
 out1="${tmpdir}/bnch$$.1"
 out2="${tmpdir}/bnch$$.2"
 logdir="${tmpdir}/bnch$$.d"
-nc='nc -q 1'
-nc -q 1 2>&1 | grep -q "illegal option" && nc='nc -w 1' # workaround for older netcat
+nc='./sh-tests/netcat.py'
 
 killbeanstalkd() {
     {
