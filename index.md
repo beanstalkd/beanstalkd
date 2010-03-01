@@ -36,7 +36,7 @@ This starts up `beanstalkd` as a daemon listening on address
 
 ## Use It
 
-Here's an example in Ruby (see the [client libraries](client.html) to find
+Here's an example in Ruby (see the [client libraries][] to find
 your favorite language).
 
 First, have one process put a job into the queue:
@@ -77,3 +77,4 @@ fantastic piece of software!
 [cof]: http://apps.facebook.com/causes/
 [mailinglist]: http://groups.google.com/group/beanstalk-talk
 [memcached]: http://www.danga.com/memcached/
+[client_libraries]: http://wiki.github.com/kr/beanstalkd/client-libraries

@@ -73,7 +73,7 @@ Just type:
 
 ## Client Libraries
 
-See the [client library](client.html) page to find a library for your favorite
+See the [client library][] page to find a library for your favorite
 language.
 
 ## Git
@@ -87,3 +87,4 @@ To get your own copy and start hacking, just run:
 You can also find beanstalkd source at <http://repo.or.cz/w/beanstalkd.git>.
 
 [libevent]: http://monkey.org/~provos/libevent/
+[client_library]: http://wiki.github.com/kr/beanstalkd/client-libraries
