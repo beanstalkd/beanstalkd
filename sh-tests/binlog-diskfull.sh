@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
+. sh-tests/common.functions
+
 ENOSPC=28
 server=localhost
-port=11400
 tmpdir="$TMPDIR"
 size=1000
 test -z "$tmpdir" && tmpdir=/tmp
@@ -16,14 +17,6 @@ then
   echo ...skipped. '(requires fiu tools from http://blitiri.com.ar/p/libfiu/)'
   exit 0
 fi
-
-killbeanstalkd() {
-    {
-        test -z "$bpid" || kill -9 $bpid
-        /bin/true # Somehow this gets rid of an unnessary shell message.
-    } >/dev/null 2>&1
-    bpid=
-}
 
 cleanup() {
     killbeanstalkd
@@ -43,16 +36,7 @@ if [ ! -x ./beanstalkd ]; then
   exit 2
 fi
 
-mkdir -p $logdir
-
-fiu-run -x ./beanstalkd -p $port -b "$logdir" -s $size >/dev/null 2>/dev/null &
-bpid=$!
-
-sleep .1
-if ! ps -p $bpid >/dev/null; then
-  echo "Could not start beanstalkd for testing (possibly port $port is taken)"
-  exit 2
-fi
+start_beanstalkd $logdir "-s $size" "fiu-run -x"
 
 # Make beanstalkd think the disk is full now.
 fiu-ctrl -e posix/io/oc/open -i $ENOSPC $bpid
@@ -113,14 +97,7 @@ test "$res" -eq 0 || exit $res
 killbeanstalkd
 
 sleep .1
-./beanstalkd -p $port -b "$logdir" -s $size >/dev/null 2>/dev/null &
-bpid=$!
-
-sleep .1
-if ! ps -p $bpid >/dev/null; then
-  echo "Could not start beanstalkd for testing (possibly port $port is taken)"
-  exit 2
-fi
+start_beanstalkd $logdir "-s $size"
 
 $nc $server $port <<EOF > "$out2"
 delete 1

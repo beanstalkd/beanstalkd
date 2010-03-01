@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
+. sh-tests/common.functions
+
 server=localhost
-port=11400
 tmpdir="$TMPDIR"
 size=1024
 truncated_size_1=796
@@ -17,14 +18,6 @@ fail() {
     caller
     echo ' ' "$@"
     exit 1
-}
-
-killbeanstalkd() {
-    {
-        test -z "$bpid" || kill -9 $bpid
-        /bin/true # Somehow this gets rid of an unnessary shell message.
-    } >/dev/null 2>&1
-    bpid=
 }
 
 cleanup() {
@@ -50,16 +43,7 @@ if [ ! -x ./beanstalkd ]; then
   exit 2
 fi
 
-mkdir -p $logdir
-
-./beanstalkd -p $port -b "$logdir" -s $size >/dev/null 2>/dev/null &
-bpid=$!
-
-sleep .1
-if ! ps -p $bpid >/dev/null; then
-  echo "Could not start beanstalkd for testing (possibly port $port is taken)"
-  exit 2
-fi
+start_beanstalkd $logdir "-s $size"
 
 # Check that the first binlog file is the proper size.
 test "$(fsize "$logdir"/binlog.1)" -eq $size || fail first binlog wrong size

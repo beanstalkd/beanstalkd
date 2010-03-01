@@ -1,7 +1,8 @@
-#!/bin/sh
+#!/bin/bash
+
+. sh-tests/common.functions
 
 server=localhost
-port=11400
 tmpdir="$TMPDIR"
 test -z "$tmpdir" && tmpdir=/tmp
 tmpf="${tmpdir}/bnch$$"
@@ -33,14 +34,7 @@ if [ ! -x ./beanstalkd ]; then
   exit 2
 fi
 
-./beanstalkd -p $port >/dev/null 2>/dev/null &
-bpid=$!
-
-sleep .1
-if ! ps -p $bpid >/dev/null; then
-  echo "Could not start beanstalkd for testing, port $port is taken"
-  exit 2
-fi
+start_beanstalkd
 
 # Run the test
 fgrep -v "#" $commands | $nc $server $port > "$tmpf"
