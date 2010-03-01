@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if /sbin/ifconfig | egrep -q '^lo[[:space:]]+Link'; then
+    echo "loopback interface is configured, getting on with tests"
+else
+    echo "loopback interface is NOT configured, won't run tests"
+    exit 0
+fi
+
 one="$(dirname "$0")/check-one.sh"
 
 for commands in "$@"; do
