@@ -1017,6 +1017,9 @@ do_list_tubes(conn c, ms l)
     c->out_job = allocate_job(resp_z); /* fake job to hold response data */
     if (!c->out_job) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
+    /* Mark this job as a copy so it can be appropriately freed later on */
+    c->out_job->state = JOB_STATE_COPY;
+
     /* now actually format the response */
     buf = c->out_job->body;
     buf += snprintf(buf, 5, "---\n");
