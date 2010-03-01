@@ -27,7 +27,7 @@ killbeanstalkd() {
 
 cleanup() {
     killbeanstalkd
-    rm -rf "$logdir" "$out1" "$out2"
+    rm -rf "$logdir" "$out1" "$out2" ${tmpdir}/fiu-ctrl-[0-9]*.{in,out}
 }
 
 catch() {
