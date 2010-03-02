@@ -1,12 +1,12 @@
 #!/bin/bash
 
-. sh-tests/common.functions
+. "$SRCDIR/sh-tests/common.functions"
 
 server=localhost
 tmpdir="$TMPDIR"
 test -z "$tmpdir" && tmpdir=/tmp
 tmpf="${tmpdir}/bnch$$"
-nc='./sh-tests/netcat.py'
+nc="$SRCDIR/sh-tests/netcat.py"
 
 commands="$1"; shift
 expected="$1"; shift

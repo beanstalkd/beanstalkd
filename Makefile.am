@@ -55,7 +55,7 @@ check-cut: tests/cutcheck
 	tests/cutcheck
 
 check-shell: $(program)
-	$(srcdir)/check.sh $(srcdir)/sh-tests/*.{commands,sh}
+	SRCDIR=$(srcdir) $(srcdir)/check.sh $(srcdir)/sh-tests/*.{commands,sh}
 
 check: check-cut check-shell
 
