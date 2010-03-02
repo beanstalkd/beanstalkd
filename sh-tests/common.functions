@@ -23,8 +23,13 @@ function start_beanstalkd {
 
     max_port=$(($port + $max_port_retries))
     while [ $port -lt $max_port ]; do
-        echo "$fiu ./beanstalkd -l 127.0.0.1 -p $port $other_args &"
-        $fiu ./beanstalkd -l 127.0.0.1 -p $port $other_args &
+        if test "$VERBOSE"
+        then
+          echo "$fiu ./beanstalkd -l 127.0.0.1 -p $port $other_args &"
+          $fiu ./beanstalkd -l 127.0.0.1 -p $port $other_args &
+        else
+          $fiu ./beanstalkd -l 127.0.0.1 -p $port $other_args >/dev/null 2>/dev/null &
+        fi
         bpid=$!
 
         sleep .1
@@ -32,7 +37,10 @@ function start_beanstalkd {
           echo "Could not start beanstalkd for testing (possibly port $port is taken)" >&2
           port=$(($port + 1))
         else
-          echo "Started beanstalkd (pid: $bpid), listening on port $port"
+          if test "$VERBOSE"
+          then
+            echo "Started beanstalkd (pid: $bpid), listening on port $port"
+          fi
           export port bpid
           return
         fi
