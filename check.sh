@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if /sbin/ifconfig | egrep -q '^lo[[:space:]]+Link'; then
+if /sbin/ifconfig | egrep -q '^lo[[:alnum:]]*:?[[:space:]]+'; then
     echo "loopback interface is configured, getting on with tests"
 else
     echo "loopback interface is NOT configured, won't run tests"
