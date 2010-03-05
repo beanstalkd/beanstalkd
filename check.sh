@@ -16,4 +16,4 @@ for commands in "$@"; do
   res=$?
   test "$res" = 1 && echo "FAIL: $commands"
   test "$res" = 0 || exit 1
-done 
+done

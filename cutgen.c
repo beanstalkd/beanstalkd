@@ -143,14 +143,14 @@ int CharacterIsAlphanumeric( char ch )
     return CharacterIsDigit(ch) || CharacterIsAlphabetic(ch);
 }
 
-void ProcessGenericFunction( char *line, int position, 
+void ProcessGenericFunction( char *line, int position,
                             TestType type, int tokenDisplacement )
 {
     char name[MAX_SYMBOL_LENGTH] = "";
     int maxLength = strlen( line ) - 1, offset=0;
     position = position + tokenDisplacement;
-    
-    while ( CharacterIsAlphanumeric(line[position]) 
+
+    while ( CharacterIsAlphanumeric(line[position])
        && (position<maxLength) && (offset<MAX_SYMBOL_LENGTH) )
     {
         name[offset++] = line[position++];
@@ -174,7 +174,7 @@ void ProcessTestFunction( char *line, int position )
 int OffsetOfSubstring( char *line, char *token )
 {
     char *inset = strstr(line,token);
-    
+
     if ( !inset ) return -1;
     else return inset - line;
 }
@@ -190,18 +190,18 @@ void ProcessSourceFile( char *filename )
 {
    FILE *source;
    char line[MAX_LINE_LENGTH];
-  
+
    if( strcmp( filename, DO_NOT_PROCESS ) != 0 )
    {
 
       source = fopen(filename,"r");
-      
+
       while ( fgets(line,MAX_LINE_LENGTH,source) )
       {
          CallIfSubstringFound( line, SEARCH_TOKEN_BRINGUP, ProcessBringupFunction );
          CallIfSubstringFound( line, SEARCH_TOKEN_TEST, ProcessTestFunction );
       }
-      
+
       fclose(source);
    }
 }
@@ -254,11 +254,11 @@ void EmitIndented(int indent,char *format, ...)
    va_list v;
    /* Print two spaces per level of indentation. */
    fprintf( outfile, "%*s", indent*2, "" );
-   
+
    va_start(v,format);
    vfprintf( outfile, format, v );
    va_end(v);
-   
+
    fprintf( outfile, "\n" );
 }
 
@@ -347,7 +347,7 @@ void EstablishOutputFile( int argc, char *argv[] )
          outfile = fopen( argv[i+1], "wb+" );
          if( outfile == NULL )
             fprintf( stderr, "ERROR: Can't open %s for writing.\n", argv[i+1] );
-         
+
          argv[i] = argv[i+1] = DO_NOT_PROCESS;
 
          return;
@@ -397,7 +397,7 @@ int main( int argc,char *argv[] )
          fprintf( stderr, "done.\n");
       }
    }
-   
+
    EmitCutCheck();
    fflush(outfile);
    fclose(outfile);
@@ -405,6 +405,6 @@ int main( int argc,char *argv[] )
 }
 
 /*
- * vim: tabstop=3 shiftwidth=3 expandtab 
+ * vim: tabstop=3 shiftwidth=3 expandtab
  */
 

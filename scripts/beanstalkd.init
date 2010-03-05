@@ -6,7 +6,7 @@
 # description: a simple, fast workqueue service
 # processname:  beanstalkd
 # config:       /etc/sysconfig/beanstalkd
-#              
+#
 
 ### BEGIN INIT INFO
 # Provides: beanstalkd
@@ -23,7 +23,7 @@
 . /etc/sysconfig/network
 
 # Check that networking is up.
-[ "$NETWORKING" = "no" ] && exit 
+[ "$NETWORKING" = "no" ] && exit
 exec="/usr/bin/beanstalkd"
 prog=$(basename $exec)
 

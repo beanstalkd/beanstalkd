@@ -141,11 +141,11 @@ else
 
   if test -f "$LIBEVENT_DIR/$LIBDIR/libevent.so"; then
     LIBEVENT="$LIBEVENT_DIR/$LIBDIR/libevent.so";
-  else 
+  else
     if test -f "$LIBEVENT_DIR/lib/libevent.so"; then
       LIBEVENT="$LIBEVENT_DIR/lib/libevent.so";
-    else 
-      if test -f "$LIBEVENT_DIR/lib64/libevent.so"; then 
+    else
+      if test -f "$LIBEVENT_DIR/lib64/libevent.so"; then
         LIBEVENT="$LIBEVENT_DIR/lib64/libevent.so";
       fi
     fi
@@ -154,7 +154,7 @@ fi
 
 dnl }}}
 
-dnl {{{ --enable-debug 
+dnl {{{ --enable-debug
 AC_ARG_ENABLE(debug,
   [AS_HELP_STRING([--enable-debug],[enable debugging symbols and compile flags])
   ],

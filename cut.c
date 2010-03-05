@@ -182,7 +182,7 @@ void __cut_assert(
                  )
 {
   if (success) return;
-  
+
   print_string_as_error( filename, lineNumber, "(" );
   print_string( expression );
   print_string(") ");
