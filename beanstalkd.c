@@ -319,7 +319,7 @@ main(int argc, char **argv)
     }
 
     event_dispatch();
+    twarnx("event_dispatch error");
     binlog_shutdown();
-    twarnx("got here for some reason");
     return 0;
 }
