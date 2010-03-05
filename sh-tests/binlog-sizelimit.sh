@@ -5,8 +5,6 @@
 server=localhost
 tmpdir="$TMPDIR"
 size=1024
-truncated_size_1=796
-truncated_size_2=928
 test -z "$tmpdir" && tmpdir=/tmp
 out1="${tmpdir}/bnch$$.1"
 out2="${tmpdir}/bnch$$.2"
@@ -119,15 +117,15 @@ res=$?
 test "$res" -eq 0 || exit $res
 
 # Check that the first binlog file is still the proper size.
-if ! test "$(fsize "$logdir"/binlog.1)" -eq $truncated_size_1
+if ! test "$(fsize "$logdir"/binlog.1)" -le $size
 then
-  fail first binlog changed
+  fail first binlog grew too big
 fi
 
 # Check that the second binlog file is the proper size.
-if ! test "$(fsize "$logdir"/binlog.2)" -eq $truncated_size_2
+if ! test "$(fsize "$logdir"/binlog.2)" -le $size
 then
-  fail second binlog changed
+  fail second binlog grew too big
 fi
 
 killbeanstalkd
