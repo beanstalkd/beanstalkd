@@ -128,5 +128,3 @@ then
   fail second binlog grew too big
 fi
 
-killbeanstalkd
-
