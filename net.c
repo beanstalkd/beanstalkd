@@ -105,9 +105,14 @@ set_main_timeout(usec deadline_at)
     struct timeval tv;
     usec now = now_usec();
 
+    main_deadline = deadline_at;
+
+    /* If there is no deadline, we just wait for a long while.
+     * This works around a bug in libevent or kqueue on Mac OS X. */
+    if (!deadline_at) deadline_at = now + 100 * SECOND;
+
     timeval_from_usec(&tv, (deadline_at > now) ? deadline_at - now : 1);
 
-    main_deadline = deadline_at;
-    r = event_add(&listen_evq, deadline_at ? &tv : NULL);
+    r = event_add(&listen_evq, &tv);
     if (r == -1) twarn("event_add()");
 }
