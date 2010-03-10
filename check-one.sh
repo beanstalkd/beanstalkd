@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 . "$SRCDIR/sh-tests/common.functions"
 

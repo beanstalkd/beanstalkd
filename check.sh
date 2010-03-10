@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if /sbin/ifconfig | egrep -q '^lo[[:alnum:]]*:?[[:space:]]+'; then
     echo "loopback interface is configured, getting on with tests"
