@@ -41,10 +41,6 @@ the server will reply with one of the following error messages:
    happen. If it does happen, please report it at
    http://groups.google.com/group/beanstalk-talk.
 
- - "DRAINING\r\n" This means that the server has been put into "drain mode"
-   and is no longer accepting new jobs. The client should try another server
-   or disconnect and try again later.
-
  - "BAD_FORMAT\r\n" The client sent a command line that was not well-formed.
    This can happen if the line does not end with \r\n, if non-numeric
    characters occur where an integer is expected, if the wrong number of
@@ -171,6 +167,10 @@ may be:
 
  - "JOB_TOO_BIG\r\n" The client has requested to put a job with a body larger
    than max-job-size bytes.
+
+ - "DRAINING\r\n" This means that the server has been put into "drain mode"
+   and is no longer accepting new jobs. The client should try another server
+   or disconnect and try again later.
 
 The "use" command is for producers. Subsequent put commands will put jobs into
 the tube specified by this command. If no use command has been issued, jobs
