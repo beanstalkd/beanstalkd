@@ -362,8 +362,6 @@ variations. All but the first operate only on the currently used tube.
 
  - "peek-buried\r\n" - return the next job in the list of buried jobs.
 
- - "quit\r\n" - close the connection.
-
 There are two possible responses, either a single line:
 
  - "NOT_FOUND\r\n" if the requested job doesn't exist or there are no jobs in
