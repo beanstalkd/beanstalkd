@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
@@ -40,8 +41,8 @@
 
 static char *user = NULL;
 static int detach = 0;
-static int port = 11300;
-static struct in_addr host_addr;
+static char *port = "11300";
+static char *host_addr;
 
 static void
 nullfd(int fd, int flags)
@@ -201,33 +202,6 @@ require_arg(char *opt, char *arg)
     return arg;
 }
 
-static int
-parse_port(char *portstr)
-{
-    int port;
-    char *end;
-
-    errno = 0;
-    port = strtol(portstr, &end, 10);
-    if (end == portstr) usage("invalid port", portstr);
-    if (end[0] != 0) usage("invalid port", portstr);
-    if (errno) usage("invalid port", portstr);
-
-   return port;
-}
-
-static struct in_addr
-parse_host(char *hoststr)
-{
-    int r;
-    struct in_addr addr;
-
-    r = inet_aton(hoststr, &addr);
-    if (!r) usage("invalid address", hoststr);
-
-    return addr;
-}
-
 static void
 opts(int argc, char **argv)
 {
@@ -241,10 +215,10 @@ opts(int argc, char **argv)
                 detach = 1;
                 break;
             case 'p':
-                port = parse_port(require_arg("-p", argv[++i]));
+                port = require_arg("-p", argv[++i]);
                 break;
             case 'l':
-                host_addr = parse_host(require_arg("-l", argv[++i]));
+                host_addr = require_arg("-l", argv[++i]);
                 break;
             case 'z':
                 job_data_size_limit = parse_size_t(require_arg("-z",
@@ -283,8 +257,6 @@ main(int argc, char **argv)
     int r;
     struct event_base *ev_base;
     struct job binlog_jobs = {};
-
-    host_addr.s_addr = INADDR_ANY;
 
     progname = argv[0];
     opts(argc, argv);

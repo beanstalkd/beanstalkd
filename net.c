@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <errno.h>
 
 #include "net.h"
@@ -29,35 +30,68 @@ static usec main_deadline = 0;
 static int brakes_are_on = 1, after_startup = 0;
 
 int
-make_server_socket(struct in_addr host_addr, int port)
+make_server_socket(char *host, char *port)
 {
     int fd, flags, r;
     struct linger linger = {0, 0};
-    struct sockaddr_in addr = {}; /* initialize to 0 */
+    struct addrinfo *airoot, *ai, hints;
 
-    fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd == -1) return twarn("socket()"), -1;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+    r = getaddrinfo(host, port, &hints, &airoot);
+    if (r == -1)
+      return twarn("getaddrinfo()"), -1;
 
-    flags = fcntl(fd, F_GETFL, 0);
-    if (flags < 0) return twarn("getting flags"), close(fd), -1;
+    for(ai = airoot; ai; ai = ai->ai_next) {
+      fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+      if (fd == -1) {
+        twarn("socket()");
+        continue;
+      }
 
-    r = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    if (r == -1) return twarn("setting O_NONBLOCK"), close(fd), -1;
+      flags = fcntl(fd, F_GETFL, 0);
+      if (flags < 0) {
+        twarn("getting flags");
+        close(fd);
+        continue;
+      }
 
-    flags = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof flags);
-    setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &flags, sizeof flags);
-    setsockopt(fd, SOL_SOCKET, SO_LINGER,   &linger, sizeof linger);
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof flags);
+      r = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+      if (r == -1) {
+        twarn("setting O_NONBLOCK");
+        close(fd);
+        continue;
+      }
 
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr = host_addr;
-    r = bind(fd, (struct sockaddr *) &addr, sizeof addr);
-    if (r == -1) return twarn("bind()"), close(fd), -1;
+      flags = 1;
+      setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof flags);
+      setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &flags, sizeof flags);
+      setsockopt(fd, SOL_SOCKET, SO_LINGER,   &linger, sizeof linger);
+      setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof flags);
 
-    r = listen(fd, 1024);
-    if (r == -1) return twarn("listen()"), close(fd), -1;
+      r = bind(fd, ai->ai_addr, ai->ai_addrlen);
+      if (r == -1) {
+        twarn("bind()");
+        close(fd);
+        continue;
+      }
+
+      r = listen(fd, 1024);
+      if (r == -1) {
+        twarn("listen()");
+        close(fd);
+        continue;
+      }
+
+      break;
+    }
+
+    freeaddrinfo(airoot);
+
+    if(ai == NULL)
+      fd = -1;
 
     return listen_socket = fd;
 }

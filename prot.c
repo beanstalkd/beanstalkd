@@ -1775,12 +1775,12 @@ h_accept(const int fd, const short which, struct event *ev)
     conn c;
     int cfd, flags, r;
     socklen_t addrlen;
-    struct sockaddr addr;
+    struct sockaddr_in6 addr;
 
     if (which == EV_TIMEOUT) return h_delay();
 
     addrlen = sizeof addr;
-    cfd = accept(fd, &addr, &addrlen);
+    cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
         if (errno == EMFILE) brake();

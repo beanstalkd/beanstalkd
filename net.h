@@ -17,10 +17,11 @@
 #ifndef net_h
 #define net_h
 
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -28,7 +29,7 @@
 #include "conn.h"
 #include "util.h"
 
-int make_server_socket(struct in_addr host_addr, int port);
+int make_server_socket(char *host_addr, char *port);
 
 void brake();
 void unbrake(evh h);
