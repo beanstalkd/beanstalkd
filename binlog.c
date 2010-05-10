@@ -564,14 +564,69 @@ ensure_free_space(size_t n)
     return n;
 }
 
-/* Preserve some invariants immediately after any space reservation.
- * Invariant 1: current_binlog->reserved >= n.
- * Invariant 2: current_binlog->reserved is congruent to n (mod z), where z
- * is the size of a delete record in the binlog. */
+/* Ensures:
+ * 1: b->reserved is congruent to n (mod z).
+ * 2: all future binlogs ->reserved is congruent to 0 (mod z).
+ * Returns t on success, and 0 on failure. (Therefore t should be nonzero.) */
 static size_t
-maintain_invariant(size_t n)
+maintain_invariants_iter(binlog b, size_t n, size_t t)
 {
     size_t reserved_later, remainder, complement, z, r;
+
+    /* In this function, reserved bytes are conserved (they are neither created
+     * nor destroyed). We just move them around to preserve the invariant. We
+     * might have to create new free space (i.e. allocate a new binlog file),
+     * though. */
+
+    if (!b) return t;
+
+    z = sizeof(size_t) + job_record_size;
+    reserved_later = b->reserved - n;
+    remainder = reserved_later % z;
+    if (remainder == 0) return maintain_invariants_iter(b->next, 0, t);
+
+    if (b == newest_binlog) {
+        twarnx("newest binlog has invalid %zd reserved", b->reserved);
+        /* We have failed, so undo the reservation and return 0. */
+        if (newest_binlog->reserved >= t) {
+            newest_binlog->reserved -= t;
+        } else {
+            twarnx("failed to unreserve %zd bytes", t); /* can't happen */
+        }
+        return 0;
+    }
+
+    complement = z - remainder;
+    if (can_move_reserved(complement, newest_binlog, b)) {
+        move_reserved(complement, newest_binlog, b);
+        return maintain_invariants_iter(b->next, 0, t);
+    }
+
+    r = ensure_free_space(remainder);
+    if (r != remainder) {
+        twarnx("ensure_free_space");
+        /* We have failed, so undo the reservation and return 0. */
+        if (newest_binlog->reserved >= t) {
+            newest_binlog->reserved -= t;
+        } else {
+            twarnx("failed to unreserve %zd bytes", t); /* can't happen */
+        }
+        return 0;
+    }
+    move_reserved(remainder, b, newest_binlog);
+    return maintain_invariants_iter(b->next, 0, t);
+}
+
+
+/* Preserve some invariants immediately after any space reservation
+ * (where z is the size of a delete record in the binlog).
+ * Invariant 1: current_binlog->reserved >= n.
+ * Invariant 2: current_binlog->reserved is congruent to n (mod z).
+ * Invariant 3: all future binlogs ->reserved is congruent to 0 (mod z). */
+static size_t
+maintain_invariants(size_t n)
+{
+    size_t r;
 
     /* In this function, reserved bytes are conserved (they are neither created
      * nor destroyed). We just move them around to preserve the invariant. We
@@ -587,6 +642,7 @@ maintain_invariant(size_t n)
         r = ensure_free_space(to_move);
         if (r != to_move) {
             twarnx("ensure_free_space");
+            /* We have failed, so undo the reservation and return 0. */
             if (newest_binlog->reserved >= n) {
                 newest_binlog->reserved -= n;
             } else {
@@ -599,32 +655,8 @@ maintain_invariant(size_t n)
         binlog_use_next();
     }
 
-
-    /* Invariant 2. */
-
-    z = sizeof(size_t) + job_record_size;
-    reserved_later = current_binlog->reserved - n;
-    remainder = reserved_later % z;
-    if (remainder == 0) return n;
-    complement = z - remainder;
-    if (can_move_reserved(complement, newest_binlog, current_binlog)) {
-        move_reserved(complement, newest_binlog, current_binlog);
-        return n;
-    }
-
-    r = ensure_free_space(remainder);
-    if (r != remainder) {
-        twarnx("ensure_free_space");
-        if (newest_binlog->reserved >= n) {
-            newest_binlog->reserved -= n;
-        } else {
-            twarnx("failed to unreserve %zd bytes", n); /* can't happen */
-        }
-        return 0;
-    }
-    move_reserved(remainder, current_binlog, newest_binlog);
-
-    return n;
+    /* Invariants 2 and 3. */
+    return maintain_invariants_iter(current_binlog, n, n);
 }
 
 /* Returns the number of bytes successfully reserved: either 0 or n. */
@@ -639,7 +671,7 @@ binlog_reserve_space(size_t n)
     if (current_binlog->free >= n) {
         current_binlog->free -= n;
         current_binlog->reserved += n;
-        return maintain_invariant(n);
+        return maintain_invariants(n);
     }
 
     r = ensure_free_space(n);
@@ -647,7 +679,7 @@ binlog_reserve_space(size_t n)
 
     newest_binlog->free -= n;
     newest_binlog->reserved += n;
-    return maintain_invariant(n);
+    return maintain_invariants(n);
 }
 
 /* Returns the number of bytes reserved. */
