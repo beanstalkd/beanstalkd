@@ -488,6 +488,9 @@ binlog_write_job(job j)
             return 0;
         }
 
+        current_binlog->reserved -= written;
+        j->reserved_binlog_space -= written;
+
         to_write -= written;
         if (to_write > 0 && written > 0) {
             for (vptr = vec; written >= vptr->iov_len; vptr++) {
@@ -497,8 +500,6 @@ binlog_write_job(job j)
             vptr->iov_base = (char *) vptr->iov_base + written;
             vptr->iov_len -= written;
         }
-        current_binlog->reserved -= written;
-        j->reserved_binlog_space -= written;
     }
 
     now = now_usec() / 1000; /* usec -> msec */
