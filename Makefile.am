@@ -34,6 +34,7 @@ readme = \
 	README-TESTS
 
 EXTRA_DIST = cut.c $(tests) $(scripts) $(readme) cut.h sh-tests check.sh check-one.sh \
+	NEWS.md
 	beanstalkd.spec.in \
 	binlog.h \
 	conn.h \
