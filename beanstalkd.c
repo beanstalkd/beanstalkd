@@ -166,7 +166,7 @@ usage(char *msg, char *arg)
             "\n"
             "Options:\n"
             " -d       detach\n"
-            " -b DIR   binlog directory\n"
+            " -b DIR   binlog directory (must be absolute path if used with -d)\n"
             " -f MS    fsync at most once every MS milliseconds"
                        " (use -f 0 for \"always fsync\")\n"
             " -F       never fsync (default)\n"
@@ -260,6 +260,13 @@ main(int argc, char **argv)
 
     progname = argv[0];
     opts(argc, argv);
+
+    if (detach && binlog_dir) {
+        if (binlog_dir[0] != '/') {
+            warnx("The -b option requires an absolute path when used with -d.");
+            usage("Path is not absolute", binlog_dir);
+        }
+    }
 
     job_init();
     prot_init();
