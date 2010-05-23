@@ -1196,7 +1196,8 @@ dispatch_cmd(conn c)
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         if (body_size > job_data_size_limit) {
-            return reply_msg(c, MSG_JOB_TOO_BIG);
+            /* throw away the job body and respond with JOB_TOO_BIG */
+            return skip(c, body_size + 2, MSG_JOB_TOO_BIG);
         }
 
         /* don't allow trailing garbage */

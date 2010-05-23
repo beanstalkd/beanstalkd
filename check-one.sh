@@ -34,7 +34,7 @@ if [ ! -x ./beanstalkd ]; then
   exit 2
 fi
 
-start_beanstalkd
+start_beanstalkd '' '-z 10'
 
 # Run the test
 fgrep -v "#" $commands | $nc $server $port > "$tmpf"
