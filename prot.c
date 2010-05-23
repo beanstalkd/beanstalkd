@@ -797,6 +797,26 @@ fill_extra_data(conn c)
 }
 
 static void
+_skip(conn c, int n, const char *line, int len)
+{
+    /* Invert the meaning of in_job_read while throwing away data -- it
+     * counts the bytes that remain to be thrown away. */
+    c->in_job = 0;
+    c->in_job_read = n;
+    fill_extra_data(c);
+
+    if (c->in_job_read == 0) return reply(c, line, len, STATE_SENDWORD);
+
+    c->reply = line;
+    c->reply_len = len;
+    c->reply_sent = 0;
+    c->state = STATE_BITBUCKET;
+    return;
+}
+
+#define skip(c,n,m) (_skip(c,n,m,CONSTSTRLEN(m)))
+
+static void
 enqueue_incoming_job(conn c)
 {
     int r;
@@ -1189,20 +1209,8 @@ dispatch_cmd(conn c)
         /* OOM? */
         if (!c->in_job) {
             /* throw away the job body and respond with OUT_OF_MEMORY */
-
-            /* Invert the meaning of in_job_read while throwing away data -- it
-             * counts the bytes that remain to be thrown away. */
-            c->in_job_read = body_size + 2;
-            fill_extra_data(c);
-
-            if (c->in_job_read == 0) return reply_serr(c, MSG_OUT_OF_MEMORY);
-
             twarnx("server error: " MSG_OUT_OF_MEMORY);
-            c->reply = MSG_OUT_OF_MEMORY;
-            c->reply_len = CONSTSTRLEN(MSG_OUT_OF_MEMORY);
-            c->reply_sent = 0;
-            c->state = STATE_BITBUCKET;
-            return;
+            return skip(c, body_size + 2, MSG_OUT_OF_MEMORY);
         }
 
         fill_extra_data(c);
