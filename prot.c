@@ -1197,6 +1197,10 @@ dispatch_cmd(conn c)
 
             if (c->in_job_read == 0) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
+            twarnx("server error: " MSG_OUT_OF_MEMORY);
+            c->reply = MSG_OUT_OF_MEMORY;
+            c->reply_len = CONSTSTRLEN(MSG_OUT_OF_MEMORY);
+            c->reply_sent = 0;
             c->state = STATE_BITBUCKET;
             return;
         }
@@ -1645,7 +1649,9 @@ h_conn_data(conn c)
 
         /* (c->in_job_read < 0) can't happen */
 
-        if (c->in_job_read == 0) return reply_serr(c, MSG_OUT_OF_MEMORY);
+        if (c->in_job_read == 0) {
+            return reply(c, c->reply, c->reply_len, STATE_SENDWORD);
+        }
         break;
     case STATE_WANTDATA:
         j = c->in_job;
