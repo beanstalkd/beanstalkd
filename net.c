@@ -32,7 +32,7 @@ static int brakes_are_on = 1, after_startup = 0;
 int
 make_server_socket(char *host, char *port)
 {
-    int fd, flags, r;
+    int fd = -1, flags, r;
     struct linger linger = {0, 0};
     struct addrinfo *airoot, *ai, hints;
 
