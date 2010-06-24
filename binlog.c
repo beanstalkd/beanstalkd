@@ -111,6 +111,10 @@ binlog_remove_oldest()
 
     oldest_binlog = b->next;
 
+    if (newest_binlog == b) {
+        newest_binlog = b->next; /* == 0 */
+    }
+
     unlink(b->path);
     free(b);
 }
@@ -777,7 +781,6 @@ binlog_init(job binlog_jobs)
         }
 
     }
-
 
     /* Set up for writing out new jobs */
     n = ensure_free_space(1);
