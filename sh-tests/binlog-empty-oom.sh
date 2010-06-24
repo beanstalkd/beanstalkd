@@ -30,7 +30,7 @@ fi
 
 start_beanstalkd $logdir
 
-killbeanstalkd -9
+killbeanstalkd # uses -9, which we need here
 
 start_beanstalkd $logdir
 
