@@ -160,7 +160,7 @@ conn_set_evq(conn c, const int events, evh handler)
         should_timeout = 1;
     }
     if (c->pending_timeout >= 0) {
-        t = min(t, c->pending_timeout * SECOND);
+        t = min(t, ((usec)c->pending_timeout) * SECOND);
         should_timeout = 1;
     }
     if (should_timeout) timeval_from_usec(&tv, t);
