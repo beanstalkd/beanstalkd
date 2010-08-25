@@ -3,9 +3,11 @@ layout: base
 title: About
 ---
 
-Beanstalk is a simple, fast workqueue service. Its interface is generic, but
-was originally designed for reducing the latency of page views in high-volume
-web applications by running time-consuming tasks asynchronously.
+Beanstalk is a simple, fast work queue.
+
+Its interface is generic, but was originally designed for reducing the latency
+of page views in high-volume web applications by running time-consuming tasks
+asynchronously.
 
 ## News
 
@@ -36,8 +38,8 @@ This starts up `beanstalkd` as a daemon listening on address
 
 ## Use It
 
-Here's an example in Ruby (see the [client libraries][] to find
-your favorite language).
+Here's an example in Ruby -- see the [client libraries][] to find your
+favorite language.
 
 First, have one process put a job into the queue:
 
