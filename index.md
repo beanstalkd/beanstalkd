@@ -79,4 +79,4 @@ fantastic piece of software!
 [cof]: http://apps.facebook.com/causes/
 [mailinglist]: http://groups.google.com/group/beanstalk-talk
 [memcached]: http://www.danga.com/memcached/
-[client_libraries]: http://wiki.github.com/kr/beanstalkd/client-libraries
+[client libraries]: http://wiki.github.com/kr/beanstalkd/client-libraries

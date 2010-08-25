@@ -87,4 +87,4 @@ To get your own copy and start hacking, just run:
 You can also find beanstalkd source at <http://repo.or.cz/w/beanstalkd.git>.
 
 [libevent]: http://monkey.org/~provos/libevent/
-[client_library]: http://wiki.github.com/kr/beanstalkd/client-libraries
+[client library]: http://wiki.github.com/kr/beanstalkd/client-libraries
