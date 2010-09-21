@@ -35,6 +35,7 @@
 #include <limits.h>
 
 #include "net.h"
+#include "sd-daemon.h"
 #include "util.h"
 #include "prot.h"
 #include "binlog.h"
@@ -203,6 +204,14 @@ require_arg(char *opt, char *arg)
 }
 
 static void
+warn_systemd_ignored_option(char *opt, char *arg)
+{
+    if (sd_listen_fds(0) > 0) {
+        warnx("inherited listen fd; ignoring option: %s %s", opt, arg);
+    }
+}
+
+static void
 opts(int argc, char **argv)
 {
     int i;
@@ -216,9 +225,11 @@ opts(int argc, char **argv)
                 break;
             case 'p':
                 port = require_arg("-p", argv[++i]);
+                warn_systemd_ignored_option("-p", argv[i]);
                 break;
             case 'l':
                 host_addr = require_arg("-l", argv[++i]);
+                warn_systemd_ignored_option("-l", argv[i]);
                 break;
             case 'z':
                 job_data_size_limit = parse_size_t(require_arg("-z",

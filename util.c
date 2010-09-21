@@ -38,7 +38,7 @@ vwarnx(const char *err, const char *fmt, va_list args)
     fprintf(stderr, "%s: ", progname);
     if (fmt) {
         vfprintf(stderr, fmt, args);
-        if (err) fprintf(stderr, ": %s", strerror(errno));
+        if (err) fprintf(stderr, ": %s", err);
     }
     fputc('\n', stderr);
 }
@@ -46,9 +46,11 @@ vwarnx(const char *err, const char *fmt, va_list args)
 void
 warn(const char *fmt, ...)
 {
+    char *err = strerror(errno); /* must be done first thing */
     va_list args;
+
     va_start(args, fmt);
-    vwarnx(strerror(errno), fmt, args);
+    vwarnx(err, fmt, args);
     va_end(args);
 }
 

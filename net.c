@@ -21,6 +21,7 @@
 #include <errno.h>
 
 #include "net.h"
+#include "sd-daemon.h"
 #include "util.h"
 
 static int listen_socket = -1;
@@ -35,6 +36,33 @@ make_server_socket(char *host, char *port)
     int fd = -1, flags, r;
     struct linger linger = {0, 0};
     struct addrinfo *airoot, *ai, hints;
+
+    /* See if we got a listen fd from systemd. If so, all socket options etc
+     * are already set, so we check that the fd is a TCP listen socket and
+     * return. */
+    r = sd_listen_fds(1);
+    if (r < 0) {
+        return twarn("sd_listen_fds"), -1;
+    }
+    if (r > 0) {
+        if (r > 1) {
+            twarnx("inherited more than one listen socket;"
+                   " ignoring all but the first");
+            r = 1;
+        }
+        fd = SD_LISTEN_FDS_START;
+        r = sd_is_socket_inet(fd, 0, SOCK_STREAM, 1, 0);
+        if (r < 0) {
+            errno = -r;
+            twarn("sd_is_socket_inet");
+            return -1;
+        }
+        if (!r) {
+            twarnx("inherited fd is not a TCP listen socket");
+            return -1;
+        }
+        return listen_socket = fd;
+    }
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = PF_UNSPEC;

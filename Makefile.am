@@ -14,6 +14,7 @@ aux_sources = \
 	pq.c \
 	primes.c \
 	prot.c \
+	sd-daemon.c \
 	tube.c \
 	util.c
 beanstalkd_SOURCES = beanstalkd.c $(aux_sources)
@@ -45,6 +46,7 @@ EXTRA_DIST = cut.c $(tests) $(scripts) $(readme) cut.h sh-tests check.sh check-o
 	primes.h \
 	prot.h \
 	stat.h \
+	sd-daemon.h \
 	tube.h \
 	util.h
 
