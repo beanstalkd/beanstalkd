@@ -250,11 +250,11 @@ static int drain_mode = 0;
 static usec started_at;
 static uint64_t op_ct[TOTAL_OPS], timeout_ct = 0;
 
+static int *verbose;
 
 /* Doubly-linked list of connections with at least one reserved job. */
 static struct conn running = { &running, &running, 0 };
 
-#ifdef DEBUG
 static const char * op_names[] = {
     "<unknown>",
     CMD_PUT,
@@ -281,7 +281,6 @@ static const char * op_names[] = {
     CMD_QUIT,
     CMD_PAUSE_TUBE
 };
-#endif
 
 static job remove_buried_job(job j);
 
@@ -1179,6 +1178,7 @@ dispatch_cmd(conn c)
 
     type = which_cmd(c);
     dprintf("got %s command: \"%s\"\n", op_names[(int) type], c->cmd);
+    if (verbose) printf("got %s command: \"%s\"\n", op_names[(int) type], c->cmd);
 
     switch (type) {
     case OP_PUT:
@@ -1812,13 +1812,15 @@ h_accept(const int fd, const short which, struct event *ev)
     if (!c) return twarnx("make_conn() failed"), close(cfd), brake();
 
     dprintf("accepted conn, fd=%d\n", cfd);
+    if (verbose) printf("accepted conn, fd=%d\n", cfd);
     r = conn_set_evq(c, EV_READ | EV_PERSIST, (evh) h_conn);
     if (r == -1) return twarnx("conn_set_evq() failed"), close(cfd), brake();
 }
 
 void
-prot_init()
+prot_init(int *v)
 {
+    verbose = v;
     started_at = now_usec();
     memset(op_ct, 0, sizeof(op_ct));
 

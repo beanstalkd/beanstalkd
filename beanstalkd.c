@@ -43,7 +43,8 @@
 static char *user = NULL;
 static int detach = 0;
 static char *port = "11300";
-static char *host_addr;
+static char *host_addr = "0.0.0.0";
+static int verbose = 0;
 
 static void
 nullfd(int fd, int flags)
@@ -61,6 +62,7 @@ dfork()
     pid_t p;
 
     p = fork();
+    
     if (p == -1) exit(1);
     if (p) exit(0);
 }
@@ -102,6 +104,8 @@ su(const char *user) {
 void
 exit_cleanly(int sig)
 {
+    if (verbose) printf("Shutting down. Bye!\n");
+    
     binlog_shutdown();
     exit(0);
 }
@@ -179,7 +183,7 @@ usage(char *msg, char *arg)
 #ifndef HAVE_POSIX_FALLOCATE
             "            (will be rounded up to a multiple of 512 bytes)\n"
 #endif
-            " -v       show version information\n"
+            " -v       output verbosely\n"
             " -h       show this help\n",
             progname, JOB_DATA_SIZE_LIMIT_DEFAULT, BINLOG_SIZE_LIMIT_DEFAULT);
     exit(arg ? 5 : 0);
@@ -254,8 +258,8 @@ opts(int argc, char **argv)
             case 'h':
                 usage(NULL, NULL);
             case 'v':
-                printf("beanstalkd %s\n", VERSION);
-                exit(0);
+                verbose = 1;
+                break;
             default:
                 usage("unknown option", argv[i]);
         }
@@ -272,6 +276,8 @@ main(int argc, char **argv)
     progname = argv[0];
     opts(argc, argv);
 
+    if (verbose) printf("Loading beanstalkd...\n");
+
     if (detach && binlog_dir) {
         if (binlog_dir[0] != '/') {
             warnx("The -b option requires an absolute path when used with -d.");
@@ -279,9 +285,9 @@ main(int argc, char **argv)
         }
     }
 
-    job_init();
+    job_init();    
     prot_init();
-
+    
     /* We want to make sure that only one beanstalkd tries to use the binlog
      * directory at a time. So acquire a lock now and never release it. */
     if (binlog_dir) {
@@ -291,6 +297,8 @@ main(int argc, char **argv)
 
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
+
+    if (verbose) printf("Server listening on %s:%s\n", host_addr, port);
 
     if (user) su(user);
     ev_base = event_init();
@@ -304,6 +312,7 @@ main(int argc, char **argv)
     prot_replay_binlog(&binlog_jobs);
 
     if (detach) {
+        if (verbose) printf("Daemonizing... bye!\n");
         daemonize();
         event_reinit(ev_base);
     }
