@@ -250,8 +250,6 @@ static int drain_mode = 0;
 static usec started_at;
 static uint64_t op_ct[TOTAL_OPS], timeout_ct = 0;
 
-static int *verbose;
-
 /* Doubly-linked list of connections with at least one reserved job. */
 static struct conn running = { &running, &running, 0 };
 
@@ -1818,9 +1816,8 @@ h_accept(const int fd, const short which, struct event *ev)
 }
 
 void
-prot_init(int *v)
+prot_init()
 {
-    verbose = v;
     started_at = now_usec();
     memset(op_ct, 0, sizeof(op_ct));
 

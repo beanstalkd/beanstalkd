@@ -27,8 +27,8 @@
 static char *user = NULL;
 static int detach = 0;
 static char *port = "11300";
-static char *host_addr = "0.0.0.0";
-static int verbose = 0;
+static char *host_addr;
+int verbose = 0;
 
 static void
 nullfd(int fd, int flags)

@@ -36,6 +36,7 @@ void warn(const char *fmt, ...);
 void warnx(const char *fmt, ...);
 
 extern char *progname;
+extern int verbose;
 
 #define twarn(fmt, args...) warn("%s:%d in %s: " fmt, \
                                  __FILE__, __LINE__, __func__, ##args)
