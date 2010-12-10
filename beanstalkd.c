@@ -1,20 +1,4 @@
-/* beanstalk - fast, general-purpose work queue */
 
-/* Copyright (C) 2007 Keith Rarick and Philotic Inc.
-
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 #include "config.h"
 
@@ -183,7 +167,8 @@ usage(char *msg, char *arg)
 #ifndef HAVE_POSIX_FALLOCATE
             "            (will be rounded up to a multiple of 512 bytes)\n"
 #endif
-            " -v       output verbosely\n"
+            " -V       output verbosely"
+            " -v       show version number\n"
             " -h       show this help\n",
             progname, JOB_DATA_SIZE_LIMIT_DEFAULT, BINLOG_SIZE_LIMIT_DEFAULT);
     exit(arg ? 5 : 0);
@@ -255,11 +240,14 @@ opts(int argc, char **argv)
             case 'b':
                 binlog_dir = require_arg("-b", argv[++i]);
                 break;
+            case 'V':
+                verbose = 1;
+                break;
             case 'h':
                 usage(NULL, NULL);
             case 'v':
-                verbose = 1;
-                break;
+                printf("beanstalkd %s\n", VERSION);
+                exit(0);
             default:
                 usage("unknown option", argv[i]);
         }
