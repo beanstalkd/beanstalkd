@@ -43,9 +43,9 @@ extern char *progname;
                                    __FILE__, __LINE__, __func__, ##args)
 
 #ifdef DEBUG
-#define dprintf(fmt, args...) ((void) fprintf(stderr, fmt, ##args))
+#define dbgprintf(fmt, args...) ((void) fprintf(stderr, fmt, ##args))
 #else
-#define dprintf(fmt, ...) ((void) 0)
+#define dbgprintf(fmt, ...) ((void) 0)
 #endif
 
 typedef uint64_t usec;
