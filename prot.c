@@ -16,11 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "t.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/resource.h>
@@ -28,17 +29,10 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include <event.h>
 
-#include "stat.h"
-#include "prot.h"
-#include "pq.h"
-#include "ms.h"
-#include "job.h"
-#include "tube.h"
-#include "conn.h"
-#include "util.h"
-#include "net.h"
-#include "binlog.h"
+#include "dat.h"
+#include "version.h"
 
 /* job body cannot be greater than this many bytes long */
 size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;

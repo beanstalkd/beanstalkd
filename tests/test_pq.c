@@ -1,9 +1,12 @@
+#include "../config.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+#include <event.h>
 
 #include "../cut.h"
-#include "../tube.h" /* hack to make cpp happy */
-#include "../pq.h"
+#include "../dat.h"
 
 static struct pq qq;
 static pq q = &qq;

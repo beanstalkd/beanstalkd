@@ -17,7 +17,6 @@
  */
 
 #include <stdlib.h>
-#include "primes.h"
 
 size_t primes[] = {
     12289,

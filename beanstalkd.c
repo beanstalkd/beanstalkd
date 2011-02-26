@@ -16,29 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "t.h"
 
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <event.h>
 #include <limits.h>
+#include <fcntl.h>
 
-#include "net.h"
+#include "dat.h"
 #include "sd-daemon.h"
-#include "util.h"
-#include "prot.h"
-#include "binlog.h"
+#include "version.h"
 
 static char *user = NULL;
 static int detach = 0;
@@ -176,9 +172,7 @@ usage(char *msg, char *arg)
             " -u USER  become user and group\n"
             " -z BYTES set the maximum job size in bytes (default is %d)\n"
             " -s BYTES set the size of each binlog file (default is %d)\n"
-#ifndef HAVE_POSIX_FALLOCATE
             "            (will be rounded up to a multiple of 512 bytes)\n"
-#endif
             " -v       show version information\n"
             " -h       show this help\n",
             progname, JOB_DATA_SIZE_LIMIT_DEFAULT, BINLOG_SIZE_LIMIT_DEFAULT);

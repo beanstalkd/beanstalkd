@@ -16,12 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-
-#if HAVE_STDINT_H
-# include <stdint.h>
-#endif /* else we get int types from config.h */
-
+#include "t.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -36,12 +31,9 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <stddef.h>
+#include <event.h>
 
-#include "tube.h"
-#include "job.h"
-#include "binlog.h"
-#include "util.h"
-#include "port.h"
+#include "dat.h"
 
 typedef struct binlog *binlog;
 
@@ -320,35 +312,10 @@ add_binlog(binlog b)
     return b;
 }
 
-static int
-beanstalkd_fallocate(int fd, off_t offset, off_t len)
-{
-    off_t i;
-    ssize_t w;
-    off_t p;
-    #define ZERO_BUF_SIZE 512
-    char buf[ZERO_BUF_SIZE] = {}; /* initialize to zero */
-
-    /* we only support a 0 offset */
-    if (offset != 0) return EINVAL;
-
-    if (len <= 0) return EINVAL;
-
-    for (i = 0; i < len; i += w) {
-        w = write(fd, &buf, ZERO_BUF_SIZE);
-        if (w == -1) return errno;
-    }
-
-    p = lseek(fd, 0, SEEK_SET);
-    if (p == -1) return errno;
-
-    return 0;
-}
-
 static void
 binlog_open(binlog log, size_t *written)
 {
-    int fd;
+    int fd, r;
     size_t bytes_written;
 
     if (written) *written = 0;
@@ -359,33 +326,13 @@ binlog_open(binlog log, size_t *written)
 
     if (fd < 0) return twarn("Cannot open binlog %s", log->path);
 
-#ifdef HAVE_POSIX_FALLOCATE
-    {
-        int r;
-        r = posix_fallocate(fd, 0, binlog_size_limit);
-        if (r == EINVAL) {
-            r = beanstalkd_fallocate(fd, 0, binlog_size_limit);
-        }
-        if (r) {
-            close(fd);
-            binlog_dref(log);
-            errno = r;
-            return twarn("Cannot allocate space for binlog %s", log->path);
-        }
+    r = posix_fallocate(fd, 0, binlog_size_limit);
+    if (r) {
+        close(fd);
+        binlog_dref(log);
+        errno = r;
+        return twarn("Cannot allocate space for binlog %s", log->path);
     }
-#else
-    /* Allocate space in a slow but portable way. */
-    {
-        int r;
-        r = beanstalkd_fallocate(fd, 0, binlog_size_limit);
-        if (r) {
-            close(fd);
-            binlog_dref(log);
-            errno = r;
-            return twarn("Cannot allocate space for binlog %s", log->path);
-        }
-    }
-#endif
 
     bytes_written = write(fd, &binlog_version, sizeof(int));
     if (written) *written = bytes_written;

@@ -1,4 +1,4 @@
-/* port.c - portability functions */
+/* portability functions */
 
 /* Copyright (C) 2009 Keith Rarick
 
@@ -16,16 +16,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "t.h"
 
-#include <unistd.h>
-
-#include "port.h"
-
-#ifndef HAVE_FDATASYNC
+#ifdef _NEED_POSIX_FALLOCATE
 int
-fdatasync(int fd)
+posix_fallocate(int fd, off_t offset, off_t len)
 {
-    return fsync(fd);
+    off_t i;
+    ssize_t w;
+    off_t p;
+    #define ZERO_BUF_SIZE 512
+    char buf[ZERO_BUF_SIZE] = {}; /* initialize to zero */
+
+    /* we only support a 0 offset */
+    if (offset != 0) return EINVAL;
+
+    if (len <= 0) return EINVAL;
+
+    if (len % 512 != 0) {
+        len += 512 - len % 512;
+    }
+
+    for (i = 0; i < len; i += w) {
+        w = write(fd, &buf, ZERO_BUF_SIZE);
+        if (w == -1) return errno;
+    }
+
+    p = lseek(fd, 0, SEEK_SET);
+    if (p == -1) return errno;
+
+    return 0;
 }
 #endif

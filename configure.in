@@ -104,21 +104,6 @@ else
   CFLAGS="$CFLAGS -I$LIBEVENT_DIR/include"
   LIBS="$LIBS -levent"
 
-  AC_CHECK_FUNCS([posix_fallocate])
-  dnl {{{ make sure that fdatasync exits
-  AC_CACHE_CHECK([for fdatasync],[ac_cv_func_fdatasync],[
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-  #include <unistd.h>
-  ]],[[
-  fdatasync(4);
-  ]])],
-  [ac_cv_func_fdatasync=yes],
-  [ac_cv_func_fdatasync=no])
-  ])
-  AS_IF([test "x${ac_cv_func_fdatasync}" = "xyes"],
-   [AC_DEFINE([HAVE_FDATASYNC],[1],[If the system defines fdatasync])])
-  dnl }}}
-
   AC_CHECK_LIB([socket], [bind], [
     LIBS="$LIBS -lsocket"
   ])
@@ -189,6 +174,9 @@ dnl }}}
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_UINT16_T
+
+OS=`uname -s | tr A-Z a-z`
+AC_SUBST(OS)
 
 AC_SUBST(INSTALL_STRIP_FLAG)
 

@@ -1,5 +1,3 @@
-/* net.c - stupid boilerplate shit that I shouldn't have to write */
-
 /* Copyright (C) 2007 Keith Rarick and Philotic Inc.
 
  * This program is free software: you can redistribute it and/or modify
@@ -16,13 +14,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "t.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <errno.h>
-
-#include "net.h"
+#include <event.h>
+#include "dat.h"
 #include "sd-daemon.h"
-#include "util.h"
 
 static int listen_socket = -1;
 static struct event listen_evq;

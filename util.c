@@ -1,4 +1,4 @@
-/* util.c - util functions */
+/* util functions */
 
 /* Copyright (C) 2007 Keith Rarick and Philotic Inc.
 
@@ -16,16 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "t.h"
 #include <errno.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <event.h>
 
-#include "util.h"
+#include "dat.h"
 
-char *progname; /* defined as extern in util.h */
+char *progname;
 
 void
 v()

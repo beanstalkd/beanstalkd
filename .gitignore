@@ -31,3 +31,4 @@ stamp-h1
 .dotest
 beanstalkd.spec
 NEWS.md
+version.h

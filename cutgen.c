@@ -27,8 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
-
-#include "util.h"
+#include <errno.h>
 
 #define DO_NOT_PROCESS        "..."
 
@@ -44,6 +43,11 @@
 
 #define terr(fmt, args...) do { fprintf(stderr, "\n"); twarn(fmt, ##args); exit(1); } while (0)
 #define terrx(fmt, args...) do { fprintf(stderr, "\n"); twarnx(fmt, ##args); exit(1); } while (0)
+
+#define twarn(fmt, args...) warn("%s:%d in %s: " fmt, \
+                                 __FILE__, __LINE__, __func__, ##args)
+#define twarnx(fmt, args...) warnx("%s:%d in %s: " fmt, \
+                                   __FILE__, __LINE__, __func__, ##args)
 
 typedef enum TestType {
    TYPE_TEST = 0,
@@ -68,6 +72,37 @@ FILE *outfile;
 
 static int g_count, g_ready, g_index;  /* Used by filename globbing support for windows */
 static char **g_wildcards, g_fileName[MAX_LINE_LENGTH];
+
+static void
+vwarnx(const char *err, const char *fmt, va_list args)
+{
+    if (fmt) {
+        vfprintf(stderr, fmt, args);
+        if (err) fprintf(stderr, ": %s", err);
+    }
+    fputc('\n', stderr);
+}
+
+static void
+warn(const char *fmt, ...)
+{
+    char *err = strerror(errno); /* must be done first thing */
+    va_list args;
+
+    va_start(args, fmt);
+    vwarnx(err, fmt, args);
+    va_end(args);
+}
+
+static void
+warnx(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vwarnx(NULL, fmt, args);
+    va_end(args);
+}
+
 
 int NameAndTypeInTestList( char *name, TestType type )
 {

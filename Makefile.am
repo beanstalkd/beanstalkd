@@ -10,6 +10,7 @@ aux_sources = \
 	job.c \
 	ms.c \
 	net.c \
+	net_$(OS).c \
 	port.c \
 	pq.c \
 	primes.c \
@@ -36,22 +37,19 @@ readme = \
 
 EXTRA_DIST = cut.c $(tests) $(scripts) $(readme) cut.h sh-tests check.sh check-one.sh \
 	beanstalkd.spec.in \
-	binlog.h \
-	conn.h \
-	job.h \
-	ms.h \
-	net.h \
+	version.h
+	t.h \
+	dat.h \
 	port.h \
-	pq.h \
-	primes.h \
-	prot.h \
-	stat.h \
-	sd-daemon.h \
-	tube.h \
-	util.h
+	sd-daemon.h
 
 dist_doc_DATA = doc/protocol.txt
 dist_man_MANS = doc/beanstalkd.1
+
+version.h:
+	printf '#define VERSION "%s"\n' "$(VERSION)" >$@
+
+beanstalkd.c: version.h
 
 check-cut: tests/cutcheck
 	tests/cutcheck
@@ -77,4 +75,3 @@ dist-hook:
 	chmod +x $(distdir)/version.sh
 	sed -e 's/\@VERSION\@/$(VERSION)/' $(srcdir)/beanstalkd.spec.in > $(distdir)/beanstalkd.spec
 	cp $(srcdir)/NEWS.md $(distdir)/.
-

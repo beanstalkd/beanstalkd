@@ -16,12 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "t.h"
 #include <stdlib.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <string.h>
+#include <event.h>
 
-#include "tube.h" /* hack to make cpp happy */
-#include "pq.h"
+#include "dat.h"
 
 void
 pq_init(pq q, job_cmp_fn cmp)
