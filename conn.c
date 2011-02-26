@@ -282,7 +282,7 @@ conn_close(conn c)
 
     cur_conn_ct--; /* stats */
 
-    unbrake(NULL);
+    unbrake();
     remove_waiting_conn(c);
     conn_remove(c);
     if (has_reserved_job(c)) enqueue_reserved_jobs(c);

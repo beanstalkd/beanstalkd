@@ -32,8 +32,8 @@
 
 static int listen_socket = -1;
 static struct event listen_evq;
-static evh accept_handler;
-static int brakes_are_on = 1;
+evh accept_handler;
+int listening = 0;
 
 int
 make_server_socket(char *host, char *port)
@@ -130,44 +130,16 @@ make_server_socket(char *host, char *port)
 }
 
 void
-brake()
-{
-    int r;
-
-    if (brakes_are_on) return;
-    brakes_are_on = 1;
-    twarnx("too many connections; putting on the brakes");
-
-    r = event_del(&listen_evq);
-    if (r == -1) twarn("event_del()");
-
-    r = listen(listen_socket, 0);
-    if (r == -1) twarn("listen()");
-}
-
-void
-unbrake(evh h)
-{
-    int r;
-
-    if (!brakes_are_on) return;
-    brakes_are_on = 0;
-
-    accept_handler = h ? : accept_handler;
-    event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST,
-              accept_handler, &listen_evq);
-
-    set_main_timeout();
-
-    r = listen(listen_socket, 1024);
-    if (r == -1) twarn("listen()");
-}
-
-void
-set_main_timeout()
+unbrake()
 {
     int r;
     struct timeval tv;
+
+    if (listening) return;
+    listening = 1;
+
+    event_set(&listen_evq, listen_socket, EV_READ,
+              accept_handler, &listen_evq);
 
     timeval_from_usec(&tv, 10 * MSEC);
 

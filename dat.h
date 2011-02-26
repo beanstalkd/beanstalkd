@@ -281,9 +281,9 @@ void prot_replay_binlog(job binlog_jobs);
 
 int make_server_socket(char *host_addr, char *port);
 
-void brake();
-void unbrake(evh h);
-void set_main_timeout();
+void unbrake();
+extern int listening;
+extern evh accept_handler;
 
 
 extern char *binlog_dir;

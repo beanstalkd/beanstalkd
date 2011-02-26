@@ -259,7 +259,7 @@ opts(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-    int r;
+    int r, l;
     struct event_base *ev_base;
     struct job binlog_jobs = {};
 
@@ -285,13 +285,17 @@ main(int argc, char **argv)
 
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
+    l = r;
 
     if (user) su(user);
     ev_base = event_init();
     set_sig_handlers();
     nudge_fd_limit();
 
-    unbrake((evh) h_accept);
+    r = listen(l, 1024);
+    if (r == -1) twarn("listen()");
+    accept_handler = (evh)h_accept;
+    unbrake();
 
     binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
     binlog_init(&binlog_jobs);
