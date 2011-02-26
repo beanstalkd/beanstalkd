@@ -431,35 +431,6 @@ delay_q_peek()
     return j;
 }
 
-static tube
-pause_tube_peek()
-{
-    int i;
-    tube t, nt = NULL;
-
-    for (i = 0; i < tubes.used; i++) {
-        t = tubes.items[i];
-        if (t->pause) {
-            if (!nt || t->deadline_at < nt->deadline_at) nt = t;
-        }
-    }
-
-    return nt;
-}
-
-static void
-set_main_delay_timeout()
-{
-    job j = delay_q_peek();
-    tube t = pause_tube_peek();
-    usec deadline_at = t ? t->deadline_at : 0;
-
-    if (j && (!deadline_at || j->deadline_at < deadline_at)) deadline_at = j->deadline_at;
-
-    dbgprintf("deadline_at=%" PRIu64 "\n", deadline_at);
-    set_main_timeout(deadline_at);
-}
-
 static int
 enqueue_job(job j, usec delay, char update_store)
 {
@@ -471,7 +442,6 @@ enqueue_job(job j, usec delay, char update_store)
         r = pq_give(&j->tube->delay, j);
         if (!r) return 0;
         j->state = JOB_STATE_DELAYED;
-        set_main_delay_timeout();
     } else {
         r = pq_give(&j->tube->ready, j);
         if (!r) return 0;
@@ -1524,7 +1494,6 @@ dispatch_cmd(conn c)
         t->deadline_at = now_usec() + delay;
         t->pause = delay;
         t->stat.pause_ct++;
-        set_main_delay_timeout();
 
         reply_line(c, STATE_SENDWORD, "PAUSED\r\n");
         break;
@@ -1775,7 +1744,7 @@ h_delay()
         }
     }
 
-    set_main_delay_timeout();
+    set_main_timeout();
 }
 
 void
@@ -1786,21 +1755,22 @@ h_accept(const int fd, const short which, struct event *ev)
     socklen_t addrlen;
     struct sockaddr_in6 addr;
 
-    if (which == EV_TIMEOUT) return h_delay();
+    if (which == EV_TIMEOUT) return h_delay(), set_main_timeout();
 
     addrlen = sizeof addr;
     cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
-        if (errno == EMFILE) brake();
+        if (errno == EMFILE) return brake(), v();
+        set_main_timeout();
         return;
     }
 
     flags = fcntl(cfd, F_GETFL, 0);
-    if (flags < 0) return twarn("getting flags"), close(cfd), v();
+    if (flags < 0) return twarn("getting flags"), close(cfd), set_main_timeout();
 
     r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
-    if (r < 0) return twarn("setting O_NONBLOCK"), close(cfd), v();
+    if (r < 0) return twarn("setting O_NONBLOCK"), close(cfd), set_main_timeout();
 
     c = make_conn(cfd, STATE_WANTCOMMAND, default_tube, default_tube);
     if (!c) return twarnx("make_conn() failed"), close(cfd), brake();
@@ -1808,6 +1778,7 @@ h_accept(const int fd, const short which, struct event *ev)
     dbgprintf("accepted conn, fd=%d\n", cfd);
     r = conn_set_evq(c, EV_READ | EV_PERSIST, (evh) h_conn);
     if (r == -1) return twarnx("conn_set_evq() failed"), close(cfd), brake();
+    set_main_timeout();
 }
 
 void

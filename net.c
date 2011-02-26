@@ -33,8 +33,7 @@
 static int listen_socket = -1;
 static struct event listen_evq;
 static evh accept_handler;
-static usec main_deadline = 0;
-static int brakes_are_on = 1, after_startup = 0;
+static int brakes_are_on = 1;
 
 int
 make_server_socket(char *host, char *port)
@@ -153,33 +152,24 @@ unbrake(evh h)
 
     if (!brakes_are_on) return;
     brakes_are_on = 0;
-    if (after_startup) twarnx("releasing the brakes");
-    after_startup = 1;
 
     accept_handler = h ? : accept_handler;
     event_set(&listen_evq, listen_socket, EV_READ | EV_PERSIST,
               accept_handler, &listen_evq);
 
-    set_main_timeout(main_deadline);
+    set_main_timeout();
 
     r = listen(listen_socket, 1024);
     if (r == -1) twarn("listen()");
 }
 
 void
-set_main_timeout(usec deadline_at)
+set_main_timeout()
 {
     int r;
     struct timeval tv;
-    usec now = now_usec();
 
-    main_deadline = deadline_at;
-
-    /* If there is no deadline, we just wait for a long while.
-     * This works around a bug in libevent or kqueue on Mac OS X. */
-    if (!deadline_at) deadline_at = now + 100 * SECOND;
-
-    timeval_from_usec(&tv, (deadline_at > now) ? deadline_at - now : 1);
+    timeval_from_usec(&tv, 10 * MSEC);
 
     r = event_add(&listen_evq, &tv);
     if (r == -1) twarn("event_add()");
