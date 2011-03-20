@@ -1511,7 +1511,7 @@ dispatch_cmd(conn c)
  *
  * If any of these happen, we must do the appropriate thing. */
 static void
-h_conn_timeout(conn c)
+conn_timeout(conn c)
 {
     int r, should_timeout = 0;
     job j;
@@ -1580,7 +1580,7 @@ reset_conn(conn c)
 }
 
 static void
-h_conn_data(conn c)
+conn_data(conn c)
 {
     int r, to_read;
     job j;
@@ -1702,7 +1702,7 @@ h_conn(const int fd, const short which, conn c)
 
     switch (which) {
     case EV_TIMEOUT:
-        h_conn_timeout(c);
+        conn_timeout(c);
         event_add(&c->evq, NULL); /* seems to be necessary */
         break;
     case EV_READ:
@@ -1710,14 +1710,14 @@ h_conn(const int fd, const short which, conn c)
     case EV_WRITE:
         /* fall through... */
     default:
-        h_conn_data(c);
+        conn_data(c);
     }
 
     while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
 }
 
 static void
-h_delay()
+delay()
 {
     int r;
     job j;
@@ -1736,7 +1736,7 @@ h_delay()
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
 
-        dbgprintf("h_delay for %s t->waiting.used=%zu t->ready.used=%d t->pause=%" PRIu64 "\n",
+        dbgprintf("delay for %s t->waiting.used=%zu t->ready.used=%d t->pause=%" PRIu64 "\n",
                 t->name, t->waiting.used, t->ready.used, t->pause);
         if (t->pause && t->deadline_at <= now) {
             t->pause = 0;
@@ -1757,7 +1757,7 @@ h_accept(const int fd, const short which, struct event *ev)
 
     listening = 0;
 
-    if (which == EV_TIMEOUT) return h_delay(), unbrake();
+    if (which == EV_TIMEOUT) return delay(), unbrake();
 
     addrlen = sizeof addr;
     cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
