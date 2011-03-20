@@ -186,11 +186,8 @@ conn_update_net(conn c)
 
     if (!c) return twarnx("c is NULL"), -1;
 
-    /* If it's been added, try to delete it first */
-    if (c->evq.ev_base) {
-        r = event_del(&c->evq);
-        if (r == -1) return twarn("event_del() err %d", errno), -1;
-    }
+    r = event_del(&c->evq);
+    if (r == -1) return twarn("event_del() err %d", errno), -1;
 
     return conn_set_evq(c, c->evmask, c->evq.ev_callback);
 }
