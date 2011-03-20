@@ -174,9 +174,8 @@ void warnx(const char *fmt, ...);
 
 extern char *progname;
 
-usec now_usec(void);
-usec usec_from_timeval(struct timeval *tv);
-void timeval_from_usec(struct timeval *tv, usec t);
+usec microseconds(void);
+void init_timeval(struct timeval *tv, usec t);
 
 void ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove);
 void ms_clear(ms a);

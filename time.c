@@ -1,6 +1,5 @@
-/* util functions */
-
 /* Copyright (C) 2007 Keith Rarick and Philotic Inc.
+ * Copyright 2011 Keith Rarick
 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,51 +16,25 @@
  */
 
 #include "t.h"
-#include <errno.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include <sys/time.h>
 #include <event.h>
-
 #include "dat.h"
 
-char *progname;
-
 void
-v()
+init_timeval(struct timeval *tv, usec t)
 {
+    tv->tv_sec = t / 1000000;
+    tv->tv_usec = t % 1000000;
 }
 
-static void
-vwarnx(const char *err, const char *fmt, va_list args)
+usec
+microseconds(void)
 {
-    fprintf(stderr, "%s: ", progname);
-    if (fmt) {
-        vfprintf(stderr, fmt, args);
-        if (err) fprintf(stderr, ": %s", err);
-    }
-    fputc('\n', stderr);
-}
+    int r;
+    struct timeval tv;
 
-void
-warn(const char *fmt, ...)
-{
-    char *err = strerror(errno); /* must be done first thing */
-    va_list args;
+    r = gettimeofday(&tv, 0);
+    if (r != 0) return warnx("gettimeofday"), -1; // can't happen
 
-    va_start(args, fmt);
-    vwarnx(err, fmt, args);
-    va_end(args);
-}
-
-void
-warnx(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    vwarnx(NULL, fmt, args);
-    va_end(args);
+    return ((usec) tv.tv_sec) * 1000000 + tv.tv_usec;
 }

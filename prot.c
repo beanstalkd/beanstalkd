@@ -355,7 +355,7 @@ remove_waiting_conn(conn c)
 static void
 reserve_job(conn c, job j)
 {
-    j->deadline_at = now_usec() + j->ttr;
+    j->deadline_at = microseconds() + j->ttr;
     global_stat.reserved_ct++; /* stats */
     j->tube->stat.reserved_ct++;
     j->reserve_ct++;
@@ -398,7 +398,7 @@ static void
 process_queue()
 {
     job j;
-    usec now = now_usec();
+    usec now = microseconds();
 
     dbgprintf("processing queue\n");
     while ((j = next_eligible_job(now))) {
@@ -437,7 +437,7 @@ enqueue_job(job j, usec delay, char update_store)
 
     j->reserver = NULL;
     if (delay) {
-        j->deadline_at = now_usec() + delay;
+        j->deadline_at = microseconds() + delay;
         r = pq_give(&j->tube->delay, j);
         if (!r) return 0;
         j->state = JOB_STATE_DELAYED;
@@ -650,7 +650,7 @@ touch_job(conn c, job j)
 {
     j = find_reserved_job_in_conn(c, j);
     if (j) {
-        j->deadline_at = now_usec() + j->ttr;
+        j->deadline_at = microseconds() + j->ttr;
         c->soonest_job = NULL;
     }
     return j;
@@ -821,7 +821,7 @@ enqueue_incoming_job(conn c)
 static uint
 uptime()
 {
-    return (now_usec() - started_at) / 1000000;
+    return (microseconds() - started_at) / 1000000;
 }
 
 static int
@@ -1020,7 +1020,7 @@ fmt_job_stats(char *buf, size_t size, job j)
     usec t;
     uint64 time_left;
 
-    t = now_usec();
+    t = microseconds();
     if (j->state == JOB_STATE_RESERVED || j->state == JOB_STATE_DELAYED) {
         time_left = (j->deadline_at - t) / 1000000;
     } else {
@@ -1048,7 +1048,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
     uint64 time_left;
 
     if (t->pause > 0) {
-        time_left = (t->deadline_at - now_usec()) / 1000000;
+        time_left = (t->deadline_at - microseconds()) / 1000000;
     } else {
         time_left = 0;
     }
@@ -1487,7 +1487,7 @@ dispatch_cmd(conn c)
         t = tube_find(name);
         if (!t) return reply_msg(c, MSG_NOTFOUND);
 
-        t->deadline_at = now_usec() + delay;
+        t->deadline_at = microseconds() + delay;
         t->pause = delay;
         t->stat.pause_ct++;
 
@@ -1518,7 +1518,7 @@ conn_timeout(conn c)
     /* Check if any reserved jobs have run out of time. We should do this
      * whether or not the client is waiting for a new reservation. */
     while ((j = soonest_job(c))) {
-        if (j->deadline_at >= now_usec()) break;
+        if (j->deadline_at >= microseconds()) break;
 
         /* This job is in the middle of being written out. If we return it to
          * the ready queue, someone might free it before we finish writing it
@@ -1734,7 +1734,7 @@ delay()
     int i;
     tube t;
 
-    now = now_usec();
+    now = microseconds();
     while ((j = delay_q_peek())) {
         if (j->deadline_at > now) break;
         j = delay_q_take();
@@ -1823,7 +1823,7 @@ h_accept(const int fd, const short which, struct event *ev)
 void
 prot_init()
 {
-    started_at = now_usec();
+    started_at = microseconds();
     memset(op_ct, 0, sizeof(op_ct));
 
     ms_init(&tubes, NULL, NULL);

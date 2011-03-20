@@ -16,6 +16,7 @@ aux_sources = \
 	primes.c \
 	prot.c \
 	sd-daemon.c \
+	time.c \
 	tube.c \
 	util.c
 beanstalkd_SOURCES = beanstalkd.c $(aux_sources)

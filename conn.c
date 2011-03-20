@@ -157,14 +157,14 @@ conn_set_evq(conn c, const int events, evh handler)
 
     if (conn_waiting(c)) margin = SAFETY_MARGIN;
     if (has_reserved_job(c)) {
-        t = soonest_job(c)->deadline_at - now_usec() - margin;
+        t = soonest_job(c)->deadline_at - microseconds() - margin;
         should_timeout = 1;
     }
     if (c->pending_timeout >= 0) {
         t = min(t, ((usec)c->pending_timeout) * SECOND);
         should_timeout = 1;
     }
-    if (should_timeout) timeval_from_usec(&tv, t);
+    if (should_timeout) init_timeval(&tv, t);
 
     r = event_add(&c->evq, should_timeout ? &tv : NULL);
     if (r == -1) return twarn("event_add() err %d", errno), -1;
@@ -249,7 +249,7 @@ has_reserved_this_job(conn c, job j)
 int
 conn_has_close_deadline(conn c)
 {
-    usec t = now_usec();
+    usec t = microseconds();
     job j = soonest_job(c);
 
     return j && t >= j->deadline_at - SAFETY_MARGIN;

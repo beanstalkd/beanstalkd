@@ -453,7 +453,7 @@ binlog_write_job(job j)
         }
     }
 
-    now = now_usec() / 1000; /* usec -> msec */
+    now = microseconds() / 1000; /* usec -> msec */
     if (enable_fsync && now - last_fsync >= fsync_throttle_ms) {
         r = fdatasync(current_binlog->fd);
         if (r == -1) return twarn("fdatasync"), 0;
