@@ -111,7 +111,7 @@ allocate_job(int body_size)
 
     j->id = 0;
     j->state = JOB_STATE_INVALID;
-    j->created_at = microseconds();
+    j->created_at = nanoseconds();
     j->reserve_ct = j->timeout_ct = j->release_ct = j->bury_ct = j->kick_ct = 0;
     j->body_size = body_size;
     j->next = j->prev = j; /* not in a linked list */
@@ -125,7 +125,7 @@ allocate_job(int body_size)
 }
 
 job
-make_job_with_id(uint pri, usec delay, usec ttr,
+make_job_with_id(uint pri, int64 delay, int64 ttr,
                  int body_size, tube tube, uint64 id)
 {
     job j;

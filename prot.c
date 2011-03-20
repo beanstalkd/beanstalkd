@@ -244,7 +244,7 @@ static struct stats global_stat = {0, 0, 0, 0, 0};
 static tube default_tube;
 
 static int drain_mode = 0;
-static usec started_at;
+static int64 started_at;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
 static struct conn dirty = {&dirty, &dirty, 0};
@@ -355,7 +355,7 @@ remove_waiting_conn(conn c)
 static void
 reserve_job(conn c, job j)
 {
-    j->deadline_at = microseconds() + j->ttr;
+    j->deadline_at = nanoseconds() + j->ttr;
     global_stat.reserved_ct++; /* stats */
     j->tube->stat.reserved_ct++;
     j->reserve_ct++;
@@ -369,7 +369,7 @@ reserve_job(conn c, job j)
 }
 
 static job
-next_eligible_job(usec now)
+next_eligible_job(int64 now)
 {
     tube t;
     size_t i;
@@ -398,7 +398,7 @@ static void
 process_queue()
 {
     job j;
-    usec now = microseconds();
+    int64 now = nanoseconds();
 
     dbgprintf("processing queue\n");
     while ((j = next_eligible_job(now))) {
@@ -431,13 +431,13 @@ delay_q_peek()
 }
 
 static int
-enqueue_job(job j, usec delay, char update_store)
+enqueue_job(job j, int64 delay, char update_store)
 {
     int r;
 
     j->reserver = NULL;
     if (delay) {
-        j->deadline_at = microseconds() + delay;
+        j->deadline_at = nanoseconds() + delay;
         r = pq_give(&j->tube->delay, j);
         if (!r) return 0;
         j->state = JOB_STATE_DELAYED;
@@ -650,7 +650,7 @@ touch_job(conn c, job j)
 {
     j = find_reserved_job_in_conn(c, j);
     if (j) {
-        j->deadline_at = microseconds() + j->ttr;
+        j->deadline_at = nanoseconds() + j->ttr;
         c->soonest_job = NULL;
     }
     return j;
@@ -821,7 +821,7 @@ enqueue_incoming_job(conn c)
 static uint
 uptime()
 {
-    return (microseconds() - started_at) / 1000000;
+    return (nanoseconds() - started_at) / 1000000000;
 }
 
 static int
@@ -908,21 +908,21 @@ read_pri(uint *pri, const char *buf, char **end)
 /* Read a delay value from the given buffer and place it in delay.
  * The interface and behavior are analogous to read_pri(). */
 static int
-read_delay(usec *delay, const char *buf, char **end)
+read_delay(int64 *delay, const char *buf, char **end)
 {
     int r;
     uint delay_sec;
 
     r = read_pri(&delay_sec, buf, end);
     if (r) return r;
-    *delay = ((usec) delay_sec) * 1000000;
+    *delay = ((int64) delay_sec) * 1000000000;
     return 0;
 }
 
 /* Read a timeout value from the given buffer and place it in ttr.
  * The interface and behavior are the same as in read_delay(). */
 static int
-read_ttr(usec *ttr, const char *buf, char **end)
+read_ttr(int64 *ttr, const char *buf, char **end)
 {
     return read_delay(ttr, buf, end);
 }
@@ -1017,12 +1017,12 @@ do_list_tubes(conn c, ms l)
 static int
 fmt_job_stats(char *buf, size_t size, job j)
 {
-    usec t;
-    uint64 time_left;
+    int64 t;
+    int64 time_left;
 
-    t = microseconds();
+    t = nanoseconds();
     if (j->state == JOB_STATE_RESERVED || j->state == JOB_STATE_DELAYED) {
-        time_left = (j->deadline_at - t) / 1000000;
+        time_left = (j->deadline_at - t) / 1000000000;
     } else {
         time_left = 0;
     }
@@ -1031,9 +1031,9 @@ fmt_job_stats(char *buf, size_t size, job j)
             j->tube->name,
             job_state(j),
             j->pri,
-            (t - j->created_at) / 1000000,
-            j->delay / 1000000,
-            j->ttr / 1000000,
+            (t - j->created_at) / 1000000000,
+            j->delay / 1000000000,
+            j->ttr / 1000000000,
             time_left,
             j->reserve_ct,
             j->timeout_ct,
@@ -1048,7 +1048,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
     uint64 time_left;
 
     if (t->pause > 0) {
-        time_left = (t->deadline_at - microseconds()) / 1000000;
+        time_left = (t->deadline_at - nanoseconds()) / 1000000000;
     } else {
         time_left = 0;
     }
@@ -1064,7 +1064,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->watching_ct,
             t->stat.waiting_ct,
             t->stat.pause_ct,
-            t->pause / 1000000,
+            t->pause / 1000000000,
             time_left);
 }
 
@@ -1125,7 +1125,7 @@ dispatch_cmd(conn c)
     byte type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
     uint pri, body_size;
-    usec delay, ttr;
+    int64 delay, ttr;
     uint64 id;
     tube t = NULL;
 
@@ -1487,7 +1487,7 @@ dispatch_cmd(conn c)
         t = tube_find(name);
         if (!t) return reply_msg(c, MSG_NOTFOUND);
 
-        t->deadline_at = microseconds() + delay;
+        t->deadline_at = nanoseconds() + delay;
         t->pause = delay;
         t->stat.pause_ct++;
 
@@ -1518,7 +1518,7 @@ conn_timeout(conn c)
     /* Check if any reserved jobs have run out of time. We should do this
      * whether or not the client is waiting for a new reservation. */
     while ((j = soonest_job(c))) {
-        if (j->deadline_at >= microseconds()) break;
+        if (j->deadline_at >= nanoseconds()) break;
 
         /* This job is in the middle of being written out. If we return it to
          * the ready queue, someone might free it before we finish writing it
@@ -1730,11 +1730,11 @@ delay()
 {
     int r;
     job j;
-    usec now;
+    int64 now;
     int i;
     tube t;
 
-    now = microseconds();
+    now = nanoseconds();
     while ((j = delay_q_peek())) {
         if (j->deadline_at > now) break;
         j = delay_q_take();
@@ -1823,7 +1823,7 @@ h_accept(const int fd, const short which, struct event *ev)
 void
 prot_init()
 {
-    started_at = microseconds();
+    started_at = nanoseconds();
     memset(op_ct, 0, sizeof(op_ct));
 
     ms_init(&tubes, NULL, NULL);
@@ -1836,7 +1836,7 @@ void
 prot_replay_binlog(job binlog_jobs)
 {
     job j, nj;
-    usec delay;
+    int64 delay;
     int r;
 
     for (j = binlog_jobs->next ; j != binlog_jobs ; j = nj) {

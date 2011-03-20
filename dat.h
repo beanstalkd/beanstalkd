@@ -3,7 +3,6 @@
 #define int64_t  do_not_use_int64_t
 #define uint64_t do_not_use_uint64_t
 
-typedef uint64      usec;
 typedef struct ms   *ms;
 typedef struct pq   *pq;
 typedef struct job  *job;
@@ -38,10 +37,6 @@ typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 #define CONN_TYPE_PRODUCER 1
 #define CONN_TYPE_WORKER   2
 #define CONN_TYPE_WAITING  4
-
-#define USEC   (1)
-#define MSEC   (1000 * USEC)
-#define SECOND (1000 * MSEC)
 
 #define min(a,b) ((a)<(b)?(a):(b))
 
@@ -88,11 +83,11 @@ struct job {
     /* persistent fields; these get written to the binlog */
     uint64 id;
     uint32 pri;
-    usec delay;
-    usec ttr;
+    int64 delay;
+    int64 ttr;
     int32 body_size;
-    usec created_at;
-    usec deadline_at;
+    int64 created_at;
+    int64 deadline_at;
     uint32 reserve_ct;
     uint32 timeout_ct;
     uint32 release_ct;
@@ -124,8 +119,8 @@ struct tube {
     struct stats stat;
     uint using_ct;
     uint watching_ct;
-    usec pause;
-    usec deadline_at;
+    int64 pause;
+    int64 deadline_at;
 };
 
 struct conn {
@@ -174,8 +169,8 @@ void warnx(const char *fmt, ...);
 
 extern char *progname;
 
-usec microseconds(void);
-void init_timeval(struct timeval *tv, usec t);
+int64 nanoseconds();
+void init_timeval(struct timeval *tv, int64 t);
 
 void ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove);
 void ms_clear(ms a);
@@ -205,7 +200,7 @@ job pq_remove(pq q, job j);
 #define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
 
 job allocate_job(int body_size);
-job make_job_with_id(uint pri, usec delay, usec ttr,
+job make_job_with_id(uint pri, int64 delay, int64 ttr,
              int body_size, tube tube, uint64 id);
 void job_free(job j);
 

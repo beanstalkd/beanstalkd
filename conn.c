@@ -27,7 +27,7 @@
 
 #include "dat.h"
 
-#define SAFETY_MARGIN (1 * SECOND)
+#define SAFETY_MARGIN (1000000000) /* 1 second */
 
 /* Doubly-linked list of free connections. */
 static struct conn pool = { &pool, &pool, 0 };
@@ -151,17 +151,17 @@ conn_set_evq(conn c, const int events, evh handler)
 {
     int r, margin = 0, should_timeout = 0;
     struct timeval tv = {INT_MAX, 0};
-    usec t = UINT64_MAX;
+    int64 t = INT64_MAX;
 
     event_set(&c->evq, c->fd, events, handler, c);
 
     if (conn_waiting(c)) margin = SAFETY_MARGIN;
     if (has_reserved_job(c)) {
-        t = soonest_job(c)->deadline_at - microseconds() - margin;
+        t = soonest_job(c)->deadline_at - nanoseconds() - margin;
         should_timeout = 1;
     }
     if (c->pending_timeout >= 0) {
-        t = min(t, ((usec)c->pending_timeout) * SECOND);
+        t = min(t, ((int64)c->pending_timeout) * 1000000000);
         should_timeout = 1;
     }
     if (should_timeout) init_timeval(&tv, t);
@@ -249,7 +249,7 @@ has_reserved_this_job(conn c, job j)
 int
 conn_has_close_deadline(conn c)
 {
-    usec t = microseconds();
+    int64 t = nanoseconds();
     job j = soonest_job(c);
 
     return j && t >= j->deadline_at - SAFETY_MARGIN;

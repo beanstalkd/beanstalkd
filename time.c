@@ -21,14 +21,14 @@
 #include "dat.h"
 
 void
-init_timeval(struct timeval *tv, usec t)
+init_timeval(struct timeval *tv, int64 t)
 {
-    tv->tv_sec = t / 1000000;
-    tv->tv_usec = t % 1000000;
+    tv->tv_sec = t / 1000000000;
+    tv->tv_usec = (t/1000) % 1000000;
 }
 
-usec
-microseconds(void)
+int64
+nanoseconds(void)
 {
     int r;
     struct timeval tv;
@@ -36,5 +36,5 @@ microseconds(void)
     r = gettimeofday(&tv, 0);
     if (r != 0) return warnx("gettimeofday"), -1; // can't happen
 
-    return ((usec) tv.tv_sec) * 1000000 + tv.tv_usec;
+    return ((int64)tv.tv_sec)*1000000000 + ((int64)tv.tv_usec)*1000;
 }

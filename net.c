@@ -141,7 +141,7 @@ unbrake()
     event_set(&listen_evq, listen_socket, EV_READ,
               accept_handler, &listen_evq);
 
-    init_timeval(&tv, 10 * MSEC);
+    init_timeval(&tv, 10 * 1000000); /* 10ms */
 
     r = event_add(&listen_evq, &tv);
     if (r == -1) twarn("event_add()");

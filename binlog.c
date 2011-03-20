@@ -55,7 +55,7 @@ uint64 last_fsync = 0;
 
 char *binlog_dir = NULL;
 static int binlog_index = 0;
-static int binlog_version = 5;
+static int binlog_version = 6;
 static int lock_fd;
 
 static binlog oldest_binlog = 0,
@@ -453,7 +453,7 @@ binlog_write_job(job j)
         }
     }
 
-    now = microseconds() / 1000; /* usec -> msec */
+    now = nanoseconds() / 1000000; /* ns -> ms */
     if (enable_fsync && now - last_fsync >= fsync_throttle_ms) {
         r = fdatasync(current_binlog->fd);
         if (r == -1) return twarn("fdatasync"), 0;
