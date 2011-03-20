@@ -3,6 +3,8 @@
 #ifndef _t_h_
 #define _t_h_
 
+#include <stdint.h>
+
 #define _NEED_FDATASYNC 1
 #define _NEED_POSIX_FALLOCATE 1
 
@@ -26,5 +28,13 @@
 
 #undef _NEED_FDATASYNC
 #undef _NEED_POSIX_FALLOCATE
+
+typedef unsigned char uchar;
+typedef uchar         byte;
+typedef unsigned int  uint;
+typedef int32_t       int32;
+typedef uint32_t      uint32;
+typedef int64_t       int64;
+typedef uint64_t      uint64;
 
 #endif /*_t_h_*/

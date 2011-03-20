@@ -1,4 +1,9 @@
-typedef uint64_t    usec;
+#define int32_t  do_not_use_int32_t
+#define uint32_t do_not_use_uint32_t
+#define int64_t  do_not_use_int64_t
+#define uint64_t do_not_use_uint64_t
+
+typedef uint64      usec;
 typedef struct ms   *ms;
 typedef struct pq   *pq;
 typedef struct job  *job;
@@ -55,17 +60,17 @@ typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 
 struct stats {
-    unsigned int urgent_ct;
-    unsigned int waiting_ct;
-    unsigned int buried_ct;
-    unsigned int reserved_ct;
-    unsigned int pause_ct;
-    uint64_t total_jobs_ct;
+    uint urgent_ct;
+    uint waiting_ct;
+    uint buried_ct;
+    uint reserved_ct;
+    uint pause_ct;
+    uint64   total_jobs_ct;
 };
 
 struct pq {
-    unsigned int cap;
-    unsigned int used;
+    uint cap;
+    uint used;
     job_cmp_fn cmp;
     job *heap;
 };
@@ -81,18 +86,18 @@ struct ms {
 struct job {
 
     /* persistent fields; these get written to the binlog */
-    uint64_t id;
-    uint32_t pri;
+    uint64 id;
+    uint32 pri;
     usec delay;
     usec ttr;
-    int32_t body_size;
+    int32 body_size;
     usec created_at;
     usec deadline_at;
-    uint32_t reserve_ct;
-    uint32_t timeout_ct;
-    uint32_t release_ct;
-    uint32_t bury_ct;
-    uint32_t kick_ct;
+    uint32 reserve_ct;
+    uint32 timeout_ct;
+    uint32 release_ct;
+    uint32 bury_ct;
+    uint32 kick_ct;
     uint8_t state;
 
     /* bookeeping fields; these are in-memory only */
@@ -110,15 +115,15 @@ struct job {
 };
 
 struct tube {
-    unsigned int refs;
+    uint refs;
     char name[MAX_TUBE_NAME_LEN];
     struct pq ready;
     struct pq delay;
     struct job buried;
     struct ms waiting; /* set of conns */
     struct stats stat;
-    unsigned int using_ct;
-    unsigned int watching_ct;
+    uint using_ct;
+    uint watching_ct;
     usec pause;
     usec deadline_at;
 };
@@ -201,12 +206,12 @@ job pq_remove(pq q, job j);
 #define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
 
 job allocate_job(int body_size);
-job make_job_with_id(unsigned int pri, usec delay, usec ttr,
-             int body_size, tube tube, uint64_t id);
+job make_job_with_id(uint pri, usec delay, usec ttr,
+             int body_size, tube tube, uint64 id);
 void job_free(job j);
 
 /* Lookup a job by job ID */
-job job_find(uint64_t job_id);
+job job_find(uint64 job_id);
 
 int job_pri_cmp(job a, job b);
 int job_delay_cmp(job a, job b);
@@ -219,7 +224,7 @@ int job_list_any_p(job head);
 job job_remove(job j);
 void job_insert(job head, job j);
 
-uint64_t total_jobs();
+uint64 total_jobs();
 
 /* for unit tests */
 size_t get_all_jobs_used();
@@ -249,7 +254,7 @@ conn conn_remove(conn c);
 void conn_insert(conn head, conn c);
 
 int count_cur_conns();
-unsigned int count_tot_conns();
+uint count_tot_conns();
 int count_cur_producers();
 int count_cur_workers();
 

@@ -1,3 +1,4 @@
+#include "../t.h"
 #include "../config.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -115,7 +116,7 @@ __CUT__pq_test_fifo_property()
 void
 __CUT__pq_test_many_jobs()
 {
-    unsigned int last_pri;
+    uint last_pri;
     int r, i;
     job j;
 

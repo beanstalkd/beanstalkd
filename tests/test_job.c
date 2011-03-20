@@ -1,3 +1,4 @@
+#include "../t.h"
 #include "../config.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -70,7 +71,7 @@ void
 __CUT__job_test_hash_free()
 {
     job j;
-    uint64_t jid = 83;
+    uint64 jid = 83;
 
     j = make_job_with_id(0, 0, 1, 0, default_tube, jid);
     job_free(j);
@@ -82,7 +83,7 @@ void
 __CUT__job_test_hash_free_next()
 {
     job a, b;
-    uint64_t aid = 97, bid = 12386;
+    uint64 aid = 97, bid = 12386;
 
     b = make_job_with_id(0, 0, 1, 0, default_tube, bid);
     a = make_job_with_id(0, 0, 1, 0, default_tube, aid);

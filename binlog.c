@@ -39,7 +39,7 @@ typedef struct binlog *binlog;
 
 struct binlog {
   binlog next;
-  unsigned int refs;
+  uint refs;
   int fd;
   size_t free;
   size_t reserved;
@@ -51,7 +51,7 @@ size_t binlog_size_limit = BINLOG_SIZE_LIMIT_DEFAULT;
 
 int enable_fsync = 0;
 size_t fsync_throttle_ms = 0;
-uint64_t last_fsync = 0;
+uint64 last_fsync = 0;
 
 char *binlog_dir = NULL;
 static int binlog_index = 0;
@@ -389,7 +389,7 @@ binlog_write_job(job j)
     size_t tube_namelen, to_write = 0;
     struct iovec vec[4], *vptr;
     int vcnt = 3, r;
-    uint64_t now;
+    uint64 now;
 
     if (!current_binlog) return 1;
     tube_namelen = 0;

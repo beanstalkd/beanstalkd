@@ -238,14 +238,14 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 
 static char bucket[BUCKET_BUF_SIZE];
 
-static unsigned int ready_ct = 0;
+static uint ready_ct = 0;
 static struct stats global_stat = {0, 0, 0, 0, 0};
 
 static tube default_tube;
 
 static int drain_mode = 0;
 static usec started_at;
-static uint64_t op_ct[TOTAL_OPS], timeout_ct = 0;
+static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
 static struct conn dirty = {&dirty, &dirty, 0};
 
@@ -531,12 +531,12 @@ kick_buried_job(tube t)
     return 0;
 }
 
-static unsigned int
+static uint
 get_delayed_job_ct()
 {
     tube t;
     size_t i;
-    unsigned int count = 0;
+    uint count = 0;
 
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
@@ -573,25 +573,25 @@ kick_delayed_job(tube t)
 }
 
 /* return the number of jobs successfully kicked */
-static unsigned int
-kick_buried_jobs(tube t, unsigned int n)
+static uint
+kick_buried_jobs(tube t, uint n)
 {
-    unsigned int i;
+    uint i;
     for (i = 0; (i < n) && kick_buried_job(t); ++i);
     return i;
 }
 
 /* return the number of jobs successfully kicked */
-static unsigned int
-kick_delayed_jobs(tube t, unsigned int n)
+static uint
+kick_delayed_jobs(tube t, uint n)
 {
-    unsigned int i;
+    uint i;
     for (i = 0; (i < n) && kick_delayed_job(t); ++i);
     return i;
 }
 
-static unsigned int
-kick_jobs(tube t, unsigned int n)
+static uint
+kick_jobs(tube t, uint n)
 {
     if (buried_job_p(t)) return kick_buried_jobs(t, n);
     return kick_delayed_jobs(t, n);
@@ -657,7 +657,7 @@ touch_job(conn c, job j)
 }
 
 static job
-peek_job(uint64_t id)
+peek_job(uint64 id)
 {
     return job_find(id);
 }
@@ -818,7 +818,7 @@ enqueue_incoming_job(conn c)
     reply_line(c, STATE_SENDWORD, MSG_BURIED_FMT, j->id);
 }
 
-static unsigned int
+static uint
 uptime()
 {
     return (now_usec() - started_at) / 1000000;
@@ -887,10 +887,10 @@ fmt_stats(char *buf, size_t size, void *x)
  * Return 0 on success, or nonzero on failure.
  * If a failure occurs, pri and end are not modified. */
 static int
-read_pri(unsigned int *pri, const char *buf, char **end)
+read_pri(uint *pri, const char *buf, char **end)
 {
     char *tend;
-    unsigned int tpri;
+    uint tpri;
 
     errno = 0;
     while (buf[0] == ' ') buf++;
@@ -911,7 +911,7 @@ static int
 read_delay(usec *delay, const char *buf, char **end)
 {
     int r;
-    unsigned int delay_sec;
+    uint delay_sec;
 
     r = read_pri(&delay_sec, buf, end);
     if (r) return r;
@@ -1018,7 +1018,7 @@ static int
 fmt_job_stats(char *buf, size_t size, job j)
 {
     usec t;
-    uint64_t time_left;
+    uint64 time_left;
 
     t = now_usec();
     if (j->state == JOB_STATE_RESERVED || j->state == JOB_STATE_DELAYED) {
@@ -1045,7 +1045,7 @@ fmt_job_stats(char *buf, size_t size, job j)
 static int
 fmt_stats_tube(char *buf, size_t size, tube t)
 {
-    uint64_t time_left;
+    uint64 time_left;
 
     if (t->pause > 0) {
         time_left = (t->deadline_at - now_usec()) / 1000000;
@@ -1120,13 +1120,13 @@ dispatch_cmd(conn c)
 {
     int r, i, timeout = -1;
     size_t z;
-    unsigned int count;
+    uint count;
     job j;
-    unsigned char type;
+    byte type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
-    unsigned int pri, body_size;
+    uint pri, body_size;
     usec delay, ttr;
-    uint64_t id;
+    uint64 id;
     tube t = NULL;
 
     /* NUL-terminate this string so we can use strtol and friends */

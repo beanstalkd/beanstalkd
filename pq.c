@@ -49,7 +49,7 @@ static void
 pq_grow(pq q)
 {
     job *nheap;
-    unsigned int ncap = q->cap << 1 ? : 1;
+    uint ncap = q->cap << 1 ? : 1;
 
     nheap = malloc(ncap * sizeof(job));
     if (!nheap) return;
@@ -61,7 +61,7 @@ pq_grow(pq q)
 }
 
 static void
-swap(pq q, unsigned int a, unsigned int b)
+swap(pq q, uint a, uint b)
 {
     job j;
 
@@ -78,13 +78,13 @@ swap(pq q, unsigned int a, unsigned int b)
 #define CHILD_RIGHT(i) (((i)<<1)+2)
 
 static int
-cmp(pq q, unsigned int a, unsigned int b)
+cmp(pq q, uint a, uint b)
 {
     return q->cmp(q->heap[a], q->heap[b]);
 }
 
 static void
-bubble_up(pq q, unsigned int k)
+bubble_up(pq q, uint k)
 {
     int p;
 
@@ -96,7 +96,7 @@ bubble_up(pq q, unsigned int k)
 }
 
 static void
-bubble_down(pq q, unsigned int k)
+bubble_down(pq q, uint k)
 {
     int l, r, s;
 
@@ -159,8 +159,8 @@ pq_peek(pq q)
 job
 pq_remove(pq q, job j)
 {
-    uint64_t id;
-    unsigned int pri;
+    uint64 id;
+    uint pri;
 
     if (j->heap_index >= q->used) return NULL;
     if (q->heap[j->heap_index] != j) return NULL;

@@ -33,7 +33,7 @@
 static struct conn pool = { &pool, &pool, 0 };
 
 static int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
-static unsigned int tot_conn_ct = 0;
+static uint tot_conn_ct = 0;
 
 static conn
 conn_alloc()
@@ -122,7 +122,7 @@ count_cur_conns()
     return cur_conn_ct;
 }
 
-unsigned int
+uint
 count_tot_conns()
 {
     return tot_conn_ct;

@@ -32,9 +32,9 @@
 #include <limits.h>
 #include <fcntl.h>
 
-#include "dat.h"
 #include "sd-daemon.h"
 #include "version.h"
+#include "dat.h"
 
 static char *user = NULL;
 static int detach = 0;
