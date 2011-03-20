@@ -26,6 +26,9 @@
 #include <errno.h>
 #include <sys/resource.h>
 #include <sys/uio.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <inttypes.h>
