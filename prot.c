@@ -291,7 +291,7 @@ reply(conn c, const char *line, int len, int state)
 {
     if (!c) return;
 
-    conn_set_evmask(c, EV_WRITE | EV_PERSIST, &dirty);
+    conn_set_evmask(c, EV_WRITE, &dirty);
     c->reply = line;
     c->reply_len = len;
     c->reply_sent = 0;
@@ -948,7 +948,7 @@ wait_for_job(conn c, int timeout)
     c->pending_timeout = timeout;
 
     /* this conn is waiting, but we want to know if they hang up */
-    conn_set_evmask(c, EV_READ | EV_PERSIST, &dirty);
+    conn_set_evmask(c, EV_READ, &dirty);
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1558,7 +1558,7 @@ do_cmd(conn c)
 static void
 reset_conn(conn c)
 {
-    conn_set_evmask(c, EV_READ | EV_PERSIST, &dirty);
+    conn_set_evmask(c, EV_READ, &dirty);
 
     /* was this a peek or stats command? */
     if (c->out_job && c->out_job->state == JOB_STATE_COPY) job_free(c->out_job);
@@ -1807,7 +1807,7 @@ h_accept(const int fd, const short which, struct event *ev)
     }
 
     dbgprintf("accepted conn, fd=%d\n", cfd);
-    r = conn_set_evq(c, EV_READ | EV_PERSIST, (evh) h_conn);
+    r = conn_set_evq(c, EV_READ, (evh) h_conn);
     if (r == -1) {
         twarnx("conn_set_evq() failed");
         close(cfd);
