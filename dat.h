@@ -129,6 +129,7 @@ struct conn {
     char state;
     char type;
     struct event evq;
+    int evmask;
     int pending_timeout;
 
     /* we cannot share this buffer with the reply line because we might read in
@@ -239,7 +240,8 @@ tube tube_find_or_make(const char *name);
 conn make_conn(int fd, char start_state, tube use, tube watch);
 
 int conn_set_evq(conn c, const int events, evh handler);
-int conn_update_evq(conn c, const int flags);
+void conn_set_evmask(conn c, const int evmask, conn list);
+int conn_update_net(conn c);
 
 void conn_close(conn c);
 

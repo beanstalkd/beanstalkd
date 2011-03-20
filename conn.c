@@ -172,8 +172,15 @@ conn_set_evq(conn c, const int events, evh handler)
     return 0;
 }
 
+void
+conn_set_evmask(conn c, const int evmask, conn list)
+{
+    c->evmask = evmask;
+    conn_insert(list, c);
+}
+
 int
-conn_update_evq(conn c, const int events)
+conn_update_net(conn c)
 {
     int r;
 
@@ -185,7 +192,7 @@ conn_update_evq(conn c, const int events)
         if (r == -1) return twarn("event_del() err %d", errno), -1;
     }
 
-    return conn_set_evq(c, events, c->evq.ev_callback);
+    return conn_set_evq(c, c->evmask, c->evq.ev_callback);
 }
 
 static int

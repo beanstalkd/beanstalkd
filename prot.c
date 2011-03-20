@@ -244,6 +244,7 @@ static int drain_mode = 0;
 static usec started_at;
 static uint64_t op_ct[TOTAL_OPS], timeout_ct = 0;
 
+static struct conn dirty = {&dirty, &dirty, 0};
 
 /* Doubly-linked list of connections with at least one reserved job. */
 static struct conn running = { &running, &running, 0 };
@@ -288,13 +289,9 @@ buried_job_p(tube t)
 static void
 reply(conn c, const char *line, int len, int state)
 {
-    int r;
-
     if (!c) return;
 
-    r = conn_update_evq(c, EV_WRITE | EV_PERSIST);
-    if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
-
+    conn_set_evmask(c, EV_WRITE | EV_PERSIST, &dirty);
     c->reply = line;
     c->reply_len = len;
     c->reply_sent = 0;
@@ -359,7 +356,6 @@ reserve_job(conn c, job j)
     global_stat.reserved_ct++; /* stats */
     j->tube->stat.reserved_ct++;
     j->reserve_ct++;
-    conn_insert(&running, c);
     j->state = JOB_STATE_RESERVED;
     job_insert(&c->reserved_jobs, j);
     j->reserver = c;
@@ -945,8 +941,6 @@ read_tube_name(char **tubename, char *buf, char **end)
 static void
 wait_for_job(conn c, int timeout)
 {
-    int r;
-
     c->state = STATE_WAIT;
     enqueue_waiting_conn(c);
 
@@ -954,8 +948,7 @@ wait_for_job(conn c, int timeout)
     c->pending_timeout = timeout;
 
     /* this conn is waiting, but we want to know if they hang up */
-    r = conn_update_evq(c, EV_READ | EV_PERSIST);
-    if (r == -1) return twarnx("update events failed"), conn_close(c);
+    conn_set_evmask(c, EV_READ | EV_PERSIST, &dirty);
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1536,8 +1529,7 @@ conn_timeout(conn c)
         j->timeout_ct++;
         r = enqueue_job(remove_this_reserved_job(c, j), 0, 0);
         if (r < 1) bury_job(j, 0); /* out of memory, so bury it */
-        r = conn_update_evq(c, c->evq.ev_events);
-        if (r == -1) return twarnx("conn_update_evq() failed"), conn_close(c);
+        conn_set_evmask(c, c->evq.ev_events, &dirty);
     }
 
     if (should_timeout) {
@@ -1566,10 +1558,7 @@ do_cmd(conn c)
 static void
 reset_conn(conn c)
 {
-    int r;
-
-    r = conn_update_evq(c, EV_READ | EV_PERSIST);
-    if (r == -1) return twarnx("update events failed"), conn_close(c);
+    conn_set_evmask(c, EV_READ | EV_PERSIST, &dirty);
 
     /* was this a peek or stats command? */
     if (c->out_job && c->out_job->state == JOB_STATE_COPY) job_free(c->out_job);
@@ -1692,12 +1681,29 @@ conn_data(conn c)
 #define cmd_data_ready(c) (want_command(c) && (c)->cmd_read)
 
 static void
+update_conns()
+{
+    int r;
+    conn c;
+
+    while ((c = conn_remove(dirty.next))) { /* assignment */
+        r = conn_update_net(c);
+        if (r == -1) {
+            twarnx("conn_update_net");
+            conn_close(c);
+        }
+    }
+}
+
+static void
 h_conn(const int fd, const short which, conn c)
 {
     if (fd != c->fd) {
         twarnx("Argh! event fd doesn't match conn fd.");
         close(fd);
-        return conn_close(c);
+        conn_close(c);
+        update_conns();
+        return;
     }
 
     switch (which) {
@@ -1714,6 +1720,7 @@ h_conn(const int fd, const short which, conn c)
     }
 
     while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
+    update_conns();
 }
 
 static void
@@ -1757,30 +1764,58 @@ h_accept(const int fd, const short which, struct event *ev)
 
     listening = 0;
 
-    if (which == EV_TIMEOUT) return delay(), unbrake();
+    if (which == EV_TIMEOUT) {
+        delay();
+        unbrake();
+        update_conns();
+        return;
+    }
 
     addrlen = sizeof addr;
     cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
-        if (errno == EMFILE) return;
-        unbrake();
+        if (errno != EMFILE) unbrake();
+        update_conns();
         return;
     }
 
     flags = fcntl(cfd, F_GETFL, 0);
-    if (flags < 0) return twarn("getting flags"), close(cfd), unbrake();
+    if (flags < 0) {
+        twarn("getting flags");
+        close(cfd);
+        unbrake();
+        update_conns();
+        return;
+    }
 
     r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
-    if (r < 0) return twarn("setting O_NONBLOCK"), close(cfd), unbrake();
+    if (r < 0) {
+        twarn("setting O_NONBLOCK");
+        close(cfd);
+        unbrake();
+        update_conns();
+        return;
+    }
 
     c = make_conn(cfd, STATE_WANTCOMMAND, default_tube, default_tube);
-    if (!c) return twarnx("make_conn() failed"), close(cfd), v();
+    if (!c) {
+        twarnx("make_conn() failed");
+        close(cfd);
+        update_conns();
+        return;
+    }
 
     dbgprintf("accepted conn, fd=%d\n", cfd);
     r = conn_set_evq(c, EV_READ | EV_PERSIST, (evh) h_conn);
-    if (r == -1) return twarnx("conn_set_evq() failed"), close(cfd), v();
+    if (r == -1) {
+        twarnx("conn_set_evq() failed");
+        close(cfd);
+        update_conns();
+        return;
+    }
     unbrake();
+    update_conns();
 }
 
 void
