@@ -261,7 +261,7 @@ conn_ready(conn c)
     size_t i;
 
     for (i = 0; i < c->watch.used; i++) {
-        if (((tube) c->watch.items[i])->ready.used) return 1;
+        if (((tube) c->watch.items[i])->ready.len) return 1;
     }
     return 0;
 }

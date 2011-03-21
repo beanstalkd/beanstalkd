@@ -40,8 +40,10 @@ make_tube(const char *name)
     strncpy(t->name, name, MAX_TUBE_NAME_LEN - 1);
     if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0') twarnx("truncating tube name");
 
-    pq_init(&t->ready, job_pri_cmp);
-    pq_init(&t->delay, job_delay_cmp);
+    t->ready.cmp = job_pri_cmp;
+    t->delay.cmp = job_delay_cmp;
+    t->ready.rec = job_setheappos;
+    t->delay.rec = job_setheappos;
     t->buried = (struct job) { };
     t->buried.prev = t->buried.next = &t->buried;
     ms_init(&t->waiting, NULL, NULL);
@@ -57,8 +59,8 @@ static void
 tube_free(tube t)
 {
     prot_remove_tube(t);
-    pq_clear(&t->ready);
-    pq_clear(&t->delay);
+    free(t->ready.data);
+    free(t->delay.data);
     ms_clear(&t->waiting);
     free(t);
 }

@@ -7,12 +7,12 @@ bin_PROGRAMS = $(program)
 aux_sources = \
 	binlog.c \
 	conn.c \
+	heap.c \
 	job.c \
 	ms.c \
 	net.c \
 	net_$(OS).c \
 	port.c \
-	pq.c \
 	primes.c \
 	prot.c \
 	sd-daemon.c \
@@ -25,8 +25,8 @@ EXTRA_PROGRAMS = cutgen
 cutgen_SOURCES = cutgen.c
 
 tests = \
-	tests/test_job.c \
-	tests/test_pq.c
+	tests/test_heap.c \
+	tests/test_job.c
 
 scripts = \
 	scripts/beanstalkd.init \

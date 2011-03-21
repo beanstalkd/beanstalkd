@@ -174,10 +174,17 @@ job_free(job j)
     free(j);
 }
 
+void
+job_setheappos(void *j, int pos)
+{
+    ((job)j)->heap_index = pos;
+}
+
 /* We can't substrct any of these values because there are too many bits */
 int
-job_pri_cmp(job a, job b)
+job_pri_cmp(void *ax, void *bx)
 {
+    job a = ax, b = bx;
     if (a->pri > b->pri) return 1;
     if (a->pri < b->pri) return -1;
     if (a->id > b->id) return 1;
@@ -187,8 +194,9 @@ job_pri_cmp(job a, job b)
 
 /* We can't substrct any of these values because there are too many bits */
 int
-job_delay_cmp(job a, job b)
+job_delay_cmp(void *ax, void *bx)
 {
+    job a = ax, b = bx;
     if (a->deadline_at > b->deadline_at) return 1;
     if (a->deadline_at < b->deadline_at) return -1;
     if (a->id > b->id) return 1;

@@ -378,15 +378,17 @@ next_eligible_job(int64 now)
     dbgprintf("tubes.used = %zu\n", tubes.used);
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
-        dbgprintf("for %s t->waiting.used=%zu t->ready.used=%d t->pause=%" PRIu64 "\n",
-                t->name, t->waiting.used, t->ready.used, t->pause);
+        dbgprintf("for %s t->waiting.used=%zu t->ready.len=%d t->pause=%" PRIu64 "\n",
+                t->name, t->waiting.used, t->ready.len, t->pause);
         if (t->pause) {
             if (t->deadline_at > now) continue;
             t->pause = 0;
         }
-        if (t->waiting.used && t->ready.used) {
-            candidate = pq_peek(&t->ready);
-            if (!j || job_pri_cmp(candidate, j) < 0) j = candidate;
+        if (t->waiting.used && t->ready.len) {
+            candidate = t->ready.data[0];
+            if (!j || job_pri_cmp(candidate, j) < 0) {
+                j = candidate;
+            }
         }
         dbgprintf("i = %zu, tubes.used = %zu\n", i, tubes.used);
     }
@@ -403,7 +405,7 @@ process_queue()
     dbgprintf("processing queue\n");
     while ((j = next_eligible_job(now))) {
         dbgprintf("got eligible job %llu in %s\n", j->id, j->tube->name);
-        j = pq_take(&j->tube->ready);
+        heapremove(&j->tube->ready, j->heap_index);
         ready_ct--;
         if (j->pri < URGENT_THRESHOLD) {
             global_stat.urgent_ct--;
@@ -422,8 +424,10 @@ delay_q_peek()
 
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
-        nj = pq_peek(&t->delay);
-        if (!nj) continue;
+        if (t->delay.len == 0) {
+            continue;
+        }
+        nj = t->delay.data[0];
         if (!j || nj->deadline_at < j->deadline_at) j = nj;
     }
 
@@ -438,11 +442,11 @@ enqueue_job(job j, int64 delay, char update_store)
     j->reserver = NULL;
     if (delay) {
         j->deadline_at = nanoseconds() + delay;
-        r = pq_give(&j->tube->delay, j);
+        r = heapinsert(&j->tube->delay, j);
         if (!r) return 0;
         j->state = JOB_STATE_DELAYED;
     } else {
-        r = pq_give(&j->tube->ready, j);
+        r = heapinsert(&j->tube->ready, j);
         if (!r) return 0;
         j->state = JOB_STATE_READY;
         ready_ct++;
@@ -505,7 +509,11 @@ static job
 delay_q_take()
 {
     job j = delay_q_peek();
-    return j ? pq_take(&j->tube->delay) : NULL;
+    if (!j) {
+        return 0;
+    }
+    heapremove(&j->tube->delay, j->heap_index);
+    return j;
 }
 
 static int
@@ -519,7 +527,7 @@ kick_buried_job(tube t)
     j = remove_buried_job(t->buried.next);
 
     z = binlog_reserve_space_update(j);
-    if (!z) return pq_give(&t->delay, j), 0; /* put it back */
+    if (!z) return heapinsert(&t->delay, j), 0; /* put it back */
     j->reserved_binlog_space += z;
 
     j->kick_ct++;
@@ -540,7 +548,7 @@ get_delayed_job_ct()
 
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
-        count += t->delay.used;
+        count += t->delay.len;
     }
     return count;
 }
@@ -552,11 +560,14 @@ kick_delayed_job(tube t)
     job j;
     size_t z;
 
-    j = pq_take(&t->delay);
-    if (!j) return 0;
+    if (t->delay.len == 0) {
+        return 0;
+    }
+
+    j = heapremove(&t->delay, 0);
 
     z = binlog_reserve_space_update(j);
-    if (!z) return pq_give(&t->delay, j), 0; /* put it back */
+    if (!z) return heapinsert(&t->delay, j), 0; /* put it back */
     j->reserved_binlog_space += z;
 
     j->kick_ct++;
@@ -613,13 +624,11 @@ static job
 remove_ready_job(job j)
 {
     if (!j || j->state != JOB_STATE_READY) return NULL;
-    j = pq_remove(&j->tube->ready, j);
-    if (j) {
-        ready_ct--;
-        if (j->pri < URGENT_THRESHOLD) {
-            global_stat.urgent_ct--;
-            j->tube->stat.urgent_ct--;
-        }
+    heapremove(&j->tube->ready, j->heap_index);
+    ready_ct--;
+    if (j->pri < URGENT_THRESHOLD) {
+        global_stat.urgent_ct--;
+        j->tube->stat.urgent_ct--;
     }
     return j;
 }
@@ -1055,9 +1064,9 @@ fmt_stats_tube(char *buf, size_t size, tube t)
     return snprintf(buf, size, STATS_TUBE_FMT,
             t->name,
             t->stat.urgent_ct,
-            t->ready.used,
+            t->ready.len,
             t->stat.reserved_ct,
-            t->delay.used,
+            t->delay.len,
             t->stat.buried_ct,
             t->stat.total_jobs_ct,
             t->using_ct,
@@ -1121,7 +1130,7 @@ dispatch_cmd(conn c)
     int r, i, timeout = -1;
     size_t z;
     uint count;
-    job j;
+    job j = 0;
     byte type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
     uint pri, body_size;
@@ -1187,7 +1196,9 @@ dispatch_cmd(conn c)
         }
         op_ct[type]++;
 
-        j = job_copy(pq_peek(&c->use->ready));
+        if (c->use->ready.len) {
+            j = job_copy(c->use->ready.data[0]);
+        }
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
@@ -1200,7 +1211,9 @@ dispatch_cmd(conn c)
         }
         op_ct[type]++;
 
-        j = job_copy(pq_peek(&c->use->delay));
+        if (c->use->delay.len) {
+            j = job_copy(c->use->delay.data[0]);
+        }
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
@@ -1745,8 +1758,8 @@ delay()
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
 
-        dbgprintf("delay for %s t->waiting.used=%zu t->ready.used=%d t->pause=%" PRIu64 "\n",
-                t->name, t->waiting.used, t->ready.used, t->pause);
+        dbgprintf("delay for %s t->waiting.used=%zu t->ready.len=%d t->pause=%" PRIu64 "\n",
+                t->name, t->waiting.used, t->ready.len, t->pause);
         if (t->pause && t->deadline_at <= now) {
             t->pause = 0;
             process_queue();

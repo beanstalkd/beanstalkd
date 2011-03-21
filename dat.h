@@ -4,14 +4,15 @@
 #define uint64_t do_not_use_uint64_t
 
 typedef struct ms   *ms;
-typedef struct pq   *pq;
 typedef struct job  *job;
 typedef struct tube *tube;
 typedef struct conn *conn;
+typedef struct Heap Heap;
 
 typedef void(*evh)(int, short, void *);
-typedef int(*job_cmp_fn)(job, job);
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
+typedef int(*Compare)(void*, void*);
+typedef void(*Record)(void*, int);
 
 #if _LP64
 #define NUM_PRIMES 48
@@ -63,11 +64,12 @@ struct stats {
     uint64   total_jobs_ct;
 };
 
-struct pq {
-    uint cap;
-    uint used;
-    job_cmp_fn cmp;
-    job *heap;
+struct Heap {
+    int     cap;
+    int     len;
+    void    **data;
+    Compare cmp;
+    Record  rec;
 };
 
 struct ms {
@@ -112,8 +114,8 @@ struct job {
 struct tube {
     uint refs;
     char name[MAX_TUBE_NAME_LEN];
-    struct pq ready;
-    struct pq delay;
+    Heap ready;
+    Heap delay;
     struct job buried;
     struct ms waiting; /* set of conns */
     struct stats stat;
@@ -179,22 +181,9 @@ int ms_remove(ms a, void *item);
 int ms_contains(ms a, void *item);
 void *ms_take(ms a);
 
-/* initialize a priority queue */
-void pq_init(pq q, job_cmp_fn cmp);
 
-void pq_clear(pq q);
-
-/* return 1 if the job was inserted, else 0 */
-int pq_give(pq q, job j);
-
-/* return a job if the queue contains jobs, else NULL */
-job pq_take(pq q);
-
-/* return a job if the queue contains jobs, else NULL */
-job pq_peek(pq q);
-
-/* remove and return j if the queue contains j, else return NULL */
-job pq_remove(pq q, job j);
+int   heapinsert(Heap *h, void *x); /* return 1 on success, else 0 */
+void* heapremove(Heap *h, int k);
 
 
 #define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
@@ -207,8 +196,10 @@ void job_free(job j);
 /* Lookup a job by job ID */
 job job_find(uint64 job_id);
 
-int job_pri_cmp(job a, job b);
-int job_delay_cmp(job a, job b);
+/* the void* parameters are really job pointers */
+void job_setheappos(void*, int);
+int job_pri_cmp(void*, void*);
+int job_delay_cmp(void*, void*);
 
 job job_copy(job j);
 
