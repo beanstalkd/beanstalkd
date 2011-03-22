@@ -1,0 +1,8 @@
+[Unit]
+Description=Socket for beanstalkd, a simple, fast work queue
+
+[Socket]
+ListenStream=11300
+
+[Install]
+WantedBy=sockets.target

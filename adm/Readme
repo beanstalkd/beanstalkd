@@ -1,0 +1,37 @@
+The usual way to run beanstalkd is to type its name
+in a Unix shell prompt, like this:
+
+    $ beanstalkd
+
+This will start up the process and give you control over it.
+You can control its output (by default output is printed to
+the screen; you can arrange to have output go into file
+b.log by typing ">b.log" at the end of the command line),
+pause and restart the process (by pressing Control-Z and
+typing "fg"), and kill it (by pressing Control-C).
+This is most convenient while writing programs that use
+beanstalkd (or when working on beanstalkd itself), since
+you might want to start and stop it many times and regularly
+inspect its output.
+
+If you want beanstalkd to start when your operating system
+boots, the mechanism varies.
+
+Traditionally, you must add a command line to the shell script
+in /etc/rc (which is read by init when the system boots),
+using the "&" notation to run beanstalkd in the background.
+This would suffice for most situations, but it isn't always
+possible.
+
+These days, many popular operating systems have a replacement
+init program with its own configuration language. Example
+configuration files for several of these are included in
+subdirectories here, but the most common is probably "System V
+init", which reads /etc/inittab for lines describing commands
+to run at various times. If this file exists, you can add
+a line something like
+
+    bean:345:respawn:su nobody -c 'exec /usr/bin/beanstalkd'
+
+and type "telinit q" to tell init to reread its configuration.
+Type "man 5 inittab" for details of this notation.
