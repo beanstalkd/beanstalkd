@@ -131,10 +131,8 @@ heapremove(Heap *h, int k)
 
     x = h->data[k];
     h->len--;
-    if (h->len) {
-        set(h, k, h->data[h->len]);
-        siftdown(h, k);
-        siftup(h, k);
-    }
+    set(h, k, h->data[h->len]);
+    siftdown(h, k);
+    siftup(h, k);
     return x;
 }
