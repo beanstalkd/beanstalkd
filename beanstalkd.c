@@ -292,11 +292,6 @@ main(int argc, char **argv)
     set_sig_handlers();
     nudge_fd_limit();
 
-    r = listen(l, 1024);
-    if (r == -1) twarn("listen()");
-    accept_handler = (evh)h_accept;
-    unbrake();
-
     binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
     binlog_init(&binlog_jobs);
     prot_replay_binlog(&binlog_jobs);
@@ -306,6 +301,10 @@ main(int argc, char **argv)
         event_reinit(ev_base);
     }
 
+    r = listen(l, 1024);
+    if (r == -1) twarn("listen()");
+    accept_handler = (evh)h_accept;
+    unbrake();
     event_dispatch();
     twarnx("event_dispatch error");
     binlog_shutdown();
