@@ -164,12 +164,16 @@ struct conn {
     struct ms watch;
 };
 
+
+void srv(int fd);
+
+
 void v();
 
 void warn(const char *fmt, ...);
 void warnx(const char *fmt, ...);
 
-extern char *progname;
+extern const char *progname;
 
 int64 nanoseconds();
 void init_timeval(struct timeval *tv, int64 t);

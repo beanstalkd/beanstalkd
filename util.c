@@ -28,7 +28,7 @@
 
 #include "dat.h"
 
-char *progname;
+const char *progname;
 
 void
 v()

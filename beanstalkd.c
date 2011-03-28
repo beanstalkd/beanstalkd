@@ -273,6 +273,10 @@ main(int argc, char **argv)
         }
     }
 
+    r = make_server_socket(host_addr, port);
+    if (r == -1) twarnx("make_server_socket()"), exit(111);
+    l = r;
+
     job_init();
     prot_init();
 
@@ -283,30 +287,23 @@ main(int argc, char **argv)
         if (!r) twarnx("failed to lock binlog dir %s", binlog_dir), exit(10);
     }
 
-    r = make_server_socket(host_addr, port);
-    if (r == -1) twarnx("make_server_socket()"), exit(111);
-    l = r;
-
     if (user) su(user);
     ev_base = event_init();
     set_sig_handlers();
     nudge_fd_limit();
 
-    binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
-    binlog_init(&binlog_jobs);
-    prot_replay_binlog(&binlog_jobs);
+    if (binlog_dir) {
+        binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
+        binlog_init(&binlog_jobs);
+        prot_replay_binlog(&binlog_jobs);
+    }
 
     if (detach) {
         daemonize();
         event_reinit(ev_base);
     }
 
-    r = listen(l, 1024);
-    if (r == -1) twarn("listen()");
-    accept_handler = (evh)h_accept;
-    unbrake();
-    event_dispatch();
-    twarnx("event_dispatch error");
+    srv(l);
     binlog_shutdown();
     return 0;
 }

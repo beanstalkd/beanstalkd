@@ -16,6 +16,7 @@ aux_sources = \
 	primes.c \
 	prot.c \
 	sd-daemon.c \
+	srv.c \
 	time.c \
 	tube.c \
 	util.c
@@ -26,6 +27,7 @@ cutgen_SOURCES = cutgen.c
 
 tests = \
 	tests/test_heap.c \
+	tests/test_int.c \
 	tests/test_job.c
 
 scripts = \
