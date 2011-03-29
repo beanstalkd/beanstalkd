@@ -25,6 +25,7 @@ Read [{{ post.version }} release notes](/beanstalkd{{ post.url }}).
 
 Also requires [libevent][libevent]
 version 1.4.1 or later.
+(*Note:* beanstalkd does not work with libevent 2.)
 
 ## Packages
 
