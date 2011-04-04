@@ -71,7 +71,7 @@ __CUT__srv_test_job_too_big()
 
     waitpid(diffpid, &status, 0);
 
-    // should kill the server after diff has finished
+    // wait until after diff has finished to kill srvpid
     kill(srvpid, 9);
 
     printf("diff status %d\n", status);
