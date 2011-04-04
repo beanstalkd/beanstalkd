@@ -277,7 +277,6 @@ main(int argc, char **argv)
     if (r == -1) twarnx("make_server_socket()"), exit(111);
     l = r;
 
-    job_init();
     prot_init();
 
     /* We want to make sure that only one beanstalkd tries to use the binlog

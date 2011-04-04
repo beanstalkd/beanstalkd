@@ -14,7 +14,6 @@ static tube default_tube;
 void
 __CUT_BRINGUP__job()
 {
-    job_init();
     TUBE_ASSIGN(default_tube, make_tube("default"));
 }
 
@@ -110,6 +109,23 @@ __CUT__job_test_all_jobs_used()
     ASSERT(get_all_jobs_used() == 1, "should match");
 
     job_free(j);
+    ASSERT(get_all_jobs_used() == 0, "should match");
+}
+
+void
+__CUT__job_test_100_000_jobs()
+{
+    int i;
+
+    for (i = 0; i < 100000; i++) {
+        make_job(0, 0, 1, 0, default_tube);
+    }
+    ASSERT(get_all_jobs_used() == 100000, "should match");
+
+    for (i = 1; i <= 100000; i++) {
+        job_free(job_find(i));
+    }
+    fprintf(stderr, "get_all_jobs_used() => %zu\n", get_all_jobs_used());
     ASSERT(get_all_jobs_used() == 0, "should match");
 }
 

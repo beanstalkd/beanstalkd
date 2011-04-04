@@ -25,7 +25,6 @@ __CUT__heap_test_insert_one()
     h.cmp = job_pri_cmp;
     h.rec = job_setheappos;
 
-    job_init();
     j = make_job(1, 0, 1, 0, 0);
     ASSERT(j, "allocate job");
 
@@ -42,7 +41,6 @@ __CUT__heap_test_insert_and_remove_one()
     int r;
     job j, j1;
 
-    job_init();
     h.cmp = job_pri_cmp;
     h.rec = job_setheappos;
     j1 = make_job(1, 0, 1, 0, 0);
@@ -64,7 +62,6 @@ __CUT__heap_test_priority()
     int r;
     job j, j1, j2, j3;
 
-    job_init();
     h.cmp = job_pri_cmp;
     h.rec = job_setheappos;
     j1 = make_job(1, 0, 1, 0, 0);
@@ -110,7 +107,6 @@ __CUT__heap_test_fifo_property()
     int r;
     job j, j3a, j3b, j3c;
 
-    job_init();
     h.cmp = job_pri_cmp;
     h.rec = job_setheappos;
     j3a = make_job(3, 0, 1, 0, 0);
@@ -160,7 +156,6 @@ __CUT__heap_test_many_jobs()
     int r, i, n = 20;
     job j;
 
-    job_init();
     h.cmp = job_pri_cmp;
     h.rec = job_setheappos;
 
@@ -188,7 +183,6 @@ __CUT__heap_test_remove_k()
     int r, i, c, n = 20;
     job j;
 
-    job_init();
     h.cmp = job_pri_cmp;
     h.rec = job_setheappos;
 

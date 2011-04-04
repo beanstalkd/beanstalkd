@@ -106,7 +106,6 @@ forksrv(int *port, int *pid)
 
     /* now in child */
 
-    job_init();
     prot_init();
     ev_base = event_init();
 

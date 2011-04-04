@@ -218,8 +218,6 @@ uint64 total_jobs();
 /* for unit tests */
 size_t get_all_jobs_used();
 
-void job_init();
-
 
 extern struct ms tubes;
 
