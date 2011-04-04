@@ -1,3 +1,2 @@
-# Negative delays are illegal
 put 512 -1 100 0
 quit

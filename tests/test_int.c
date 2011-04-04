@@ -17,10 +17,32 @@
 #include "../cut.h"
 #include "../dat.h"
 
+static void testsrv(char*, char*);
 static void forksrv(int*, int*);
 static int copy(int, int);
 static int diff(char*, int);
 static int diallocal(int);
+
+typedef struct T T;
+struct T {
+    char *cmd;
+    char *exp;
+};
+
+static T ts[] = {
+    {"sh-tests/allow-underscore.commands", "sh-tests/allow-underscore.expected"},
+    {"sh-tests/delete_ready.commands", "sh-tests/delete_ready.expected"},
+    {"sh-tests/multi-tube.commands", "sh-tests/multi-tube.expected"},
+    {"sh-tests/no_negative_delays.commands", "sh-tests/no_negative_delays.expected"},
+    {"sh-tests/omit-time-left.commands", "sh-tests/omit-time-left.expected"},
+    {"sh-tests/pause-tube.commands", "sh-tests/pause-tube.expected"},
+    {"sh-tests/small_delay.commands", "sh-tests/small_delay.expected"},
+    {"sh-tests/too-big.commands", "sh-tests/too-big.expected"},
+    {"sh-tests/ttr-large.commands", "sh-tests/ttr-large.expected"},
+    {"sh-tests/zero_delay.commands", "sh-tests/zero_delay.expected"},
+    {},
+};
+
 
 void
 __CUT_BRINGUP__srv()
@@ -29,13 +51,31 @@ __CUT_BRINGUP__srv()
 
 
 void
-__CUT__srv_test_job_too_big()
+__CUT__srv_test()
+{
+    int i;
+
+    for (i = 0; ts[i].cmd; i++) {
+        testsrv(ts[i].cmd, ts[i].exp);
+    }
+}
+
+
+void
+__CUT_TAKEDOWN__srv()
+{
+}
+
+
+static void
+testsrv(char *cmd, char *exp)
 {
     int status, port = 0, cfd, tfd, diffpid, srvpid = 0;
 
     job_data_size_limit = 10;
 
-    progname = __func__;
+    progname = cmd;
+    puts(cmd);
     forksrv(&port, &srvpid);
     if (port == -1 || srvpid == -1) {
         puts("forksrv failed");
@@ -44,27 +84,27 @@ __CUT__srv_test_job_too_big()
 
     cfd = diallocal(port);
     if (cfd == -1) {
-        perror("diallocal");
+        twarn("diallocal");
         kill(srvpid, 9);
         exit(1);
     }
 
-    tfd = open("sh-tests/too-big.commands", O_RDONLY, 0);
+    tfd = open(cmd, O_RDONLY, 0);
     if (tfd == -1) {
-        perror("open");
+        twarn("open");
         kill(srvpid, 9);
         exit(1);
     }
 
     if (copy(cfd, tfd) == -1) {
-        perror("copy");
+        twarn("copy");
         kill(srvpid, 9);
         exit(1);
     }
 
-    diffpid = diff("sh-tests/too-big.expected", cfd);
+    diffpid = diff(exp, cfd);
     if (diffpid == -1) {
-        perror("diff");
+        twarn("diff");
         kill(srvpid, 9);
         exit(1);
     }
@@ -76,12 +116,6 @@ __CUT__srv_test_job_too_big()
 
     printf("diff status %d\n", status);
     ASSERT(status == 0, "diff status");
-}
-
-
-void
-__CUT_TAKEDOWN__srv()
-{
 }
 
 

@@ -7,13 +7,10 @@ else
     exit 0
 fi
 
-one="$(dirname "$0")/check-one.sh"
-
-for commands in "$@"; do
-  expected=${commands/.commands/.expected}
-  echo $commands
-  $one $commands $expected
+for t in "$@"; do
+  echo $t
+  $t
   res=$?
-  test "$res" = 1 && echo "FAIL: $commands"
+  test "$res" = 1 && echo "FAIL: $t"
   test "$res" = 0 || exit 1
 done
