@@ -17,11 +17,12 @@
 #include "../cut.h"
 #include "../dat.h"
 
-static void testsrv(char*, char*);
+static void testsrv(char*, char*, int);
 static void forksrv(int*, int*);
-static int copy(int, int);
+static int copy(int, int, int);
 static int diff(char*, int);
 static int diallocal(int);
+static void cleanup(int sig);
 
 typedef struct T T;
 struct T {
@@ -43,6 +44,8 @@ static T ts[] = {
     {},
 };
 
+static int srvpid;
+
 
 void
 __CUT_BRINGUP__srv()
@@ -56,7 +59,8 @@ __CUT__srv_test()
     int i;
 
     for (i = 0; ts[i].cmd; i++) {
-        testsrv(ts[i].cmd, ts[i].exp);
+        testsrv(ts[i].cmd, ts[i].exp, 4096);
+        testsrv(ts[i].cmd, ts[i].exp, 1);
     }
 }
 
@@ -68,9 +72,10 @@ __CUT_TAKEDOWN__srv()
 
 
 static void
-testsrv(char *cmd, char *exp)
+testsrv(char *cmd, char *exp, int bufsiz)
 {
-    int status, port = 0, cfd, tfd, diffpid, srvpid = 0;
+    int status, port = 0, cfd, tfd, diffpid;
+    struct sigaction sa = {};
 
     job_data_size_limit = 10;
 
@@ -81,6 +86,13 @@ testsrv(char *cmd, char *exp)
         puts("forksrv failed");
         exit(1);
     }
+
+    // Fail if this test takes more than 10 seconds.
+    // If we have trouble installing the timeout,
+    // just proceed anyway.
+    sa.sa_handler = cleanup;
+    sigaction(SIGALRM, &sa, 0);
+    alarm(10);
 
     cfd = diallocal(port);
     if (cfd == -1) {
@@ -96,7 +108,7 @@ testsrv(char *cmd, char *exp)
         exit(1);
     }
 
-    if (copy(cfd, tfd) == -1) {
+    if (copy(cfd, tfd, bufsiz) == -1) {
         twarn("copy");
         kill(srvpid, 9);
         exit(1);
@@ -168,9 +180,9 @@ diff(char *f0, int fd)
 
 
 static int
-copy(int dst, int src)
+copy(int dst, int src, int bs)
 {
-    char buf[4096];
+    char buf[bs];
     int r, w, c;
 
     for (;;) {
@@ -210,4 +222,15 @@ diallocal(int port)
     }
 
     return fd;
+}
+
+
+static void
+cleanup(int sig)
+{
+    puts("timed out");
+    if (srvpid > 0) {
+        kill(srvpid, 9);
+    }
+    exit(1);
 }

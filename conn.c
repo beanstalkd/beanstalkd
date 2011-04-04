@@ -153,7 +153,7 @@ conn_set_evq(conn c, const int events, evh handler)
     struct timeval tv = {INT_MAX, 0};
     int64 t = INT64_MAX;
 
-    event_set(&c->evq, c->fd, events, handler, c);
+    event_set(&c->evq, c->fd, events|EV_PERSIST, handler, c);
 
     if (conn_waiting(c)) margin = SAFETY_MARGIN;
     if (has_reserved_job(c)) {
@@ -175,7 +175,7 @@ conn_set_evq(conn c, const int events, evh handler)
 void
 conn_set_evmask(conn c, const int evmask, conn list)
 {
-    c->evmask = evmask;
+    c->evmask = evmask|EV_PERSIST;
     conn_insert(list, c);
 }
 
