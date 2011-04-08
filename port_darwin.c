@@ -1,6 +1,4 @@
-/* portability functions */
-
-/* Copyright (C) 2009 Keith Rarick
+/* Copyright 2011 Keith Rarick
 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,35 +14,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "t.h"
+#include <stdint.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <event.h>
+#include "dat.h"
 
-#ifdef _NEED_POSIX_FALLOCATE
+static char buf0[512]; /* buffer of zeros */
+
 int
-posix_fallocate(int fd, off_t offset, off_t len)
+falloc(int fd, int len)
 {
-    off_t i;
-    ssize_t w;
-    off_t p;
-    #define ZERO_BUF_SIZE 512
-    char buf[ZERO_BUF_SIZE] = {}; /* initialize to zero */
-
-    /* we only support a 0 offset */
-    if (offset != 0) return EINVAL;
-
-    if (len <= 0) return EINVAL;
-
-    if (len % 512 != 0) {
-        len += 512 - len % 512;
-    }
+    int i, w;
 
     for (i = 0; i < len; i += w) {
-        w = write(fd, &buf, ZERO_BUF_SIZE);
+        w = write(fd, buf0, sizeof buf0);
         if (w == -1) return errno;
     }
 
-    p = lseek(fd, 0, SEEK_SET);
-    if (p == -1) return errno;
+    lseek(fd, 0, 0); /* do not care if this fails */
 
     return 0;
 }
-#endif

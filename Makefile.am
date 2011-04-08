@@ -12,7 +12,7 @@ aux_sources = \
 	ms.c \
 	net.c \
 	net_$(OS).c \
-	port.c \
+	port_$(OS).c \
 	primes.c \
 	prot.c \
 	sd-daemon.c \

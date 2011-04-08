@@ -16,7 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "t.h"
+#include <stdint.h>
+#include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -32,7 +33,6 @@
 #include <limits.h>
 #include <stddef.h>
 #include <event.h>
-
 #include "dat.h"
 
 typedef struct binlog *binlog;
@@ -326,7 +326,7 @@ binlog_open(binlog log, size_t *written)
 
     if (fd < 0) return twarn("Cannot open binlog %s", log->path);
 
-    r = posix_fallocate(fd, 0, binlog_size_limit);
+    r = falloc(fd, binlog_size_limit);
     if (r) {
         close(fd);
         binlog_dref(log);
@@ -455,8 +455,8 @@ binlog_write_job(job j)
 
     now = nanoseconds() / 1000000; /* ns -> ms */
     if (enable_fsync && now - last_fsync >= fsync_throttle_ms) {
-        r = fdatasync(current_binlog->fd);
-        if (r == -1) return twarn("fdatasync"), 0;
+        r = fsync(current_binlog->fd);
+        if (r == -1) return twarn("fsync"), 0;
         last_fsync = now;
     }
 

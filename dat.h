@@ -1,3 +1,11 @@
+typedef unsigned char uchar;
+typedef uchar         byte;
+typedef unsigned int  uint;
+typedef int32_t       int32;
+typedef uint32_t      uint32;
+typedef int64_t       int64;
+typedef uint64_t      uint64;
+
 #define int32_t  do_not_use_int32_t
 #define uint32_t do_not_use_uint32_t
 #define int64_t  do_not_use_int64_t
@@ -300,3 +308,8 @@ size_t binlog_reserve_space_update(job j);
 void binlog_shutdown();
 const char *binlog_oldest_index();
 const char *binlog_current_index();
+
+/* Allocate disk space.
+ * Expects fd's offset to be 0; may also reset fd's offset to 0.
+ * Returns 0 on success, and a positive errno otherwise. */
+int falloc(int fd, int len);

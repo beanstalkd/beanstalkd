@@ -16,7 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "t.h"
+#include <stdint.h>
+#include <sys/types.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <string.h>

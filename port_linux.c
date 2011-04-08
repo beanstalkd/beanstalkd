@@ -14,28 +14,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
 #include <stdint.h>
 #include <sys/types.h>
-#include <stdlib.h>
-#include <sys/socket.h>
+#include <fcntl.h>
 #include <event.h>
 #include "dat.h"
 
-
-void
-srv(int fd)
+int
+falloc(int fd, int len)
 {
-    int r;
-
-    r = listen(fd, 1024);
-    if (r == -1) {
-        twarn("listen");
-        return;
-    }
-
-    accept_handler = (evh)h_accept;
-    unbrake();
-    event_dispatch();
-    twarnx("event_dispatch error");
-    exit(1);
+    return fallocate(fd, 0, 0, len);
 }
