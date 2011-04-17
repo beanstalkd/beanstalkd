@@ -101,10 +101,8 @@ heapinsert(Heap *h, void *x)
             return 0;
         }
 
-        if (h->data) {
-            memcpy(ndata, h->data, sizeof(void*)*h->len);
-            free(h->data);
-        }
+        memcpy(ndata, h->data, sizeof(void*)*h->len);
+        free(h->data);
         h->data = ndata;
         h->cap = ncap;
     }
