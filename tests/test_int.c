@@ -203,15 +203,17 @@ static int
 diallocal(int port)
 {
     int r, fd;
-    struct sockaddr_in addr = {AF_INET, port};
+    struct sockaddr_in addr = {};
 
+    addr.sin_family = AF_INET;
+    addr.sin_port = port;
     r = inet_aton("127.0.0.1", &addr.sin_addr);
     if (!r) {
         errno = EINVAL;
         return -1;
     }
 
-    fd = socket(AF_INET, SOCK_STREAM, 0);
+    fd = socket(PF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
         return -1;
     }
