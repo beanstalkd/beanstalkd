@@ -16,16 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdint.h>
-#include <sys/types.h>
 #include <stdlib.h>
-#include <sys/time.h>
-#include <stdio.h>
 #include <errno.h>
 #include <limits.h>
 #include <event.h>
 #include <unistd.h>
-
 #include "dat.h"
 
 #define SAFETY_MARGIN (1000000000) /* 1 second */

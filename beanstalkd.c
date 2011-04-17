@@ -16,22 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdint.h>
-#include <sys/types.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <event.h>
-#include <limits.h>
 #include <fcntl.h>
-
 #include "sd-daemon.h"
 #include "version.h"
 #include "dat.h"

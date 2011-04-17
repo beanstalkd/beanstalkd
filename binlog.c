@@ -16,8 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdint.h>
-#include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -25,11 +23,8 @@
 #include <string.h>
 #include <errno.h>
 #include <dirent.h>
-#include <sys/resource.h>
-#include <sys/param.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
-#include <stdarg.h>
 #include <limits.h>
 #include <stddef.h>
 #include <event.h>

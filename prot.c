@@ -16,8 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdint.h>
-#include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -26,14 +24,10 @@
 #include <errno.h>
 #include <sys/resource.h>
 #include <sys/uio.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <stdarg.h>
 #include <ctype.h>
 #include <inttypes.h>
 #include <event.h>
-
 #include "dat.h"
 #include "version.h"
 

@@ -15,8 +15,6 @@
  */
 
 #define _GNU_SOURCE
-#include <stdint.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <event.h>
 #include "dat.h"
