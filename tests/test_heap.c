@@ -52,6 +52,8 @@ __CUT__heap_test_insert_and_remove_one()
     j = heapremove(&h, 0);
     ASSERT(j == j1, "j1 should come back out");
     ASSERT(h.len == 0, "h should be empty.");
+    printf("j->heap_index is %zu\n", j->heap_index);
+    ASSERT(j->heap_index == -1, "j's heap index should be invalid");
 }
 
 

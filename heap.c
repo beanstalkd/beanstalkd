@@ -129,5 +129,6 @@ heapremove(Heap *h, int k)
     set(h, k, h->data[h->len]);
     siftdown(h, k);
     siftup(h, k);
+    h->rec(x, -1);
     return x;
 }
