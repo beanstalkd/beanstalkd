@@ -74,7 +74,7 @@ __CUT_TAKEDOWN__srv()
 static void
 testsrv(char *cmd, char *exp, int bufsiz)
 {
-    int status, port = 0, cfd, tfd, diffpid;
+    int diffst, srvst, port = 0, cfd, tfd, diffpid;
     struct sigaction sa = {};
 
     job_data_size_limit = 10;
@@ -121,13 +121,16 @@ testsrv(char *cmd, char *exp, int bufsiz)
         exit(1);
     }
 
-    waitpid(diffpid, &status, 0);
+    waitpid(diffpid, &diffst, 0);
 
     // wait until after diff has finished to kill srvpid
     kill(srvpid, 9);
+    waitpid(srvpid, &srvst, 0);
+    printf("srv status %d, signal %d\n", WEXITSTATUS(srvst), WTERMSIG(srvst));
+    ASSERT(WIFSIGNALED(srvst) && WTERMSIG(srvst) == 9, "srv status");
 
-    printf("diff status %d\n", status);
-    ASSERT(status == 0, "diff status");
+    printf("diff status %d\n", diffst);
+    ASSERT(diffst == 0, "diff status");
 }
 
 
