@@ -25,7 +25,7 @@ srv(Srv *s)
 {
     int r;
 
-    sockinit((Handle)srvtick, s, 10 * 1000000); // 10ms
+    sockinit((Handle)srvtick, s, 10*1000000); // 10ms
 
     s->sock.x = s;
     s->sock.f = (Handle)srvaccept;
@@ -38,9 +38,9 @@ srv(Srv *s)
         return;
     }
 
-    r = sockwant(&s->sock, 't');
+    r = sockwant(&s->sock, 'r');
     if (r == -1) {
-        twarnx("sockwant");
+        twarn("sockwant");
         exit(2);
     }
 

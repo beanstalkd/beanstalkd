@@ -1699,7 +1699,7 @@ update_conns()
     while ((c = conn_remove(dirty.next))) { /* assignment */
         r = sockwant(&c->sock, c->rw);
         if (r == -1) {
-            twarnx("sockwant");
+            twarn("sockwant");
             conn_close(c);
         }
     }
@@ -1815,7 +1815,7 @@ h_accept(const int fd, const short which, Srv *s)
     dbgprintf("accepted conn, fd=%d\n", cfd);
     r = sockwant(&c->sock, 'r');
     if (r == -1) {
-        twarnx("sockwant");
+        twarn("sockwant");
         close(cfd);
         update_conns();
         return;
