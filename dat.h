@@ -92,7 +92,7 @@ struct Socket {
     struct event evq;
 };
 
-void sockinit(Handle tick, void *x, int64 i);
+void sockinit(Handle tick, void *x, int64 ns);
 int  sockwant(Socket *s, int rw);
 void sockmain(); // does not return
 
