@@ -21,18 +21,33 @@
 
 
 void
-srv(int fd)
+srvschedconn(Srv *s, conn c)
+{
+    if (c->tickpos > -1) {
+        heapremove(&s->conns, c->tickpos);
+    }
+    if (c->tickat) {
+        heapinsert(&s->conns, c);
+    }
+}
+
+
+void
+srv(Srv *s)
 {
     int r;
 
-    r = listen(fd, 1024);
+    s->conns.cmp = (Compare)conncmp;
+    s->conns.rec = (Record)connrec;
+
+    r = listen(s->fd, 1024);
     if (r == -1) {
         twarn("listen");
         return;
     }
 
     accept_handler = (evh)h_accept;
-    unbrake();
+    unbrake(s);
     event_dispatch();
     twarnx("event_dispatch error");
     exit(1);

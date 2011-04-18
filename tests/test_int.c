@@ -137,15 +137,16 @@ testsrv(char *cmd, char *exp, int bufsiz)
 static void
 forksrv(int *port, int *pid)
 {
-    int r, srvfd, len;
+    int r, len;
+    Srv s = {};
     struct sockaddr_in addr;
     struct event_base *ev_base;
 
-    srvfd = make_server_socket("127.0.0.1", "0");
-    if (srvfd == -1) return;
+    s.fd = make_server_socket("127.0.0.1", "0");
+    if (s.fd == -1) return;
 
     len = sizeof(addr);
-    r = getsockname(srvfd, (struct sockaddr*)&addr, (socklen_t*)&len);
+    r = getsockname(s.fd, (struct sockaddr*)&addr, (socklen_t*)&len);
     if (r == -1 || len > sizeof(addr)) return;
 
     *port = addr.sin_port;
@@ -158,7 +159,7 @@ forksrv(int *port, int *pid)
     prot_init();
     ev_base = event_init();
 
-    srv(srvfd); /* does not return */
+    srv(&s); /* does not return */
     exit(1); /* satisfy the compiler */
 }
 

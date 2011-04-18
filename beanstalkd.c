@@ -253,7 +253,8 @@ opts(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-    int r, l;
+    int r;
+    Srv s = {};
     struct event_base *ev_base;
     struct job binlog_jobs = {};
 
@@ -269,7 +270,7 @@ main(int argc, char **argv)
 
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
-    l = r;
+    s.fd = r;
 
     prot_init();
 
@@ -296,7 +297,7 @@ main(int argc, char **argv)
         event_reinit(ev_base);
     }
 
-    srv(l);
+    srv(&s);
     binlog_shutdown();
     return 0;
 }

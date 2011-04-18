@@ -142,16 +142,17 @@ has_reserved_job(conn c)
     return job_list_any_p(&c->reserved_jobs);
 }
 
-int
-conn_set_evq(conn c, const int events, evh handler)
+
+static int64
+conntickat(conn c)
 {
-    int r, margin = 0, should_timeout = 0;
-    struct timeval tv = {INT_MAX, 0};
+    int margin = 0, should_timeout = 0;
     int64 t = INT64_MAX;
 
-    event_set(&c->evq, c->fd, events|EV_PERSIST, handler, c);
+    if (conn_waiting(c)) {
+        margin = SAFETY_MARGIN;
+    }
 
-    if (conn_waiting(c)) margin = SAFETY_MARGIN;
     if (has_reserved_job(c)) {
         t = soonest_job(c)->deadline_at - nanoseconds() - margin;
         should_timeout = 1;
@@ -160,9 +161,21 @@ conn_set_evq(conn c, const int events, evh handler)
         t = min(t, ((int64)c->pending_timeout) * 1000000000);
         should_timeout = 1;
     }
-    if (should_timeout) init_timeval(&tv, t);
 
-    r = event_add(&c->evq, should_timeout ? &tv : NULL);
+    if (should_timeout) {
+        return nanoseconds() + t;
+    }
+    return 0;
+}
+
+
+int
+conn_set_evq(conn c, const int events, evh handler)
+{
+    int r;
+
+    event_set(&c->evq, c->fd, events|EV_PERSIST, handler, c);
+    r = event_add(&c->evq, 0);
     if (r == -1) return twarn("event_add() err %d", errno), -1;
 
     return 0;
@@ -173,6 +186,9 @@ conn_set_evmask(conn c, const int evmask, conn list)
 {
     c->evmask = evmask|EV_PERSIST;
     conn_insert(list, c);
+
+    c->tickat = conntickat(c);
+    srvschedconn(c->srv, c);
 }
 
 int
@@ -262,6 +278,23 @@ conn_ready(conn c)
     return 0;
 }
 
+
+int
+conncmp(conn a, conn b)
+{
+    if (a->tickat > b->tickat) return 1;
+    if (a->tickat < b->tickat) return -1;
+    return 0;
+}
+
+
+void
+connrec(conn c, int i)
+{
+    c->tickpos = i;
+}
+
+
 void
 conn_close(conn c)
 {
@@ -282,7 +315,7 @@ conn_close(conn c)
 
     cur_conn_ct--; /* stats */
 
-    unbrake();
+    unbrake(c->srv);
     remove_waiting_conn(c);
     conn_remove(c);
     if (has_reserved_job(c)) enqueue_reserved_jobs(c);

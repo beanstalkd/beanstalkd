@@ -16,6 +16,7 @@ typedef struct job  *job;
 typedef struct tube *tube;
 typedef struct conn *conn;
 typedef struct Heap Heap;
+typedef struct Srv  Srv;
 
 typedef void(*evh)(int, short, void *);
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
@@ -80,6 +81,12 @@ struct Heap {
     Record  rec;
 };
 
+struct Srv {
+    int          fd;
+    struct event ev;
+    Heap         conns;
+};
+
 struct ms {
     size_t used, cap, last;
     void **items;
@@ -135,12 +142,15 @@ struct tube {
 
 struct conn {
     conn prev, next; /* linked list of connections */
+    Srv *srv;
     int fd;
     char state;
     char type;
     struct event evq;
     int evmask;
     int pending_timeout;
+    int64 tickat; // time at which to do more work
+    int tickpos; // position in srv->conns
 
     /* we cannot share this buffer with the reply line because we might read in
      * command line data for a subsequent command, and we need to store it
@@ -173,7 +183,8 @@ struct conn {
 };
 
 
-void srv(int fd);
+void srv(Srv *srv);
+void srvschedconn(Srv *srv, conn c);
 
 
 void v();
@@ -239,6 +250,8 @@ tube tube_find_or_make(const char *name);
 
 conn make_conn(int fd, char start_state, tube use, tube watch);
 
+int  conncmp(conn a, conn b);
+void connrec(conn c, int i);
 int conn_set_evq(conn c, const int events, evh handler);
 void conn_set_evmask(conn c, const int evmask, conn list);
 int conn_update_net(conn c);
@@ -276,7 +289,7 @@ conn remove_waiting_conn(conn c);
 void enqueue_reserved_jobs(conn c);
 
 void enter_drain_mode(int sig);
-void h_accept(const int fd, const short which, struct event *ev);
+void h_accept(const int fd, const short which, Srv* srv);
 void prot_remove_tube(tube t);
 void prot_replay_binlog(job binlog_jobs);
 

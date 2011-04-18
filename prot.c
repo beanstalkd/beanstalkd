@@ -1717,9 +1717,6 @@ h_conn(const int fd, const short which, conn c)
     }
 
     switch (which) {
-    case EV_TIMEOUT:
-        conn_timeout(c);
-        break;
     case EV_READ:
         /* fall through... */
     case EV_WRITE:
@@ -1733,7 +1730,7 @@ h_conn(const int fd, const short which, conn c)
 }
 
 static void
-delay()
+tick(Srv *s)
 {
     int r;
     job j;
@@ -1760,11 +1757,19 @@ delay()
         }
     }
 
-    unbrake();
+    while (s->conns.len) {
+        conn c = s->conns.data[0];
+        if (c->tickat > now) {
+            break;
+        }
+
+        heapremove(&s->conns, 0);
+        conn_timeout(c);
+    }
 }
 
 void
-h_accept(const int fd, const short which, struct event *ev)
+h_accept(const int fd, const short which, Srv *s)
 {
     conn c;
     int cfd, flags, r;
@@ -1774,8 +1779,8 @@ h_accept(const int fd, const short which, struct event *ev)
     listening = 0;
 
     if (which == EV_TIMEOUT) {
-        delay();
-        unbrake();
+        tick(s);
+        unbrake(s);
         update_conns();
         return;
     }
@@ -1784,7 +1789,7 @@ h_accept(const int fd, const short which, struct event *ev)
     cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
-        if (errno != EMFILE) unbrake();
+        if (errno != EMFILE) unbrake(s);
         update_conns();
         return;
     }
@@ -1793,7 +1798,7 @@ h_accept(const int fd, const short which, struct event *ev)
     if (flags < 0) {
         twarn("getting flags");
         close(cfd);
-        unbrake();
+        unbrake(s);
         update_conns();
         return;
     }
@@ -1802,7 +1807,7 @@ h_accept(const int fd, const short which, struct event *ev)
     if (r < 0) {
         twarn("setting O_NONBLOCK");
         close(cfd);
-        unbrake();
+        unbrake(s);
         update_conns();
         return;
     }
@@ -1814,6 +1819,7 @@ h_accept(const int fd, const short which, struct event *ev)
         update_conns();
         return;
     }
+    c->srv = s;
 
     dbgprintf("accepted conn, fd=%d\n", cfd);
     r = conn_set_evq(c, EV_READ, (evh) h_conn);
@@ -1823,7 +1829,7 @@ h_accept(const int fd, const short which, struct event *ev)
         update_conns();
         return;
     }
-    unbrake();
+    unbrake(s);
     update_conns();
 }
 

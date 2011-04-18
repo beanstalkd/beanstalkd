@@ -25,7 +25,6 @@
 #include "sd-daemon.h"
 
 static int listen_socket = -1;
-static struct event listen_evq;
 evh accept_handler;
 int listening = 0;
 
@@ -124,19 +123,15 @@ make_server_socket(char *host, char *port)
 }
 
 void
-unbrake()
+unbrake(Srv *s)
 {
     int r;
     struct timeval tv;
 
     if (listening) return;
     listening = 1;
-
-    event_set(&listen_evq, listen_socket, EV_READ,
-              accept_handler, &listen_evq);
-
+    event_set(&s->ev, listen_socket, EV_READ, accept_handler, s);
     init_timeval(&tv, 10 * 1000000); /* 10ms */
-
-    r = event_add(&listen_evq, &tv);
+    r = event_add(&s->ev, &tv);
     if (r == -1) twarn("event_add()");
 }
