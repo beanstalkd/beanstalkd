@@ -88,8 +88,6 @@ struct Socket {
     Handle f;
     void   *x;
     int    added;
-
-    struct event evq;
 };
 
 void sockinit(Handle tick, void *x, int64 ns);
@@ -210,7 +208,6 @@ void warnx(const char *fmt, ...);
 extern const char *progname;
 
 int64 nanoseconds();
-void init_timeval(struct timeval *tv, int64 t);
 
 void ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove);
 void ms_clear(ms a);

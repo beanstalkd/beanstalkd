@@ -15,11 +15,8 @@
  */
 
 #define _XOPEN_SOURCE 600
+#include <stdint.h>
 #include <fcntl.h>
-#ifndef u_char
-#define u_char unsigned char
-#endif
-#include <event.h>
 #include "dat.h"
 
 int

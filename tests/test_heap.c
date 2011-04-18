@@ -1,10 +1,9 @@
-#include "../t.h"
 #include "../config.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-#include <event.h>
 
 #include "../cut.h"
 #include "../dat.h"

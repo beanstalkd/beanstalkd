@@ -16,10 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdint.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <event.h>
+#include <stdarg.h>
 #include "dat.h"
 
 const char *progname;

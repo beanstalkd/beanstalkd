@@ -1,6 +1,7 @@
 /* integration tests */
 
 #include "../t.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -12,7 +13,6 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/wait.h>
-#include <event.h>
 #include <errno.h>
 #include "../cut.h"
 #include "../dat.h"

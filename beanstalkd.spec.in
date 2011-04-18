@@ -14,7 +14,6 @@ URL:            http://xph.us/software/%{name}/
 Source0:        http://xph.us/dist/%{name}/rel/%{name}-%{version}.tar.gz
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires:   libevent-devel
 
 Requires(pre):      %{_sbindir}/useradd
 Requires(post):     /sbin/chkconfig

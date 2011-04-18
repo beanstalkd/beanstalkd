@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -27,7 +28,7 @@
 #include <netinet/in.h>
 #include <ctype.h>
 #include <inttypes.h>
-#include <event.h>
+#include <stdarg.h>
 #include "dat.h"
 #include "version.h"
 

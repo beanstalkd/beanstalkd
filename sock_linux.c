@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/epoll.h>
-#include <event.h>
 #include "dat.h"
 
 static void handle(Socket *s, int events);

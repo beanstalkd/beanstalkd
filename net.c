@@ -20,7 +20,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
-#include <event.h>
 #include "dat.h"
 #include "sd-daemon.h"
 

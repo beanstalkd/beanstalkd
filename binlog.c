@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -27,7 +28,6 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <stddef.h>
-#include <event.h>
 #include "dat.h"
 
 typedef struct binlog *binlog;

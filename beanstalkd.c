@@ -23,7 +23,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pwd.h>
-#include <event.h>
 #include <fcntl.h>
 #include "sd-daemon.h"
 #include "version.h"

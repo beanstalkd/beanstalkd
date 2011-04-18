@@ -18,7 +18,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
-#include <event.h>
 #include "dat.h"
 
 static char buf0[512]; /* buffer of zeros */

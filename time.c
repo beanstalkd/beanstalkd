@@ -15,15 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <event.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/time.h>
 #include "dat.h"
-
-void
-init_timeval(struct timeval *tv, int64 t)
-{
-    tv->tv_sec = t / 1000000000;
-    tv->tv_usec = (t/1000) % 1000000;
-}
 
 int64
 nanoseconds(void)

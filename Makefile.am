@@ -11,7 +11,6 @@ aux_sources = \
 	job.c \
 	ms.c \
 	net.c \
-	net_$(OS).c \
 	port_$(OS).c \
 	primes.c \
 	prot.c \
