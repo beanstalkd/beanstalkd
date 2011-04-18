@@ -14,13 +14,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _GNU_SOURCE
+#define _XOPEN_SOURCE 600
 #include <fcntl.h>
+#ifndef u_char
+#define u_char unsigned char
+#endif
 #include <event.h>
 #include "dat.h"
 
 int
 falloc(int fd, int len)
 {
-    return fallocate(fd, 0, 0, len);
+    return posix_fallocate(fd, 0, len);
 }
