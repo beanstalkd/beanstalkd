@@ -17,6 +17,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <limits.h>
 #include <event.h>
@@ -34,7 +35,14 @@ static uint tot_conn_ct = 0;
 static conn
 conn_alloc()
 {
-    return conn_remove(pool.next) ? : malloc(sizeof(struct conn));
+    conn c;
+
+    c = conn_remove(pool.next);
+    if (!c) {
+        c = malloc(sizeof(struct conn));
+    }
+
+    return memset(c, 0, sizeof *c);
 }
 
 static void
