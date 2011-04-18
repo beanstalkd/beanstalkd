@@ -140,13 +140,12 @@ forksrv(int *port, int *pid)
     int r, len;
     Srv s = {};
     struct sockaddr_in addr;
-    struct event_base *ev_base;
 
-    s.fd = make_server_socket("127.0.0.1", "0");
-    if (s.fd == -1) return;
+    s.sock.fd = make_server_socket("127.0.0.1", "0");
+    if (s.sock.fd == -1) return;
 
     len = sizeof(addr);
-    r = getsockname(s.fd, (struct sockaddr*)&addr, (socklen_t*)&len);
+    r = getsockname(s.sock.fd, (struct sockaddr*)&addr, (socklen_t*)&len);
     if (r == -1 || len > sizeof(addr)) return;
 
     *port = addr.sin_port;
@@ -157,7 +156,6 @@ forksrv(int *port, int *pid)
     /* now in child */
 
     prot_init();
-    ev_base = event_init();
 
     srv(&s); /* does not return */
     exit(1); /* satisfy the compiler */

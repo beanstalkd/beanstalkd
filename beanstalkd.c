@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <sys/resource.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <event.h>
@@ -122,31 +121,6 @@ set_sig_handlers()
     sa.sa_handler = exit_cleanly;
     r = sigaction(SIGTERM, &sa, 0);
     if (r == -1) twarn("sigaction(SIGTERM)"), exit(111);
-}
-
-/* This is a workaround for a mystifying workaround in libevent's epoll
- * implementation. The epoll_init() function creates an epoll fd with space to
- * handle RLIMIT_NOFILE - 1 fds, accompanied by the following puzzling comment:
- * "Solaris is somewhat retarded - it's important to drop backwards
- * compatibility when making changes. So, don't dare to put rl.rlim_cur here."
- * This is presumably to work around a bug in Solaris, but it has the
- * unfortunate side-effect of causing epoll_ctl() (and, therefore, event_add())
- * to fail for a valid fd if we have hit the limit of open fds. That makes it
- * hard to provide reasonable behavior in that situation. So, let's reduce the
- * real value of RLIMIT_NOFILE by one, after epoll_init() has run. */
-static void
-nudge_fd_limit()
-{
-    int r;
-    struct rlimit rl;
-
-    r = getrlimit(RLIMIT_NOFILE, &rl);
-    if (r != 0) twarn("getrlimit(RLIMIT_NOFILE)"), exit(2);
-
-    rl.rlim_cur--;
-
-    r = setrlimit(RLIMIT_NOFILE, &rl);
-    if (r != 0) twarn("setrlimit(RLIMIT_NOFILE)"), exit(2);
 }
 
 static void
@@ -255,7 +229,6 @@ main(int argc, char **argv)
 {
     int r;
     Srv s = {};
-    struct event_base *ev_base;
     struct job binlog_jobs = {};
 
     progname = argv[0];
@@ -270,7 +243,7 @@ main(int argc, char **argv)
 
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
-    s.fd = r;
+    s.sock.fd = r;
 
     prot_init();
 
@@ -282,9 +255,7 @@ main(int argc, char **argv)
     }
 
     if (user) su(user);
-    ev_base = event_init();
     set_sig_handlers();
-    nudge_fd_limit();
 
     if (binlog_dir) {
         binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
@@ -294,7 +265,6 @@ main(int argc, char **argv)
 
     if (detach) {
         daemonize();
-        event_reinit(ev_base);
     }
 
     srv(&s);

@@ -16,6 +16,7 @@ aux_sources = \
 	primes.c \
 	prot.c \
 	sd-daemon.c \
+	sock.c \
 	srv.c \
 	time.c \
 	tube.c \

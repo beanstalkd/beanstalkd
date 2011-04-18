@@ -26,7 +26,7 @@
 #define SAFETY_MARGIN (1000000000) /* 1 second */
 
 /* Doubly-linked list of free connections. */
-static struct conn pool = { &pool, &pool, 0 };
+static struct conn pool = { &pool, &pool };
 
 static int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
 static uint tot_conn_ct = 0;
@@ -40,7 +40,7 @@ conn_alloc()
 static void
 conn_free(conn c)
 {
-    c->fd = 0;
+    c->sock.fd = 0;
     conn_insert(&pool, c);
 }
 
@@ -77,7 +77,7 @@ make_conn(int fd, char start_state, tube use, tube watch)
     TUBE_ASSIGN(c->use, use);
     use->using_ct++;
 
-    c->fd = fd;
+    c->sock.fd = fd;
     c->state = start_state;
     c->type = 0;
     c->cmd_read = 0;
@@ -169,40 +169,22 @@ conntickat(conn c)
 }
 
 
-int
-conn_set_evq(conn c, const int events, evh handler)
+void
+connwant(conn c, int rw, conn list)
 {
-    int r;
-
-    event_set(&c->evq, c->fd, events|EV_PERSIST, handler, c);
-    r = event_add(&c->evq, 0);
-    if (r == -1) return twarn("event_add() err %d", errno), -1;
-
-    return 0;
+    c->rw = rw;
+    conn_insert(list, c);
+    connsched(c);
 }
 
-void
-conn_set_evmask(conn c, const int evmask, conn list)
-{
-    c->evmask = evmask|EV_PERSIST;
-    conn_insert(list, c);
 
+void
+connsched(conn c)
+{
     c->tickat = conntickat(c);
     srvschedconn(c->srv, c);
 }
 
-int
-conn_update_net(conn c)
-{
-    int r;
-
-    if (!c) return twarnx("c is NULL"), -1;
-
-    r = event_del(&c->evq);
-    if (r == -1) return twarn("event_del() err %d", errno), -1;
-
-    return conn_set_evq(c, c->evmask, c->evq.ev_callback);
-}
 
 static int
 conn_list_any_p(conn head)
@@ -298,9 +280,8 @@ connrec(conn c, int i)
 void
 conn_close(conn c)
 {
-    event_del(&c->evq);
-
-    close(c->fd);
+    sockwant(&c->sock, 0);
+    close(c->sock.fd);
 
     job_free(c->in_job);
 
@@ -315,7 +296,6 @@ conn_close(conn c)
 
     cur_conn_ct--; /* stats */
 
-    unbrake(c->srv);
     remove_waiting_conn(c);
     conn_remove(c);
     if (has_reserved_job(c)) enqueue_reserved_jobs(c);

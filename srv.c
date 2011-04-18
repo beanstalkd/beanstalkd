@@ -21,6 +21,36 @@
 
 
 void
+srv(Srv *s)
+{
+    int r;
+
+    sockinit((Handle)srvtick, s, 10 * 1000000); // 10ms
+
+    s->sock.x = s;
+    s->sock.f = (Handle)srvaccept;
+    s->conns.cmp = (Compare)conncmp;
+    s->conns.rec = (Record)connrec;
+
+    r = listen(s->sock.fd, 1024);
+    if (r == -1) {
+        twarn("listen");
+        return;
+    }
+
+    r = sockwant(&s->sock, 't');
+    if (r == -1) {
+        twarnx("sockwant");
+        exit(2);
+    }
+
+    sockmain();
+    twarnx("sockmain");
+    exit(1);
+}
+
+
+void
 srvschedconn(Srv *s, conn c)
 {
     if (c->tickpos > -1) {
@@ -33,22 +63,14 @@ srvschedconn(Srv *s, conn c)
 
 
 void
-srv(Srv *s)
+srvaccept(Srv *s, int ev)
 {
-    int r;
+    h_accept(s->sock.fd, ev, s);
+}
 
-    s->conns.cmp = (Compare)conncmp;
-    s->conns.rec = (Record)connrec;
 
-    r = listen(s->fd, 1024);
-    if (r == -1) {
-        twarn("listen");
-        return;
-    }
-
-    accept_handler = (evh)h_accept;
-    unbrake(s);
-    event_dispatch();
-    twarnx("event_dispatch error");
-    exit(1);
+void
+srvtick(Srv *s, int ev)
+{
+    prottick(s);
 }

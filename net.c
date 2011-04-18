@@ -24,10 +24,6 @@
 #include "dat.h"
 #include "sd-daemon.h"
 
-static int listen_socket = -1;
-evh accept_handler;
-int listening = 0;
-
 int
 make_server_socket(char *host, char *port)
 {
@@ -59,7 +55,7 @@ make_server_socket(char *host, char *port)
             twarnx("inherited fd is not a TCP listen socket");
             return -1;
         }
-        return listen_socket = fd;
+        return fd;
     }
 
     memset(&hints, 0, sizeof(hints));
@@ -119,19 +115,5 @@ make_server_socket(char *host, char *port)
     if(ai == NULL)
       fd = -1;
 
-    return listen_socket = fd;
-}
-
-void
-unbrake(Srv *s)
-{
-    int r;
-    struct timeval tv;
-
-    if (listening) return;
-    listening = 1;
-    event_set(&s->ev, listen_socket, EV_READ, accept_handler, s);
-    init_timeval(&tv, 10 * 1000000); /* 10ms */
-    r = event_add(&s->ev, &tv);
-    if (r == -1) twarn("event_add()");
+    return fd;
 }

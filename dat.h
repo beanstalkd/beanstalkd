@@ -11,15 +11,17 @@ typedef uint64_t      uint64;
 #define int64_t  do_not_use_int64_t
 #define uint64_t do_not_use_uint64_t
 
-typedef struct ms   *ms;
-typedef struct job  *job;
-typedef struct tube *tube;
-typedef struct conn *conn;
-typedef struct Heap Heap;
-typedef struct Srv  Srv;
+typedef struct ms     *ms;
+typedef struct job    *job;
+typedef struct tube   *tube;
+typedef struct conn   *conn;
+typedef struct Heap   Heap;
+typedef struct Socket Socket;
+typedef struct Srv    Srv;
 
 typedef void(*evh)(int, short, void *);
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
+typedef void(*Handle)(void*, int);
 typedef int(*Compare)(void*, void*);
 typedef void(*Record)(void*, int);
 
@@ -81,10 +83,22 @@ struct Heap {
     Record  rec;
 };
 
+struct Socket {
+    int    fd;
+    Handle f;
+    void   *x;
+    int    added;
+
+    struct event evq;
+};
+
+void sockinit(Handle tick, void *x, int64 i);
+int  sockwant(Socket *s, int rw);
+void sockmain(); // does not return
+
 struct Srv {
-    int          fd;
-    struct event ev;
-    Heap         conns;
+    Socket sock;
+    Heap   conns;
 };
 
 struct ms {
@@ -143,11 +157,10 @@ struct tube {
 struct conn {
     conn prev, next; /* linked list of connections */
     Srv *srv;
-    int fd;
+    Socket sock;
     char state;
     char type;
-    struct event evq;
-    int evmask;
+    int rw; // currently want: 'r' or 'w'
     int pending_timeout;
     int64 tickat; // time at which to do more work
     int tickpos; // position in srv->conns
@@ -184,7 +197,9 @@ struct conn {
 
 
 void srv(Srv *srv);
+void srvaccept(Srv *s, int ev);
 void srvschedconn(Srv *srv, conn c);
+void srvtick(Srv *s, int ev);
 
 
 void v();
@@ -252,9 +267,8 @@ conn make_conn(int fd, char start_state, tube use, tube watch);
 
 int  conncmp(conn a, conn b);
 void connrec(conn c, int i);
-int conn_set_evq(conn c, const int events, evh handler);
-void conn_set_evmask(conn c, const int evmask, conn list);
-int conn_update_net(conn c);
+void connwant(conn c, const int mask, conn list);
+void connsched(conn c);
 
 void conn_close(conn c);
 
@@ -283,6 +297,7 @@ extern size_t primes[];
 extern size_t job_data_size_limit;
 
 void prot_init();
+void prottick(Srv *s);
 
 conn remove_waiting_conn(conn c);
 
@@ -295,11 +310,6 @@ void prot_replay_binlog(job binlog_jobs);
 
 
 int make_server_socket(char *host_addr, char *port);
-
-void unbrake();
-extern int listening;
-extern evh accept_handler;
-
 
 extern char *binlog_dir;
 extern size_t binlog_size_limit;

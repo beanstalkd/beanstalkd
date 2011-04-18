@@ -241,10 +241,10 @@ static int drain_mode = 0;
 static int64 started_at;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
-static struct conn dirty = {&dirty, &dirty, 0};
+static struct conn dirty = {&dirty, &dirty};
 
 /* Doubly-linked list of connections with at least one reserved job. */
-static struct conn running = { &running, &running, 0 };
+static struct conn running = { &running, &running };
 
 #ifdef DEBUG
 static const char * op_names[] = {
@@ -288,7 +288,7 @@ reply(conn c, const char *line, int len, int state)
 {
     if (!c) return;
 
-    conn_set_evmask(c, EV_WRITE, &dirty);
+    connwant(c, 'w', &dirty);
     c->reply = line;
     c->reply_len = len;
     c->reply_sent = 0;
@@ -738,7 +738,7 @@ fill_extra_data(conn c)
 {
     int extra_bytes, job_data_bytes = 0, cmd_bytes;
 
-    if (!c->fd) return; /* the connection was closed */
+    if (!c->sock.fd) return; /* the connection was closed */
     if (!c->cmd_len) return; /* we don't have a complete command */
 
     /* how many extra bytes did we read? */
@@ -954,7 +954,7 @@ wait_for_job(conn c, int timeout)
     c->pending_timeout = timeout;
 
     /* this conn is waiting, but we want to know if they hang up */
-    conn_set_evmask(c, EV_READ, &dirty);
+    connwant(c, 'r', &dirty);
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1539,7 +1539,7 @@ conn_timeout(conn c)
         j->timeout_ct++;
         r = enqueue_job(remove_this_reserved_job(c, j), 0, 0);
         if (r < 1) bury_job(j, 0); /* out of memory, so bury it */
-        conn_set_evmask(c, c->evq.ev_events, &dirty);
+        connsched(c);
     }
 
     if (should_timeout) {
@@ -1568,7 +1568,7 @@ do_cmd(conn c)
 static void
 reset_conn(conn c)
 {
-    conn_set_evmask(c, EV_READ, &dirty);
+    connwant(c, 'r', &dirty);
 
     /* was this a peek or stats command? */
     if (c->out_job && c->out_job->state == JOB_STATE_COPY) job_free(c->out_job);
@@ -1587,7 +1587,7 @@ conn_data(conn c)
 
     switch (c->state) {
     case STATE_WANTCOMMAND:
-        r = read(c->fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
+        r = read(c->sock.fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
@@ -1612,7 +1612,7 @@ conn_data(conn c)
         /* Invert the meaning of in_job_read while throwing away data -- it
          * counts the bytes that remain to be thrown away. */
         to_read = min(c->in_job_read, BUCKET_BUF_SIZE);
-        r = read(c->fd, bucket, to_read);
+        r = read(c->sock.fd, bucket, to_read);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
@@ -1627,7 +1627,7 @@ conn_data(conn c)
     case STATE_WANTDATA:
         j = c->in_job;
 
-        r = read(c->fd, j->body + c->in_job_read, j->body_size -c->in_job_read);
+        r = read(c->sock.fd, j->body + c->in_job_read, j->body_size -c->in_job_read);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
@@ -1638,7 +1638,7 @@ conn_data(conn c)
         maybe_enqueue_incoming_job(c);
         break;
     case STATE_SENDWORD:
-        r= write(c->fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
+        r= write(c->sock.fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
         if (r == -1) return check_err(c, "write()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
@@ -1658,7 +1658,7 @@ conn_data(conn c)
         iov[1].iov_base = j->body + c->out_job_sent;
         iov[1].iov_len = j->body_size - c->out_job_sent;
 
-        r = writev(c->fd, iov, 2);
+        r = writev(c->sock.fd, iov, 2);
         if (r == -1) return check_err(c, "writev()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
@@ -1680,14 +1680,14 @@ conn_data(conn c)
         /* but don't hang up just because our buffer is full */
         if (LINE_BUF_SIZE - c->cmd_read < 1) break;
 
-        r = read(c->fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
+        r = read(c->sock.fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
         c->cmd_read += r; /* we got some bytes */
     }
 }
 
-#define want_command(c) ((c)->fd && ((c)->state == STATE_WANTCOMMAND))
+#define want_command(c) ((c)->sock.fd && ((c)->state == STATE_WANTCOMMAND))
 #define cmd_data_ready(c) (want_command(c) && (c)->cmd_read)
 
 static void
@@ -1697,9 +1697,9 @@ update_conns()
     conn c;
 
     while ((c = conn_remove(dirty.next))) { /* assignment */
-        r = conn_update_net(c);
+        r = sockwant(&c->sock, c->rw);
         if (r == -1) {
-            twarnx("conn_update_net");
+            twarnx("sockwant");
             conn_close(c);
         }
     }
@@ -1708,7 +1708,7 @@ update_conns()
 static void
 h_conn(const int fd, const short which, conn c)
 {
-    if (fd != c->fd) {
+    if (fd != c->sock.fd) {
         twarnx("Argh! event fd doesn't match conn fd.");
         close(fd);
         conn_close(c);
@@ -1716,21 +1716,19 @@ h_conn(const int fd, const short which, conn c)
         return;
     }
 
-    switch (which) {
-    case EV_READ:
-        /* fall through... */
-    case EV_WRITE:
-        /* fall through... */
-    default:
-        conn_data(c);
-    }
-
+    conn_data(c);
     while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
     update_conns();
 }
 
 static void
-tick(Srv *s)
+prothandle(conn c, int ev)
+{
+    h_conn(c->sock.fd, ev, c);
+}
+
+void
+prottick(Srv *s)
 {
     int r;
     job j;
@@ -1766,6 +1764,8 @@ tick(Srv *s)
         heapremove(&s->conns, 0);
         conn_timeout(c);
     }
+
+    update_conns();
 }
 
 void
@@ -1776,20 +1776,10 @@ h_accept(const int fd, const short which, Srv *s)
     socklen_t addrlen;
     struct sockaddr_in6 addr;
 
-    listening = 0;
-
-    if (which == EV_TIMEOUT) {
-        tick(s);
-        unbrake(s);
-        update_conns();
-        return;
-    }
-
     addrlen = sizeof addr;
     cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
-        if (errno != EMFILE) unbrake(s);
         update_conns();
         return;
     }
@@ -1798,7 +1788,6 @@ h_accept(const int fd, const short which, Srv *s)
     if (flags < 0) {
         twarn("getting flags");
         close(cfd);
-        unbrake(s);
         update_conns();
         return;
     }
@@ -1807,7 +1796,6 @@ h_accept(const int fd, const short which, Srv *s)
     if (r < 0) {
         twarn("setting O_NONBLOCK");
         close(cfd);
-        unbrake(s);
         update_conns();
         return;
     }
@@ -1820,16 +1808,18 @@ h_accept(const int fd, const short which, Srv *s)
         return;
     }
     c->srv = s;
+    c->sock.x = c;
+    c->sock.f = (Handle)prothandle;
+    c->sock.fd = cfd;
 
     dbgprintf("accepted conn, fd=%d\n", cfd);
-    r = conn_set_evq(c, EV_READ, (evh) h_conn);
+    r = sockwant(&c->sock, 'r');
     if (r == -1) {
-        twarnx("conn_set_evq() failed");
+        twarnx("sockwant");
         close(cfd);
         update_conns();
         return;
     }
-    unbrake(s);
     update_conns();
 }
 
