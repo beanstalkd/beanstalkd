@@ -1,0 +1,21 @@
+check-cut: cutcheck
+	./cutcheck
+.PHONY: check-cut
+
+check-shell: $(TARG)
+	./check.sh sh-tests/*.sh
+.PHONY: check-shell
+
+check: check-cut check-shell
+.PHONY: check
+
+TCFILES=$(TOFILES:%.o=%.c)
+
+cutcheck.c: $(TCFILES) cutgen
+	./cutgen -o cutcheck.c $(TCFILES)
+
+cutcheck: cutcheck.o cut.o $(OFILES) $(TOFILES)
+
+CLEANFILES:=$(CLEANFILES) cutgen cutcheck* tests/*.o
+
+$(TOFILES): $(HFILES)

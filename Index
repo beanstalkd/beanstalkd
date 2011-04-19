@@ -1,5 +1,5 @@
 adm		files useful for system administrators
 doc		documentation
-m4		junk for autotools
+pkg		miscelaneous files for packagers
 sh-tests	tests written as shell scripts
 tests		tests written in C

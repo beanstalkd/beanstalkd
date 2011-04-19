@@ -1,6 +1,5 @@
 /* integration tests */
 
-#include "../t.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>

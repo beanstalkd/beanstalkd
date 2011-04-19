@@ -25,7 +25,6 @@
 #include <pwd.h>
 #include <fcntl.h>
 #include "sd-daemon.h"
-#include "version.h"
 #include "dat.h"
 
 static char *user = NULL;
@@ -215,7 +214,7 @@ opts(int argc, char **argv)
             case 'h':
                 usage(NULL, NULL);
             case 'v':
-                printf("beanstalkd %s\n", VERSION);
+                printf("beanstalkd %s\n", version);
                 exit(0);
             default:
                 usage("unknown option", argv[i]);

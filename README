@@ -1,10 +1,44 @@
 This is beanstalkd, a fast, general-purpose work queue.
+See http://kr.github.com/beanstalkd/ for general info.
 
-See http://xph.us/software/beanstalkd/ for general info.
+QUICK START
 
-To build beanstalkd, type "./configure" then "make". (You might need to type
-"gmake"; our build requires GNU make.)
+    $ make
+    $ ./beanstalkd
 
+also,
+
+    $ make check
+    $ make install PREFIX=/usr/local
+
+You might need to type "gmake"; our build requires GNU make.
 Requires Linux (2.6 series or later), Mac OS X, or FreeBSD.
+See doc/protocol.txt for details of the network protocol.
 
-To install, copy the file "beanstalkd" anywhere you like.
+TESTS
+
+There are two kinds of tests here: unit tests and shell tests.
+
+== Unit Tests ==
+
+Our unit tests use a modified bundled version of CUT,
+originally from http://sourceforge.net/projects/cut/.
+They go in tests/test_*.c. See the CUT documentation
+for more info.
+
+== Shell Tests ==
+
+Shell tests go in the sh-tests directory and are to be written in pairs:
+
+    my_test.commands
+    my_test.expected
+
+Each .commands file will be nc'd to beanstalkd, and the response diff'd
+with the appropriate .expected file.  If the response is not identical to the
+.expected file, the test fails.  At the moment, the test harness bails upon the
+first failure, but it could easily be extended to finish the tests and print
+full results.
+
+IMPORTANT: Since beanstalkd expects \r\n line endings, you must be sure to
+include those in your files.  You can tell vim to do this with
+  :set ff=dos

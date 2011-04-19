@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "$SRCDIR/sh-tests/common.functions"
+. "sh-tests/common.functions"
 
 server=localhost
 tmpdir="$TMPDIR"
@@ -9,7 +9,7 @@ test -z "$tmpdir" && tmpdir=/tmp
 out1="${tmpdir}/bnch$$.1"
 out2="${tmpdir}/bnch$$.2"
 logdir="${tmpdir}/bnch$$.d"
-nc="$SRCDIR/sh-tests/netcat.py"
+nc="sh-tests/netcat.py"
 
 fail() {
     printf 'On line '

@@ -1,0 +1,22 @@
+all: $(TARG)
+.PHONY: all
+
+$(TARG): $(OFILES) $(MOFILE)
+	$(LINK.o) -o $@ $^ $(LDLIBS)
+
+install: $(BINDIR) $(BINDIR)/$(TARG)
+.PHONY: install
+
+$(BINDIR):
+	$(INSTALL) -d $@
+
+$(BINDIR)/%: %
+	$(INSTALL) $< $@
+
+CLEANFILES:=$(CLEANFILES) $(TARG)
+
+$(OFILES): $(HFILES)
+
+clean:
+	rm -f *.o $(CLEANFILES)
+.PHONY: clean

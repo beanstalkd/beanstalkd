@@ -66,6 +66,8 @@ typedef void(*Record)(void*, int);
 #define URGENT_THRESHOLD 1024
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 
+extern const char version[];
+
 struct stats {
     uint urgent_ct;
     uint waiting_ct;

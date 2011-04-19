@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. "$SRCDIR/sh-tests/common.functions"
+. "sh-tests/common.functions"
 
 server=localhost
 tmpdir="$TMPDIR"
@@ -8,7 +8,7 @@ size=601
 test -z "$tmpdir" && tmpdir=/tmp
 out1="${tmpdir}/bnch$$.1"
 logdir="${tmpdir}/bnch$$.d"
-nc="$SRCDIR/sh-tests/netcat.py"
+nc="sh-tests/netcat.py"
 
 cleanup() {
     killbeanstalkd

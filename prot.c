@@ -32,7 +32,6 @@
 #include <inttypes.h>
 #include <stdarg.h>
 #include "dat.h"
-#include "version.h"
 
 /* job body cannot be greater than this many bytes long */
 size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
@@ -873,7 +872,7 @@ fmt_stats(char *buf, size_t size, void *x)
             global_stat.waiting_ct,
             count_tot_conns(),
             (long) getpid(),
-            VERSION,
+            version,
             (int) ru.ru_utime.tv_sec, (int) ru.ru_utime.tv_usec,
             (int) ru.ru_stime.tv_sec, (int) ru.ru_stime.tv_usec,
             uptime(),

@@ -1,0 +1,6 @@
+PREFIX=/usr/local
+BINDIR=$(PREFIX)/bin
+CFLAGS=
+LDFLAGS=
+OS=$(shell uname -s | tr A-Z a-z)
+INSTALL=install
