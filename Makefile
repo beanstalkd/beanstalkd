@@ -11,11 +11,11 @@ OFILES=\
 	job.o\
 	ms.o\
 	net.o\
-	port_$(OS).o\
+	port-$(OS).o\
 	primes.o\
 	prot.o\
 	sd-daemon.o\
-	sock_$(OS).o\
+	sock-$(OS).o\
 	srv.o\
 	time.o\
 	tube.o\
