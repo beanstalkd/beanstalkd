@@ -1,21 +1,22 @@
-check-cut: cutcheck
-	./cutcheck
-.PHONY: check-cut
+check-ct: ct/_ctcheck
+	ct/_ctcheck
+.PHONY: check-ct
 
 check-shell: $(TARG)
 	./check.sh sh-tests/*.sh
 .PHONY: check-shell
 
-check: check-cut check-shell
+check: check-ct check-shell
 .PHONY: check
 
-TCFILES=$(TOFILES:%.o=%.c)
+ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES)
 
-cutcheck.c: $(TCFILES) cutgen
-	./cutgen -o cutcheck.c $(TCFILES)
+ct/_ctcheck.c: $(TOFILES) ct/gen
+	ct/gen $(TOFILES) >$@.part
+	mv $@.part $@
 
-cutcheck: cutcheck.o cut.o $(OFILES) $(TOFILES)
+ct/ct.o ct/_ctcheck.o: ct/ct.h ct/internal.h
 
-CLEANFILES:=$(CLEANFILES) cutgen cutcheck* tests/*.o
+$(TOFILES): ct/ct.h
 
-$(TOFILES): $(HFILES)
+CLEANFILES:=$(CLEANFILES) ct/_* ct/*.o

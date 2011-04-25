@@ -21,10 +21,8 @@ There are two kinds of tests here: unit tests and shell tests.
 
 == Unit Tests ==
 
-Our unit tests use a modified bundled version of CUT,
-originally from http://sourceforge.net/projects/cut/.
-They go in tests/test_*.c. See the CUT documentation
-for more info.
+We use CT for unit tests. Test functions are in *-test.c.
+See https://github.com/kr/ct for more info.
 
 == Shell Tests ==
 

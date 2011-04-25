@@ -13,8 +13,8 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <errno.h>
-#include "../cut.h"
-#include "../dat.h"
+#include "ct/ct.h"
+#include "dat.h"
 
 static void testsrv(char*, char*, int);
 static void forksrv(int*, int*);
@@ -47,13 +47,7 @@ static int srvpid;
 
 
 void
-__CUT_BRINGUP__srv()
-{
-}
-
-
-void
-__CUT__srv_test()
+cttestsrv()
 {
     int i;
 
@@ -61,12 +55,6 @@ __CUT__srv_test()
         testsrv(ts[i].cmd, ts[i].exp, 4096);
         testsrv(ts[i].cmd, ts[i].exp, 1);
     }
-}
-
-
-void
-__CUT_TAKEDOWN__srv()
-{
 }
 
 
@@ -126,10 +114,10 @@ testsrv(char *cmd, char *exp, int bufsiz)
     kill(srvpid, 9);
     waitpid(srvpid, &srvst, 0);
     printf("srv status %d, signal %d\n", WEXITSTATUS(srvst), WTERMSIG(srvst));
-    ASSERT(WIFSIGNALED(srvst) && WTERMSIG(srvst) == 9, "srv status");
+    assertf(WIFSIGNALED(srvst) && WTERMSIG(srvst) == 9, "srv status");
 
     printf("diff status %d\n", diffst);
-    ASSERT(diffst == 0, "diff status");
+    assertf(diffst == 0, "diff status");
 }
 
 

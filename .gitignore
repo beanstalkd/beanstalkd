@@ -1,7 +1,6 @@
 *.o
 vers.c
-cutcheck*
-cutgen
+ct/_*
 beanstalkd
 beanstalkd-*.tar.gz
 NEWS.md

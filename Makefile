@@ -23,9 +23,9 @@ OFILES=\
 	vers.o\
 
 TOFILES=\
-	tests/test_heap.o\
-	tests/test_int.o\
-	tests/test_job.o\
+	heap-test.o\
+	integ-test.o\
+	job-test.o\
 
 HFILES=\
 	dat.h\
