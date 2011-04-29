@@ -2,11 +2,19 @@
 
 set -e
 
+# OS X prepends global symbols with _. 
+
+if [[ $(uname) == 'Darwin' ]]; then
+    find_cttest_symbols="cut -d ' ' -f 3 | egrep '^_cttest' | egrep -v '\.eh\$' | sed 's/^_//'"
+else
+    find_cttest_symbols="cut -d ' ' -f 3 | egrep '^cttest'"
+fi
+
 tests() {
     for f in "$@"
     do
         nm $f
-    done | cut -d ' ' -f 3 | egrep '^cttest'
+    done | eval $find_cttest_symbols
 }
 
 ts=`tests "$@" || (echo >&2 no tests found; exit 1)`
