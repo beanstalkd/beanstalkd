@@ -37,6 +37,13 @@ make_tube(const char *name)
     strncpy(t->name, name, MAX_TUBE_NAME_LEN - 1);
     if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0') twarnx("truncating tube name");
 
+    t->ready.cap = 0;
+    t->delay.cap = 0;
+    t->ready.len = 0;
+    t->delay.len = 0;
+    t->ready.data = NULL;
+    t->delay.data = NULL;
+
     t->ready.cmp = job_pri_cmp;
     t->delay.cmp = job_delay_cmp;
     t->ready.rec = job_setheappos;
