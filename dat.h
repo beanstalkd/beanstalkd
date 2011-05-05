@@ -145,13 +145,13 @@ struct tube {
     char name[MAX_TUBE_NAME_LEN];
     Heap ready;
     Heap delay;
-    struct job buried;
     struct ms waiting; /* set of conns */
     struct stats stat;
     uint using_ct;
     uint watching_ct;
     int64 pause;
     int64 deadline_at;
+    struct job buried;
 };
 
 struct conn {
@@ -190,9 +190,9 @@ struct conn {
 
     job out_job;
     int out_job_sent;
-    struct job reserved_jobs; /* doubly-linked list header */
     tube use;
     struct ms watch;
+    struct job reserved_jobs; /* doubly-linked list header */
 };
 
 
