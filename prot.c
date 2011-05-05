@@ -1841,7 +1841,7 @@ void
 prot_replay_binlog(job binlog_jobs)
 {
     job j, nj;
-    int64 delay;
+    int64 t, delay;
     int r;
 
     for (j = binlog_jobs->next ; j != binlog_jobs ; j = nj) {
@@ -1854,8 +1854,9 @@ prot_replay_binlog(job binlog_jobs)
             bury_job(j, 0);
             break;
         case JOB_STATE_DELAYED:
-            if (started_at < j->deadline_at) {
-                delay = j->deadline_at - started_at;
+            t = nanoseconds();
+            if (t < j->deadline_at) {
+                delay = j->deadline_at - t;
             }
             /* fall through */
         default:
