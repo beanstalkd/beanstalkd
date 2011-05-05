@@ -196,6 +196,8 @@ binlog_read_log_file(binlog b, job binlog_jobs)
                 j = NULL;
             }
             break;
+        case JOB_STATE_RESERVED:
+            js.state = JOB_STATE_READY;
         case JOB_STATE_READY:
         case JOB_STATE_DELAYED:
             if (!j && namelen > 0) {
@@ -399,7 +401,7 @@ binlog_write_job(job j)
     to_write += vec[2].iov_len = job_record_size;
 
     if (j->state == JOB_STATE_READY || j->state == JOB_STATE_DELAYED ||
-        j->state == JOB_STATE_BURIED) {
+        j->state == JOB_STATE_BURIED || j->state == JOB_STATE_RESERVED) {
         if (!j->binlog) {
             tube_namelen = strlen(j->tube->name);
             to_write += vec[1].iov_len = tube_namelen;
