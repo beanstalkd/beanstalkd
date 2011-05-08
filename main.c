@@ -28,46 +28,8 @@
 #include "dat.h"
 
 static char *user = NULL;
-static int detach = 0;
 static char *port = "11300";
 static char *host_addr;
-
-static void
-nullfd(int fd, int flags)
-{
-    int r;
-
-    close(fd);
-    r = open("/dev/null", flags);
-    if (r != fd) twarn("open(\"/dev/null\")"), exit(1);
-}
-
-static void
-dfork()
-{
-    pid_t p;
-
-    p = fork();
-    if (p == -1) exit(1);
-    if (p) exit(0);
-}
-
-static void
-daemonize()
-{
-    int r;
-
-    r = chdir("/");
-    if (r) return twarn("chdir");
-
-    nullfd(0, O_RDONLY);
-    nullfd(1, O_WRONLY);
-    nullfd(2, O_WRONLY);
-    umask(0);
-    dfork();
-    setsid();
-    dfork();
-}
 
 static void
 su(const char *user) {
@@ -128,7 +90,6 @@ usage(char *msg, char *arg)
     fprintf(stderr, "Use: %s [OPTIONS]\n"
             "\n"
             "Options:\n"
-            " -d       detach\n"
             " -b DIR   binlog directory (must be absolute path if used with -d)\n"
             " -f MS    fsync at most once every MS milliseconds"
                        " (use -f 0 for \"always fsync\")\n"
@@ -180,9 +141,6 @@ opts(int argc, char **argv)
         if (argv[i][0] != '-') usage("unknown option", argv[i]);
         if (argv[i][1] == 0 || argv[i][2] != 0) usage("unknown option",argv[i]);
         switch (argv[i][1]) {
-            case 'd':
-                detach = 1;
-                break;
             case 'p':
                 port = require_arg("-p", argv[++i]);
                 warn_systemd_ignored_option("-p", argv[i]);
@@ -232,13 +190,6 @@ main(int argc, char **argv)
     progname = argv[0];
     opts(argc, argv);
 
-    if (detach && binlog_dir) {
-        if (binlog_dir[0] != '/') {
-            warnx("The -b option requires an absolute path when used with -d.");
-            usage("Path is not absolute", binlog_dir);
-        }
-    }
-
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
     s.sock.fd = r;
@@ -259,10 +210,6 @@ main(int argc, char **argv)
         binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
         binlog_init(&binlog_jobs);
         prot_replay_binlog(&binlog_jobs);
-    }
-
-    if (detach) {
-        daemonize();
     }
 
     srv(&s);
