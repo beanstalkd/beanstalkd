@@ -113,11 +113,12 @@ testsrv(char *cmd, char *exp, int bufsiz)
     // wait until after diff has finished to kill srvpid
     kill(srvpid, 9);
     waitpid(srvpid, &srvst, 0);
-    printf("srv status %d, signal %d\n", WEXITSTATUS(srvst), WTERMSIG(srvst));
-    assertf(WIFSIGNALED(srvst) && WTERMSIG(srvst) == 9, "srv status");
+    assertf(WIFSIGNALED(srvst) && WTERMSIG(srvst) == 9,
+            "status %d, signal %d",
+            WEXITSTATUS(srvst),
+            WTERMSIG(srvst));
 
-    printf("diff status %d\n", diffst);
-    assertf(diffst == 0, "diff status");
+    assertf(diffst == 0, "was %d", diffst);
 }
 
 

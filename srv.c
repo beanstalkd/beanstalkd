@@ -32,7 +32,7 @@ srv(Srv *s)
     s->conns.cap = 0;
     s->conns.len = 0;
     s->conns.data = NULL;
-    s->conns.cmp = (Compare)conncmp;
+    s->conns.less = (Less)connless;
     s->conns.rec = (Record)connrec;
 
     r = listen(s->sock.fd, 1024);

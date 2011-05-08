@@ -16,7 +16,7 @@ cttestjob_creation()
 
     TUBE_ASSIGN(default_tube, make_tube("default"));
     j = make_job(1, 0, 1, 0, default_tube);
-    assertf(j->pri == 1, "priority should match");
+    assertf(j->r.pri == 1, "priority should match");
 }
 
 void
@@ -28,7 +28,7 @@ cttestjob_cmp_pris()
     a = make_job(1, 0, 1, 0, default_tube);
     b = make_job(1 << 27, 0, 1, 0, default_tube);
 
-    assertf(job_pri_cmp(a, b) < 0, "should be a < b");
+    assertf(job_pri_less(a, b), "should be less");
 }
 
 void
@@ -40,8 +40,8 @@ cttestjob_cmp_ids()
     a = make_job(1, 0, 1, 0, default_tube);
     b = make_job(1, 0, 1, 0, default_tube);
 
-    b->id <<= 49;
-    assertf(job_pri_cmp(a, b) < 0, "should be a < b");
+    b->r.id <<= 49;
+    assertf(job_pri_less(a, b), "should be less");
 }
 
 
@@ -54,12 +54,12 @@ cttestjob_large_pris()
     a = make_job(1, 0, 1, 0, default_tube);
     b = make_job(-5, 0, 1, 0, default_tube);
 
-    assertf(job_pri_cmp(a, b) < 0, "should be a < b");
+    assertf(job_pri_less(a, b), "should be less");
 
     a = make_job(-5, 0, 1, 0, default_tube);
     b = make_job(1, 0, 1, 0, default_tube);
 
-    assertf(job_pri_cmp(a, b) > 0, "should be a > b");
+    assertf(!job_pri_less(a, b), "should not be less");
 }
 
 void

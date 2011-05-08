@@ -192,9 +192,9 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "rusage-utime: %d.%06d\n" \
     "rusage-stime: %d.%06d\n" \
     "uptime: %u\n" \
-    "binlog-oldest-index: %s\n" \
-    "binlog-current-index: %s\n" \
-    "binlog-max-size: %zu\n" \
+    "binlog-oldest-index: %d\n" \
+    "binlog-current-index: %d\n" \
+    "binlog-max-size: %d\n" \
     "\r\n"
 
 #define STATS_TUBE_FMT "---\n" \
@@ -327,7 +327,7 @@ reply_job(conn c, job j, const char *word)
     c->out_job_sent = 0;
 
     return reply_line(c, STATE_SENDJOB, "%s %llu %u\r\n",
-                      word, j->id, j->body_size - 2);
+                      word, j->r.id, j->r.body_size - 2);
 }
 
 conn
@@ -351,14 +351,14 @@ remove_waiting_conn(conn c)
 static void
 reserve_job(conn c, job j)
 {
-    j->deadline_at = nanoseconds() + j->ttr;
+    j->r.deadline_at = nanoseconds() + j->r.ttr;
     global_stat.reserved_ct++; /* stats */
     j->tube->stat.reserved_ct++;
-    j->reserve_ct++;
-    j->state = JOB_STATE_RESERVED;
+    j->r.reserve_ct++;
+    j->r.state = Reserved;
     job_insert(&c->reserved_jobs, j);
     j->reserver = c;
-    if (c->soonest_job && j->deadline_at < c->soonest_job->deadline_at) {
+    if (c->soonest_job && j->r.deadline_at < c->soonest_job->r.deadline_at) {
         c->soonest_job = j;
     }
     return reply_job(c, j, MSG_RESERVED);
@@ -382,7 +382,7 @@ next_eligible_job(int64 now)
         }
         if (t->waiting.used && t->ready.len) {
             candidate = t->ready.data[0];
-            if (!j || job_pri_cmp(candidate, j) < 0) {
+            if (!j || job_pri_less(candidate, j)) {
                 j = candidate;
             }
         }
@@ -400,10 +400,10 @@ process_queue()
 
     dbgprintf("processing queue\n");
     while ((j = next_eligible_job(now))) {
-        dbgprintf("got eligible job %llu in %s\n", j->id, j->tube->name);
+        dbgprintf("got eligible job %llu in %s\n", j->r.id, j->tube->name);
         heapremove(&j->tube->ready, j->heap_index);
         ready_ct--;
-        if (j->pri < URGENT_THRESHOLD) {
+        if (j->r.pri < URGENT_THRESHOLD) {
             global_stat.urgent_ct--;
             j->tube->stat.urgent_ct--;
         }
@@ -424,36 +424,36 @@ delay_q_peek()
             continue;
         }
         nj = t->delay.data[0];
-        if (!j || nj->deadline_at < j->deadline_at) j = nj;
+        if (!j || nj->r.deadline_at < j->r.deadline_at) j = nj;
     }
 
     return j;
 }
 
 static int
-enqueue_job(job j, int64 delay, char update_store)
+enqueue_job(Srv *s, job j, int64 delay, char update_store)
 {
     int r;
 
     j->reserver = NULL;
     if (delay) {
-        j->deadline_at = nanoseconds() + delay;
+        j->r.deadline_at = nanoseconds() + delay;
         r = heapinsert(&j->tube->delay, j);
         if (!r) return 0;
-        j->state = JOB_STATE_DELAYED;
+        j->r.state = Delayed;
     } else {
         r = heapinsert(&j->tube->ready, j);
         if (!r) return 0;
-        j->state = JOB_STATE_READY;
+        j->r.state = Ready;
         ready_ct++;
-        if (j->pri < URGENT_THRESHOLD) {
+        if (j->r.pri < URGENT_THRESHOLD) {
             global_stat.urgent_ct++;
             j->tube->stat.urgent_ct++;
         }
     }
 
     if (update_store) {
-        r = binlog_write_job(j);
+        r = walwrite(&s->wal, j);
         if (!r) return -1;
     }
 
@@ -462,24 +462,24 @@ enqueue_job(job j, int64 delay, char update_store)
 }
 
 static int
-bury_job(job j, char update_store)
+bury_job(Srv *s, job j, char update_store)
 {
-    size_t z;
+    int z;
 
     if (update_store) {
-        z = binlog_reserve_space_update(j);
+        z = walresvupdate(&s->wal, j);
         if (!z) return 0;
-        j->reserved_binlog_space += z;
+        j->walresv += z;
     }
 
     job_insert(&j->tube->buried, j);
     global_stat.buried_ct++;
     j->tube->stat.buried_ct++;
-    j->state = JOB_STATE_BURIED;
+    j->r.state = Buried;
     j->reserver = NULL;
-    j->bury_ct++;
+    j->r.bury_ct++;
 
-    if (update_store) return binlog_write_job(j);
+    if (update_store) return walwrite(&s->wal, j);
 
     return 1;
 }
@@ -492,8 +492,8 @@ enqueue_reserved_jobs(conn c)
 
     while (job_list_any_p(&c->reserved_jobs)) {
         j = job_remove(c->reserved_jobs.next);
-        r = enqueue_job(j, 0, 0);
-        if (r < 1) bury_job(j, 0);
+        r = enqueue_job(c->srv, j, 0, 0);
+        if (r < 1) bury_job(c->srv, j, 0);
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
         c->soonest_job = NULL;
@@ -513,25 +513,25 @@ delay_q_take()
 }
 
 static int
-kick_buried_job(tube t)
+kick_buried_job(Srv *s, tube t)
 {
     int r;
     job j;
-    size_t z;
+    int z;
 
     if (!buried_job_p(t)) return 0;
     j = remove_buried_job(t->buried.next);
 
-    z = binlog_reserve_space_update(j);
+    z = walresvupdate(&s->wal, j);
     if (!z) return heapinsert(&t->delay, j), 0; /* put it back */
-    j->reserved_binlog_space += z;
+    j->walresv += z;
 
-    j->kick_ct++;
-    r = enqueue_job(j, 0, 1);
+    j->r.kick_ct++;
+    r = enqueue_job(s, j, 0, 1);
     if (r == 1) return 1;
 
     /* ready queue is full, so bury it */
-    bury_job(j, 0);
+    bury_job(s, j, 0);
     return 0;
 }
 
@@ -550,11 +550,11 @@ get_delayed_job_ct()
 }
 
 static int
-kick_delayed_job(tube t)
+kick_delayed_job(Srv *s, tube t)
 {
     int r;
     job j;
-    size_t z;
+    int z;
 
     if (t->delay.len == 0) {
         return 0;
@@ -562,52 +562,52 @@ kick_delayed_job(tube t)
 
     j = heapremove(&t->delay, 0);
 
-    z = binlog_reserve_space_update(j);
+    z = walresvupdate(&s->wal, j);
     if (!z) return heapinsert(&t->delay, j), 0; /* put it back */
-    j->reserved_binlog_space += z;
+    j->walresv += z;
 
-    j->kick_ct++;
-    r = enqueue_job(j, 0, 1);
+    j->r.kick_ct++;
+    r = enqueue_job(s, j, 0, 1);
     if (r == 1) return 1;
 
     /* ready queue is full, so delay it again */
-    r = enqueue_job(j, j->delay, 0);
+    r = enqueue_job(s, j, j->r.delay, 0);
     if (r == 1) return 0;
 
     /* last resort */
-    bury_job(j, 0);
+    bury_job(s, j, 0);
     return 0;
 }
 
 /* return the number of jobs successfully kicked */
 static uint
-kick_buried_jobs(tube t, uint n)
+kick_buried_jobs(Srv *s, tube t, uint n)
 {
     uint i;
-    for (i = 0; (i < n) && kick_buried_job(t); ++i);
+    for (i = 0; (i < n) && kick_buried_job(s, t); ++i);
     return i;
 }
 
 /* return the number of jobs successfully kicked */
 static uint
-kick_delayed_jobs(tube t, uint n)
+kick_delayed_jobs(Srv *s, tube t, uint n)
 {
     uint i;
-    for (i = 0; (i < n) && kick_delayed_job(t); ++i);
+    for (i = 0; (i < n) && kick_delayed_job(s, t); ++i);
     return i;
 }
 
 static uint
-kick_jobs(tube t, uint n)
+kick_jobs(Srv *s, tube t, uint n)
 {
-    if (buried_job_p(t)) return kick_buried_jobs(t, n);
-    return kick_delayed_jobs(t, n);
+    if (buried_job_p(t)) return kick_buried_jobs(s, t, n);
+    return kick_delayed_jobs(s, t, n);
 }
 
 static job
 remove_buried_job(job j)
 {
-    if (!j || j->state != JOB_STATE_BURIED) return NULL;
+    if (!j || j->r.state != Buried) return NULL;
     j = job_remove(j);
     if (j) {
         global_stat.buried_ct--;
@@ -619,10 +619,10 @@ remove_buried_job(job j)
 static job
 remove_ready_job(job j)
 {
-    if (!j || j->state != JOB_STATE_READY) return NULL;
+    if (!j || j->r.state != Ready) return NULL;
     heapremove(&j->tube->ready, j->heap_index);
     ready_ct--;
-    if (j->pri < URGENT_THRESHOLD) {
+    if (j->r.pri < URGENT_THRESHOLD) {
         global_stat.urgent_ct--;
         j->tube->stat.urgent_ct--;
     }
@@ -647,7 +647,7 @@ enqueue_waiting_conn(conn c)
 static job
 find_reserved_job_in_conn(conn c, job j)
 {
-    return (j && j->reserver == c && j->state == JOB_STATE_RESERVED) ? j : NULL;
+    return (j && j->reserver == c && j->r.state == Reserved) ? j : NULL;
 }
 
 static job
@@ -655,7 +655,7 @@ touch_job(conn c, job j)
 {
     j = find_reserved_job_in_conn(c, j);
     if (j) {
-        j->deadline_at = nanoseconds() + j->ttr;
+        j->r.deadline_at = nanoseconds() + j->r.ttr;
         c->soonest_job = NULL;
     }
     return j;
@@ -748,7 +748,7 @@ fill_extra_data(conn c)
 
     /* how many bytes should we put into the job body? */
     if (c->in_job) {
-        job_data_bytes = min(extra_bytes, c->in_job->body_size);
+        job_data_bytes = min(extra_bytes, c->in_job->r.body_size);
         memcpy(c->in_job->body, c->cmd + c->cmd_len, job_data_bytes);
         c->in_job_read = job_data_bytes;
     } else if (c->in_job_read) {
@@ -794,7 +794,7 @@ enqueue_incoming_job(conn c)
     c->in_job_read = 0;
 
     /* check if the trailer is present and correct */
-    if (memcmp(j->body + j->body_size - 2, "\r\n", 2)) {
+    if (memcmp(j->body + j->r.body_size - 2, "\r\n", 2)) {
         job_free(j);
         return reply_msg(c, MSG_EXPECTED_CRLF);
     }
@@ -804,23 +804,23 @@ enqueue_incoming_job(conn c)
         return reply_serr(c, MSG_DRAINING);
     }
 
-    if (j->reserved_binlog_space) return reply_serr(c, MSG_INTERNAL_ERROR);
-    j->reserved_binlog_space = binlog_reserve_space_put(j);
-    if (!j->reserved_binlog_space) return reply_serr(c, MSG_OUT_OF_MEMORY);
+    if (j->walresv) return reply_serr(c, MSG_INTERNAL_ERROR);
+    j->walresv = walresvput(&c->srv->wal, j);
+    if (!j->walresv) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
     /* we have a complete job, so let's stick it in the pqueue */
-    r = enqueue_job(j, j->delay, 1);
+    r = enqueue_job(c->srv, j, j->r.delay, 1);
     if (r < 0) return reply_serr(c, MSG_INTERNAL_ERROR);
 
     op_ct[OP_PUT]++; /* stats */
     global_stat.total_jobs_ct++;
     j->tube->stat.total_jobs_ct++;
 
-    if (r == 1) return reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j->id);
+    if (r == 1) return reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j->r.id);
 
     /* out of memory trying to grow the queue, so it gets buried */
-    bury_job(j, 0);
-    reply_line(c, STATE_SENDWORD, MSG_BURIED_FMT, j->id);
+    bury_job(c->srv, j, 0);
+    reply_line(c, STATE_SENDWORD, MSG_BURIED_FMT, j->r.id);
 }
 
 static uint
@@ -832,7 +832,20 @@ uptime()
 static int
 fmt_stats(char *buf, size_t size, void *x)
 {
+    int whead = 0, wcur = 0;
+    Srv *srv;
     struct rusage ru = {{0, 0}, {0, 0}};
+
+    srv = x;
+
+    if (srv->wal.head) {
+        whead = srv->wal.head->seq;
+    }
+
+    if (srv->wal.cur) {
+        wcur = srv->wal.cur->seq;
+    }
+
     getrusage(RUSAGE_SELF, &ru); /* don't care if it fails */
     return snprintf(buf, size, STATS_FMT,
             global_stat.urgent_ct,
@@ -876,9 +889,9 @@ fmt_stats(char *buf, size_t size, void *x)
             (int) ru.ru_utime.tv_sec, (int) ru.ru_utime.tv_usec,
             (int) ru.ru_stime.tv_sec, (int) ru.ru_stime.tv_usec,
             uptime(),
-            binlog_oldest_index(),
-            binlog_current_index(),
-            binlog_size_limit);
+            whead,
+            wcur,
+            srv->wal.filesz);
 
 }
 
@@ -973,12 +986,12 @@ do_stats(conn c, fmt_fn fmt, void *data)
     if (!c->out_job) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
     /* Mark this job as a copy so it can be appropriately freed later on */
-    c->out_job->state = JOB_STATE_COPY;
+    c->out_job->r.state = Copy;
 
     /* now actually format the stats data */
     r = fmt(c->out_job->body, stats_len, data);
     /* and set the actual body size */
-    c->out_job->body_size = r;
+    c->out_job->r.body_size = r;
     if (r > stats_len) return reply_serr(c, MSG_INTERNAL_ERROR);
 
     c->out_job_sent = 0;
@@ -1003,7 +1016,7 @@ do_list_tubes(conn c, ms l)
     if (!c->out_job) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
     /* Mark this job as a copy so it can be appropriately freed later on */
-    c->out_job->state = JOB_STATE_COPY;
+    c->out_job->r.state = Copy;
 
     /* now actually format the response */
     buf = c->out_job->body;
@@ -1026,25 +1039,25 @@ fmt_job_stats(char *buf, size_t size, job j)
     int64 time_left;
 
     t = nanoseconds();
-    if (j->state == JOB_STATE_RESERVED || j->state == JOB_STATE_DELAYED) {
-        time_left = (j->deadline_at - t) / 1000000000;
+    if (j->r.state == Reserved || j->r.state == Delayed) {
+        time_left = (j->r.deadline_at - t) / 1000000000;
     } else {
         time_left = 0;
     }
     return snprintf(buf, size, STATS_JOB_FMT,
-            j->id,
+            j->r.id,
             j->tube->name,
             job_state(j),
-            j->pri,
-            (t - j->created_at) / 1000000000,
-            j->delay / 1000000000,
-            j->ttr / 1000000000,
+            j->r.pri,
+            (t - j->r.created_at) / 1000000000,
+            j->r.delay / 1000000000,
+            j->r.ttr / 1000000000,
             time_left,
-            j->reserve_ct,
-            j->timeout_ct,
-            j->release_ct,
-            j->bury_ct,
-            j->kick_ct);
+            j->r.reserve_ct,
+            j->r.timeout_ct,
+            j->r.release_ct,
+            j->r.bury_ct,
+            j->r.kick_ct);
 }
 
 static int
@@ -1079,7 +1092,7 @@ maybe_enqueue_incoming_job(conn c)
     job j = c->in_job;
 
     /* do we have a complete job? */
-    if (c->in_job_read == j->body_size) return enqueue_incoming_job(c);
+    if (c->in_job_read == j->r.body_size) return enqueue_incoming_job(c);
 
     /* otherwise we have incomplete data, so just keep waiting */
     c->state = STATE_WANTDATA;
@@ -1124,7 +1137,7 @@ static void
 dispatch_cmd(conn c)
 {
     int r, i, timeout = -1;
-    size_t z;
+    int z;
     uint count;
     job j = 0;
     byte type;
@@ -1277,8 +1290,8 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        j->state = JOB_STATE_INVALID;
-        r = binlog_write_job(j);
+        j->r.state = Invalid;
+        r = walwrite(&c->srv->wal, j);
         job_free(j);
 
         if (!r) return reply_serr(c, MSG_INTERNAL_ERROR);
@@ -1304,23 +1317,23 @@ dispatch_cmd(conn c)
         /* We want to update the delay deadline on disk, so reserve space for
          * that. */
         if (delay) {
-            z = binlog_reserve_space_update(j);
+            z = walresvupdate(&c->srv->wal, j);
             if (!z) return reply_serr(c, MSG_OUT_OF_MEMORY);
-            j->reserved_binlog_space += z;
+            j->walresv += z;
         }
 
-        j->pri = pri;
-        j->delay = delay;
-        j->release_ct++;
+        j->r.pri = pri;
+        j->r.delay = delay;
+        j->r.release_ct++;
 
-        r = enqueue_job(j, delay, !!delay);
+        r = enqueue_job(c->srv, j, delay, !!delay);
         if (r < 0) return reply_serr(c, MSG_INTERNAL_ERROR);
         if (r == 1) {
             return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
         }
 
         /* out of memory trying to grow the queue, so it gets buried */
-        bury_job(j, 0);
+        bury_job(c->srv, j, 0);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
     case OP_BURY:
@@ -1336,8 +1349,8 @@ dispatch_cmd(conn c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        j->pri = pri;
-        r = bury_job(j, 1);
+        j->r.pri = pri;
+        r = bury_job(c->srv, j, 1);
         if (!r) return reply_serr(c, MSG_INTERNAL_ERROR);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
@@ -1351,7 +1364,7 @@ dispatch_cmd(conn c)
 
         op_ct[type]++;
 
-        i = kick_jobs(c->use, count);
+        i = kick_jobs(c->srv, c->use, count);
 
         return reply_line(c, STATE_SENDWORD, "KICKED %u\r\n", i);
     case OP_TOUCH:
@@ -1377,7 +1390,7 @@ dispatch_cmd(conn c)
 
         op_ct[type]++;
 
-        do_stats(c, fmt_stats, NULL);
+        do_stats(c, fmt_stats, c->srv);
         break;
     case OP_JOBSTATS:
         errno = 0;
@@ -1527,7 +1540,7 @@ conn_timeout(conn c)
     /* Check if any reserved jobs have run out of time. We should do this
      * whether or not the client is waiting for a new reservation. */
     while ((j = soonest_job(c))) {
-        if (j->deadline_at >= nanoseconds()) break;
+        if (j->r.deadline_at >= nanoseconds()) break;
 
         /* This job is in the middle of being written out. If we return it to
          * the ready queue, someone might free it before we finish writing it
@@ -1538,9 +1551,9 @@ conn_timeout(conn c)
         }
 
         timeout_ct++; /* stats */
-        j->timeout_ct++;
-        r = enqueue_job(remove_this_reserved_job(c, j), 0, 0);
-        if (r < 1) bury_job(j, 0); /* out of memory, so bury it */
+        j->r.timeout_ct++;
+        r = enqueue_job(c->srv, remove_this_reserved_job(c, j), 0, 0);
+        if (r < 1) bury_job(c->srv, j, 0); /* out of memory, so bury it */
         connsched(c);
     }
 
@@ -1573,7 +1586,7 @@ reset_conn(conn c)
     connwant(c, 'r', &dirty);
 
     /* was this a peek or stats command? */
-    if (c->out_job && c->out_job->state == JOB_STATE_COPY) job_free(c->out_job);
+    if (c->out_job && c->out_job->r.state == Copy) job_free(c->out_job);
     c->out_job = NULL;
 
     c->reply_sent = 0; /* now that we're done, reset this */
@@ -1629,13 +1642,13 @@ conn_data(conn c)
     case STATE_WANTDATA:
         j = c->in_job;
 
-        r = read(c->sock.fd, j->body + c->in_job_read, j->body_size -c->in_job_read);
+        r = read(c->sock.fd, j->body + c->in_job_read, j->r.body_size -c->in_job_read);
         if (r == -1) return check_err(c, "read()");
         if (r == 0) return conn_close(c); /* the client hung up */
 
         c->in_job_read += r; /* we got some bytes */
 
-        /* (j->in_job_read > j->body_size) can't happen */
+        /* (j->in_job_read > j->r.body_size) can't happen */
 
         maybe_enqueue_incoming_job(c);
         break;
@@ -1658,7 +1671,7 @@ conn_data(conn c)
         iov[0].iov_base = (void *)(c->reply + c->reply_sent);
         iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
         iov[1].iov_base = j->body + c->out_job_sent;
-        iov[1].iov_len = j->body_size - c->out_job_sent;
+        iov[1].iov_len = j->r.body_size - c->out_job_sent;
 
         r = writev(c->sock.fd, iov, 2);
         if (r == -1) return check_err(c, "writev()");
@@ -1671,10 +1684,10 @@ conn_data(conn c)
             c->reply_sent = c->reply_len;
         }
 
-        /* (c->out_job_sent > j->body_size) can't happen */
+        /* (c->out_job_sent > j->r.body_size) can't happen */
 
         /* are we done? */
-        if (c->out_job_sent == j->body_size) return reset_conn(c);
+        if (c->out_job_sent == j->r.body_size) return reset_conn(c);
 
         /* otherwise we sent incomplete data, so just keep waiting */
         break;
@@ -1740,10 +1753,10 @@ prottick(Srv *s)
 
     now = nanoseconds();
     while ((j = delay_q_peek())) {
-        if (j->deadline_at > now) break;
+        if (j->r.deadline_at > now) break;
         j = delay_q_take();
-        r = enqueue_job(j, 0, 0);
-        if (r < 1) bury_job(j, 0); /* out of memory, so bury it */
+        r = enqueue_job(s, j, 0, 0);
+        if (r < 1) bury_job(s, j, 0); /* out of memory, so bury it */
     }
 
     for (i = 0; i < tubes.used; i++) {
@@ -1838,30 +1851,30 @@ prot_init()
 }
 
 void
-prot_replay_binlog(job binlog_jobs)
+prot_replay(Srv *s, job list)
 {
     job j, nj;
     int64 t, delay;
     int r;
 
-    for (j = binlog_jobs->next ; j != binlog_jobs ; j = nj) {
+    for (j = list->next ; j != list ; j = nj) {
         nj = j->next;
         job_remove(j);
-        binlog_reserve_space_update(j); /* reserve space for a delete */
+        walresvupdate(&s->wal, j); /* reserve space for a delete */
         delay = 0;
-        switch (j->state) {
-        case JOB_STATE_BURIED:
-            bury_job(j, 0);
+        switch (j->r.state) {
+        case Buried:
+            bury_job(s, j, 0);
             break;
-        case JOB_STATE_DELAYED:
+        case Delayed:
             t = nanoseconds();
-            if (t < j->deadline_at) {
-                delay = j->deadline_at - t;
+            if (t < j->r.deadline_at) {
+                delay = j->r.deadline_at - t;
             }
             /* fall through */
         default:
-            r = enqueue_job(j, delay, 0);
-            if (r < 1) twarnx("error processing binlog job %llu", j->id);
+            r = enqueue_job(s, j, delay, 0);
+            if (r < 1) twarnx("error recovering job %llu", j->r.id);
         }
     }
 }

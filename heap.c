@@ -41,9 +41,9 @@ swap(Heap *h, int a, int b)
 
 
 static int
-cmp(Heap *h, int a, int b)
+less(Heap *h, int a, int b)
 {
-    return h->cmp(h->data[a], h->data[b]);
+    return h->less(h->data[a], h->data[b]);
 }
 
 
@@ -53,7 +53,7 @@ siftdown(Heap *h, int k)
     for (;;) {
         int p = (k-1) / 2; /* parent */
 
-        if (k == 0 || cmp(h, k, p) >= 0) {
+        if (k == 0 || less(h, p, k)) {
             return;
         }
 
@@ -74,8 +74,8 @@ siftup(Heap *h, int k)
 
         /* find the smallest of the three */
         s = k;
-        if (l < h->len && cmp(h, l, s) < 0) s = l;
-        if (r < h->len && cmp(h, r, s) < 0) s = r;
+        if (l < h->len && less(h, l, s)) s = l;
+        if (r < h->len && less(h, r, s)) s = r;
 
         if (s == k) {
             return; /* satisfies the heap property */
@@ -87,6 +87,8 @@ siftup(Heap *h, int k)
 }
 
 
+// Heapinsert inserts x into heap h according to h->less.
+// It returns 1 on success, otherwise 0.
 int
 heapinsert(Heap *h, void *x)
 {

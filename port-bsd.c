@@ -22,6 +22,9 @@
 
 static char buf0[512]; /* buffer of zeros */
 
+/* Allocate disk space.
+ * Expects fd's offset to be 0; may also reset fd's offset to 0.
+ * Returns 0 on success, and a positive errno otherwise. */
 int
 falloc(int fd, int len)
 {

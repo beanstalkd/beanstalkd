@@ -5,8 +5,8 @@ CFLAGS=-g -Wall -Werror
 TARG=beanstalkd
 MOFILE=main.o
 OFILES=\
-	binlog.o\
 	conn.o\
+	file.o\
 	heap.o\
 	job.o\
 	ms.o\
@@ -21,11 +21,13 @@ OFILES=\
 	tube.o\
 	util.o\
 	vers.o\
+	walg.o\
 
 TOFILES=\
 	heap-test.o\
 	integ-test.o\
 	job-test.o\
+	util-test.o\
 
 HFILES=\
 	dat.h\
