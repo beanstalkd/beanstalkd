@@ -39,7 +39,7 @@ include mk/cmd
 include mk/tst
 
 VERS=$(shell ./vers.sh)
-CVERS:=$(shell cat vers.c | sed 's/[^"]*"//' | sed 's/".*//')
+CVERS:=$(shell cat vers.c 2>/dev/null | sed 's/[^"]*"//' | sed 's/".*//')
 vers.c:
 	printf 'const char version[] = "%s";\n' '$(VERS)' >vers.c
 
