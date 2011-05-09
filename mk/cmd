@@ -15,7 +15,7 @@ $(BINDIR)/%: %
 
 CLEANFILES:=$(CLEANFILES) $(TARG)
 
-$(OFILES): $(HFILES)
+$(OFILES) $(MOFILE): $(HFILES)
 
 clean:
 	rm -f *.o $(CLEANFILES)
