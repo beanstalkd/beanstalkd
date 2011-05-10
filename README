@@ -15,14 +15,24 @@ You might need to type "gmake"; our build requires GNU make.
 Requires Linux (2.6 series or later), Mac OS X, or FreeBSD.
 See doc/protocol.txt for details of the network protocol.
 
+
+SUBDIRECTORIES
+
+adm		files useful for system administrators
+ct		testing tool; see https://github.com/kr/ct
+doc		documentation
+mk		include files for make
+pkg		miscelaneous files for packagers
+sh-tests	tests written as shell scripts
+
+
 TESTS
 
 There are two kinds of tests here: unit tests and shell tests.
 
 == Unit Tests ==
 
-We use CT for unit tests. Test functions are in *-test.c.
-See https://github.com/kr/ct for more info.
+Test functions are in *-test.c.
 
 == Shell Tests ==
 
