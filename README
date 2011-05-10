@@ -40,3 +40,8 @@ full results.
 IMPORTANT: Since beanstalkd expects \r\n line endings, you must be sure to
 include those in your files.  You can tell vim to do this with
   :set ff=dos
+
+Copyright 2007-2011 the authors of beanstalkd.
+Copyright in contributions to beanstalkd is retained
+by the original copyright holder of each contribution.
+See the COPYING file for terms of use.

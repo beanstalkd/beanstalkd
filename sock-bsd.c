@@ -1,5 +1,3 @@
-// Copyright 2011 Keith Rarick. See file COPYING for details.
-
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/types.h>
