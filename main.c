@@ -67,6 +67,8 @@ usage(char *msg, char *arg)
             " -z BYTES set the maximum job size in bytes (default is %d)\n"
             " -s BYTES set the size of each wal file (default is %d)\n"
             "            (will be rounded up to a multiple of 512 bytes)\n"
+            " -c       compact the binlog (default)\n"
+            " -n       do not compact the binlog\n"
             " -v       show version information\n"
             " -h       show this help\n",
             progname, JOB_DATA_SIZE_LIMIT_DEFAULT, Filesizedef);
@@ -123,6 +125,12 @@ opts(int argc, char **argv, Wal *w)
                 break;
             case 's':
                 w->filesz = parse_size_t(require_arg("-s", argv[++i]));
+                break;
+            case 'c':
+                w->nocomp = 0;
+                break;
+            case 'n':
+                w->nocomp = 1;
                 break;
             case 'f':
                 ms = (int64)parse_size_t(require_arg("-f", argv[++i]));

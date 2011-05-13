@@ -34,6 +34,38 @@ filedecref(File *f)
 }
 
 
+void
+fileaddjob(File *f, job j)
+{
+    job h;
+
+    h = &f->jlist;
+    if (!h->fprev) h->fprev = h;
+    j->file = f;
+    j->fprev = h->fprev;
+    j->fnext = h;
+    h->fprev->fnext = j;
+    h->fprev = j;
+    fileincref(f);
+}
+
+
+void
+filermjob(File *f, job j)
+{
+    if (!f) return;
+    if (f != j->file) return;
+    j->fnext->fprev = j->fprev;
+    j->fprev->fnext = j->fnext;
+    j->fnext = 0;
+    j->fprev = 0;
+    j->file = NULL;
+    f->w->alive -= j->walused;
+    j->walused = 0;
+    filedecref(f);
+}
+
+
 // Fileread reads jobs from f->path into list.
 // It returns 0 on success, or 1 if any errors occurred.
 int
@@ -62,7 +94,7 @@ fileread(File *f, job list)
 static int
 readrec(File *f, job l, int *err)
 {
-    int r;
+    int r, sz = 0;
     int namelen;
     Jobrec jr;
     job j;
@@ -79,6 +111,7 @@ readrec(File *f, job l, int *err)
     if (r != sizeof(int)) {
         return 0;
     }
+    sz += r;
     if (namelen >= MAX_TUBE_NAME_LEN) {
         warnpos(f, "namelen %d exceeds maximum of %d", namelen, MAX_TUBE_NAME_LEN - 1);
         *err = 1;
@@ -86,15 +119,19 @@ readrec(File *f, job l, int *err)
     }
 
     if (namelen) {
-        if (!readfull(f, tubename, namelen, err, "tube name")) {
+        r = readfull(f, tubename, namelen, err, "tube name");
+        if (!r) {
             return 0;
         }
+        sz += r;
     }
     tubename[namelen] = '\0';
 
-    if (!readfull(f, &jr, sizeof(Jobrec), err, "job struct")) {
+    r = readfull(f, &jr, sizeof(Jobrec), err, "job struct");
+    if (!r) {
         return 0;
     }
+    sz += r;
 
     // are we reading trailing zeroes?
     if (!jr.id) return 0;
@@ -133,23 +170,26 @@ readrec(File *f, job l, int *err)
                 warnpos(f, "was %zu, now %zu", j->r.body_size, jr.body_size);
                 goto Error;
             }
-            if (!readfull(f, j->body, j->r.body_size, err, "job body")) {
+            r = readfull(f, j->body, j->r.body_size, err, "job body");
+            if (!r) {
                 goto Error;
             }
+            sz += r;
 
             // since this is a full record, we can move
             // the file pointer and decref the old
             // file, if any
-            filedecref(j->file);
-            j->file = f;
-            fileincref(j->file);
+            filermjob(j->file, j);
+            fileaddjob(f, j);
         }
+        j->walused += sz;
+        f->w->alive += sz;
 
         return 1;
     case Invalid:
         if (j) {
             job_remove(j);
-            filedecref(j->file);
+            filermjob(j->file, j);
             job_free(j);
         }
         return 1;
@@ -159,7 +199,7 @@ Error:
     *err = 1;
     if (j) {
         job_remove(j);
-        filedecref(j->file);
+        filermjob(j->file, j);
         job_free(j);
     }
     return 0;
@@ -252,8 +292,11 @@ filewrite(File *f, job j, void *buf, int len)
         return 0;
     }
 
+    f->w->resv -= r;
     f->resv -= r;
     j->walresv -= r;
+    j->walused += r;
+    f->w->alive += r;
     return 1;
 }
 
@@ -261,16 +304,18 @@ filewrite(File *f, job j, void *buf, int len)
 int
 filewrjobshort(File *f, job j)
 {
-    int nl;
+    int r, nl;
+
+    nl = 0; // name len 0 indicates short record
+    r = filewrite(f, j, &nl, sizeof nl) &&
+        filewrite(f, j, &j->r, sizeof j->r);
+    if (!r) return 0;
 
     if (j->r.state == Invalid) {
-        filedecref(j->file);
-        j->file = NULL;
+        filermjob(j->file, j);
     }
-    nl = 0; // name len 0 indicates short record
-    return
-        filewrite(f, j, &nl, sizeof nl) &&
-        filewrite(f, j, &j->r, sizeof j->r);
+
+    return r;
 }
 
 
@@ -279,8 +324,7 @@ filewrjobfull(File *f, job j)
 {
     int nl;
 
-    j->file = f;
-    fileincref(j->file);
+    fileaddjob(f, j);
     nl = strlen(j->tube->name);
     return
         filewrite(f, j, &nl, sizeof nl) &&
@@ -331,5 +375,6 @@ fileadd(File *f, Wal *w)
     if (!w->head) {
         w->head = f;
     }
+    w->nfile++;
     return w;
 }

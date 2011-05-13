@@ -176,6 +176,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "uptime: %u\n" \
     "binlog-oldest-index: %d\n" \
     "binlog-current-index: %d\n" \
+    "binlog-records-migrated: %" PRIu64 "\n" \
+    "binlog-records-written: %" PRIu64 "\n" \
     "binlog-max-size: %d\n" \
     "\r\n"
 
@@ -435,8 +437,10 @@ enqueue_job(Srv *s, job j, int64 delay, char update_store)
     }
 
     if (update_store) {
-        r = walwrite(&s->wal, j);
-        if (!r) return -1;
+        if (!walwrite(&s->wal, j)) {
+            return 0;
+        }
+        walmaint(&s->wal);
     }
 
     process_queue();
@@ -461,7 +465,12 @@ bury_job(Srv *s, job j, char update_store)
     j->reserver = NULL;
     j->r.bury_ct++;
 
-    if (update_store) return walwrite(&s->wal, j);
+    if (update_store) {
+        if (!walwrite(&s->wal, j)) {
+            return 0;
+        }
+        walmaint(&s->wal);
+    }
 
     return 1;
 }
@@ -873,6 +882,8 @@ fmt_stats(char *buf, size_t size, void *x)
             uptime(),
             whead,
             wcur,
+            srv->wal.nmig,
+            srv->wal.nrec,
             srv->wal.filesz);
 
 }
@@ -1274,6 +1285,7 @@ dispatch_cmd(conn c)
 
         j->r.state = Invalid;
         r = walwrite(&c->srv->wal, j);
+        walmaint(&c->srv->wal);
         job_free(j);
 
         if (!r) return reply_serr(c, MSG_INTERNAL_ERROR);

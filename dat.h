@@ -146,8 +146,11 @@ struct job {
     job ht_next; /* Next job in a hash table list */
     size_t heap_index; /* where is this job in its current heap */
     File *file;
+    job  fnext;
+    job  fprev;
     void *reserver;
     int walresv;
+    int walused;
 
     char body[]; // written separately to the wal
 };
@@ -329,15 +332,22 @@ struct Wal {
     File   *head;
     File   *cur;
     File   *tail;
+    int    nfile;
     int    next;
     int    filesz;
+    int    resv;  // bytes reserved
+    int    alive; // bytes in use
+    int64  nmig;  // migrations
+    int64  nrec;  // records written ever
     int    wantsync;
     int64  syncrate;
     int64  lastsync;
+    int    nocomp; // disable binlog compaction?
 };
 int  waldirlock(Wal*);
 void walinit(Wal*, job list);
 int  walwrite(Wal*, job);
+void walmaint(Wal*);
 int  walresvput(Wal*, job);
 int  walresvupdate(Wal*, job);
 void walgc(Wal*);
@@ -353,11 +363,15 @@ struct File {
     int  resv;
     char *path;
     Wal  *w;
+
+    struct job jlist; // jobs written in this file
 };
 int  fileinit(File*, Wal*, int);
 Wal* fileadd(File*, Wal*);
 void fileincref(File*);
 void filedecref(File*);
+void fileaddjob(File*, job);
+void filermjob(File*, job);
 int  fileread(File*, job list);
 void filewopen(File*);
 void filewclose(File*);

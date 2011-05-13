@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include "dat.h"
 
+static int reserve(Wal *w, int n);
+
 
 // Reads w->dir for files matching binlog.NNN,
 // sets w->next to the next unused number, and
@@ -59,6 +61,7 @@ walgc(Wal *w)
             w->tail = f->next; // also, f->next == NULL
         }
 
+        w->nfile--;
         unlink(f->path);
         free(f->path);
         free(f);
@@ -81,6 +84,74 @@ usenext(Wal *w)
     w->cur = f->next;
     filewclose(f);
     return 1;
+}
+
+
+static int
+ratio(Wal *w)
+{
+    int n, d;
+
+    d = w->alive + w->resv;
+    n = w->nfile*w->filesz - d;
+    if (!d) return 0;
+    return n / d;
+}
+
+
+// Returns the number of bytes reserved or 0 on error.
+static int
+walresvmigrate(Wal *w, job j)
+{
+    int z = 0;
+
+    // reserve only space for the migrated full job record
+    // space for the delete is already reserved
+    z += sizeof(int);
+    z += strlen(j->tube->name);
+    z += sizeof(Jobrec);
+    z += j->r.body_size;
+
+    return reserve(w, z);
+}
+
+
+static void
+moveone(Wal *w)
+{
+    job j;
+
+    if (w->head == w->cur || w->head->next == w->cur) {
+        // no point in moving a job
+        return;
+    }
+
+    j = w->head->jlist.fnext;
+    if (!j || j == &w->head->jlist) {
+        // head holds no jlist; can't happen
+        twarnx("head holds no jlist");
+        return;
+    }
+
+    if (!walresvmigrate(w, j)) {
+        // it will not fit, so we'll try again later
+        return;
+    }
+
+    filermjob(w->head, j);
+    w->nmig++;
+    walwrite(w, j);
+}
+
+
+static void
+walcompact(Wal *w)
+{
+    int r;
+
+    for (r=ratio(w); r>=2; r--) {
+        moveone(w);
+    }
 }
 
 
@@ -119,11 +190,21 @@ walwrite(Wal *w, job j)
     if (!r) {
         filewclose(w->cur);
         w->use = 0;
-        return 0;
     }
-
-    walsync(w);
+    w->nrec++;
     return r;
+}
+
+
+void
+walmaint(Wal *w)
+{
+    if (w->use) {
+        if (!w->nocomp) {
+            walcompact(w);
+        }
+        walsync(w);
+    }
 }
 
 
@@ -259,6 +340,7 @@ reserve(Wal *w, int n)
     if (w->cur->free >= n) {
         w->cur->free -= n;
         w->cur->resv += n;
+        w->resv += n;
         return n;
     }
 
@@ -270,8 +352,10 @@ reserve(Wal *w, int n)
 
     w->tail->free -= n;
     w->tail->resv += n;
+    w->resv += n;
     if (!balance(w, n)) {
         // error; undo the reservation
+        w->resv -= n;
         w->tail->resv -= n;
         w->tail->free += n;
         return 0;
