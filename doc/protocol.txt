@@ -601,6 +601,12 @@ of strings to scalars. It contains these keys:
  - "binlog-max-size" is the maximum size in bytes a binlog file is allowed
    to get before a new binlog file is opened
 
+ - "binlog-records-written" is the cumulative number of records written
+   to the binlog
+
+ - "binlog-records-migrated" is the cumulative number of records written
+   as part of compaction
+
 The list-tubes command returns a list of all existing tubes. Its form is:
 
 list-tubes\r\n
