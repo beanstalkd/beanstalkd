@@ -384,7 +384,7 @@ process_queue()
 
     dbgprintf("processing queue\n");
     while ((j = next_eligible_job(now))) {
-        dbgprintf("got eligible job %llu in %s\n", j->r.id, j->tube->name);
+        dbgprintf("got eligible job %"PRIu64" in %s\n", j->r.id, j->tube->name);
         heapremove(&j->tube->ready, j->heap_index);
         ready_ct--;
         if (j->r.pri < URGENT_THRESHOLD) {
