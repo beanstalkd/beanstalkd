@@ -8,6 +8,8 @@ QUICK START
 
 also,
 
+    $ make 'CFLAGS=-Wall -Werror'
+    $ make 'CFLAGS=-Wall -Werror -g -DDEBUG'
     $ make check
     $ make install PREFIX=/usr/local
 
