@@ -1,5 +1,5 @@
 #!/bin/sh
 
-echo -n 'const char version[] = "'
+printf 'const char version[] = "'
 mk/vers.sh
-echo '";'
+printf '";\n'
