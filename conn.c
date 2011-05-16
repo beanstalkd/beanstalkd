@@ -8,31 +8,8 @@
 
 #define SAFETY_MARGIN (1000000000) /* 1 second */
 
-/* Doubly-linked list of free connections. */
-static struct conn pool = { &pool, &pool };
-
 static int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
 static uint tot_conn_ct = 0;
-
-static conn
-conn_alloc()
-{
-    conn c;
-
-    c = conn_remove(pool.next);
-    if (!c) {
-        c = malloc(sizeof(struct conn));
-    }
-
-    return memset(c, 0, sizeof *c);
-}
-
-static void
-conn_free(conn c)
-{
-    c->sock.fd = 0;
-    conn_insert(&pool, c);
-}
 
 static void
 on_watch(ms a, tube t, size_t i)
@@ -54,12 +31,12 @@ make_conn(int fd, char start_state, tube use, tube watch)
     job j;
     conn c;
 
-    c = conn_alloc();
+    c = new(struct conn);
     if (!c) return twarn("OOM"), (conn) 0;
 
     ms_init(&c->watch, (ms_event_fn) on_watch, (ms_event_fn) on_ignore);
     if (!ms_append(&c->watch, watch)) {
-        conn_free(c);
+        free(c);
         return twarn("OOM"), (conn) 0;
     }
 
@@ -292,5 +269,5 @@ conn_close(conn c)
     c->use->using_ct--;
     TUBE_ASSIGN(c->use, NULL);
 
-    conn_free(c);
+    free(c);
 }
