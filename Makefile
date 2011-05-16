@@ -1,7 +1,5 @@
 include mk/inc
 
-CFLAGS=-g -Wall -Werror
-
 TARG=beanstalkd
 MOFILE=main.o
 OFILES=\
