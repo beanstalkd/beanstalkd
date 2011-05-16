@@ -1,5 +1,6 @@
 include mk/inc
 
+VERS=$(shell mk/vers.sh)
 TARG=beanstalkd
 MOFILE=main.o
 OFILES=\
@@ -38,12 +39,9 @@ CLEANFILES=\
 include mk/cmd
 include mk/tst
 
-VERS=$(shell ./vers.sh)
-CVERS:=$(shell cat vers.c 2>/dev/null | sed 's/[^"]*"//' | sed 's/".*//')
 vers.c:
-	printf 'const char version[] = "%s";\n' '$(VERS)' >vers.c
-
-ifneq ($(VERS),$(CVERS))
+	mk/verc.sh >vers.c
+ifneq ($(shell mk/verc.sh),$(shell cat vers.c 2>/dev/null))
 .PHONY: vers.c
 endif
 
