@@ -961,8 +961,7 @@ wait_for_job(conn c, int timeout)
     /* Set the pending timeout to the requested timeout amount */
     c->pending_timeout = timeout;
 
-    /* this conn is waiting, but we want to know if they hang up */
-    connwant(c, 'r', &dirty);
+    connwant(c, 'h', &dirty); // only care if they hang up
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1685,14 +1684,9 @@ conn_data(conn c)
 
         /* otherwise we sent incomplete data, so just keep waiting */
         break;
-    case STATE_WAIT: /* keep an eye out in case they hang up */
-        /* but don't hang up just because our buffer is full */
-        if (LINE_BUF_SIZE - c->cmd_read < 1) break;
-
-        r = read(c->sock.fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
-        if (r == -1) return check_err(c, "read()");
-        if (r == 0) return conn_close(c); /* the client hung up */
-        c->cmd_read += r; /* we got some bytes */
+    case STATE_WAIT:
+        // nothing
+        break;
     }
 }
 
@@ -1722,6 +1716,12 @@ h_conn(const int fd, const short which, conn c)
         close(fd);
         conn_close(c);
         update_conns();
+        return;
+    }
+
+    if (which == 'h') {
+        dbgprintf("client hung up fd=%d\n", fd);
+        conn_close(c);
         return;
     }
 
