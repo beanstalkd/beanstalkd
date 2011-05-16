@@ -249,12 +249,3 @@ get_all_jobs_used()
 {
     return all_jobs_used;
 }
-
-void
-job_init()
-{
-    all_jobs = calloc(all_jobs_cap, sizeof(job));
-    if (!all_jobs) {
-        twarnx("Failed to allocate %d hash buckets", all_jobs_cap);
-    }
-}
