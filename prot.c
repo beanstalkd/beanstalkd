@@ -176,8 +176,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "uptime: %u\n" \
     "binlog-oldest-index: %d\n" \
     "binlog-current-index: %d\n" \
-    "binlog-records-migrated: %" PRIu64 "\n" \
-    "binlog-records-written: %" PRIu64 "\n" \
+    "binlog-records-migrated: %" PRId64 "\n" \
+    "binlog-records-written: %" PRId64 "\n" \
     "binlog-max-size: %d\n" \
     "\r\n"
 
