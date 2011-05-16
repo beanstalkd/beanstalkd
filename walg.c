@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
+#include <limits.h>
 #include "dat.h"
 
 static int reserve(Wal *w, int n);
