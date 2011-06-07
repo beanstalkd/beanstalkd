@@ -1,5 +1,4 @@
 #!/bin/sh
 
-printf 'const char version[] = "'
-mk/vers.sh
-printf '";\n'
+VERSION=`mk/vers.sh`
+printf "const char version[] = \"$VERSION\";\n"
