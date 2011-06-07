@@ -1,12 +1,11 @@
 include mk/inc
 
-CFLAGS=-g -Wall -Werror
-
+VERS=$(shell mk/vers.sh)
 TARG=beanstalkd
 MOFILE=main.o
 OFILES=\
-	binlog.o\
 	conn.o\
+	file.o\
 	heap.o\
 	job.o\
 	ms.o\
@@ -21,11 +20,13 @@ OFILES=\
 	tube.o\
 	util.o\
 	vers.o\
+	walg.o\
 
 TOFILES=\
 	heap-test.o\
 	integ-test.o\
 	job-test.o\
+	util-test.o\
 
 HFILES=\
 	dat.h\
@@ -38,12 +39,9 @@ CLEANFILES=\
 include mk/cmd
 include mk/tst
 
-VERS=$(shell ./vers.sh)
-CVERS:=$(shell cat vers.c | sed 's/[^"]*"//' | sed 's/".*//')
 vers.c:
-	printf 'const char version[] = "%s";\n' '$(VERS)' >vers.c
-
-ifneq ($(VERS),$(CVERS))
+	mk/verc.sh >vers.c
+ifneq ($(shell mk/verc.sh),$(shell cat vers.c 2>/dev/null))
 .PHONY: vers.c
 endif
 

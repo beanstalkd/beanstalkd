@@ -1,21 +1,3 @@
-/* beanstalk - fast, general-purpose work queue */
-
-/* Copyright (C) 2007 Keith Rarick and Philotic Inc.
-
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,46 +10,8 @@
 #include "dat.h"
 
 static char *user = NULL;
-static int detach = 0;
 static char *port = "11300";
 static char *host_addr;
-
-static void
-nullfd(int fd, int flags)
-{
-    int r;
-
-    close(fd);
-    r = open("/dev/null", flags);
-    if (r != fd) twarn("open(\"/dev/null\")"), exit(1);
-}
-
-static void
-dfork()
-{
-    pid_t p;
-
-    p = fork();
-    if (p == -1) exit(1);
-    if (p) exit(0);
-}
-
-static void
-daemonize()
-{
-    int r;
-
-    r = chdir("/");
-    if (r) return twarn("chdir");
-
-    nullfd(0, O_RDONLY);
-    nullfd(1, O_WRONLY);
-    nullfd(2, O_WRONLY);
-    umask(0);
-    dfork();
-    setsid();
-    dfork();
-}
 
 static void
 su(const char *user) {
@@ -84,13 +28,6 @@ su(const char *user) {
 
     r = setuid(pwent->pw_uid);
     if (r == -1) twarn("setuid(%d \"%s\")", pwent->pw_uid, user), exit(34);
-}
-
-void
-exit_cleanly(int sig)
-{
-    binlog_shutdown();
-    exit(0);
 }
 
 
@@ -111,14 +48,6 @@ set_sig_handlers()
     sa.sa_handler = enter_drain_mode;
     r = sigaction(SIGUSR1, &sa, 0);
     if (r == -1) twarn("sigaction(SIGUSR1)"), exit(111);
-
-    sa.sa_handler = exit_cleanly;
-    r = sigaction(SIGINT, &sa, 0);
-    if (r == -1) twarn("sigaction(SIGINT)"), exit(111);
-
-    sa.sa_handler = exit_cleanly;
-    r = sigaction(SIGTERM, &sa, 0);
-    if (r == -1) twarn("sigaction(SIGTERM)"), exit(111);
 }
 
 static void
@@ -128,8 +57,7 @@ usage(char *msg, char *arg)
     fprintf(stderr, "Use: %s [OPTIONS]\n"
             "\n"
             "Options:\n"
-            " -d       detach\n"
-            " -b DIR   binlog directory (must be absolute path if used with -d)\n"
+            " -b DIR   wal directory (must be absolute path if used with -d)\n"
             " -f MS    fsync at most once every MS milliseconds"
                        " (use -f 0 for \"always fsync\")\n"
             " -F       never fsync (default)\n"
@@ -137,11 +65,13 @@ usage(char *msg, char *arg)
             " -p PORT  listen on port (default is 11300)\n"
             " -u USER  become user and group\n"
             " -z BYTES set the maximum job size in bytes (default is %d)\n"
-            " -s BYTES set the size of each binlog file (default is %d)\n"
+            " -s BYTES set the size of each wal file (default is %d)\n"
             "            (will be rounded up to a multiple of 512 bytes)\n"
+            " -c       compact the binlog (default)\n"
+            " -n       do not compact the binlog\n"
             " -v       show version information\n"
             " -h       show this help\n",
-            progname, JOB_DATA_SIZE_LIMIT_DEFAULT, BINLOG_SIZE_LIMIT_DEFAULT);
+            progname, JOB_DATA_SIZE_LIMIT_DEFAULT, Filesizedef);
     exit(arg ? 5 : 0);
 }
 
@@ -172,17 +102,15 @@ warn_systemd_ignored_option(char *opt, char *arg)
 }
 
 static void
-opts(int argc, char **argv)
+opts(int argc, char **argv, Wal *w)
 {
     int i;
+    int64 ms;
 
     for (i = 1; i < argc; ++i) {
         if (argv[i][0] != '-') usage("unknown option", argv[i]);
         if (argv[i][1] == 0 || argv[i][2] != 0) usage("unknown option",argv[i]);
         switch (argv[i][1]) {
-            case 'd':
-                detach = 1;
-                break;
             case 'p':
                 port = require_arg("-p", argv[++i]);
                 warn_systemd_ignored_option("-p", argv[i]);
@@ -196,20 +124,28 @@ opts(int argc, char **argv)
                                                                argv[++i]));
                 break;
             case 's':
-                binlog_size_limit = parse_size_t(require_arg("-s", argv[++i]));
+                w->filesz = parse_size_t(require_arg("-s", argv[++i]));
+                break;
+            case 'c':
+                w->nocomp = 0;
+                break;
+            case 'n':
+                w->nocomp = 1;
                 break;
             case 'f':
-                fsync_throttle_ms = parse_size_t(require_arg("-f", argv[++i]));
-                enable_fsync = 1;
+                ms = (int64)parse_size_t(require_arg("-f", argv[++i]));
+                w->syncrate = ms * 1000000;
+                w->wantsync = 1;
                 break;
             case 'F':
-                enable_fsync = 0;
+                w->wantsync = 0;
                 break;
             case 'u':
                 user = require_arg("-u", argv[++i]);
                 break;
             case 'b':
-                binlog_dir = require_arg("-b", argv[++i]);
+                w->dir = require_arg("-b", argv[++i]);
+                w->use = 1;
                 break;
             case 'h':
                 usage(NULL, NULL);
@@ -227,17 +163,11 @@ main(int argc, char **argv)
 {
     int r;
     Srv s = {};
-    struct job binlog_jobs = {};
+    s.wal.filesz = Filesizedef;
+    struct job list = {};
 
     progname = argv[0];
-    opts(argc, argv);
-
-    if (detach && binlog_dir) {
-        if (binlog_dir[0] != '/') {
-            warnx("The -b option requires an absolute path when used with -d.");
-            usage("Path is not absolute", binlog_dir);
-        }
-    }
+    opts(argc, argv, &s.wal);
 
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
@@ -245,27 +175,23 @@ main(int argc, char **argv)
 
     prot_init();
 
-    /* We want to make sure that only one beanstalkd tries to use the binlog
-     * directory at a time. So acquire a lock now and never release it. */
-    if (binlog_dir) {
-        r = binlog_lock();
-        if (!r) twarnx("failed to lock binlog dir %s", binlog_dir), exit(10);
-    }
-
     if (user) su(user);
     set_sig_handlers();
 
-    if (binlog_dir) {
-        binlog_jobs.prev = binlog_jobs.next = &binlog_jobs;
-        binlog_init(&binlog_jobs);
-        prot_replay_binlog(&binlog_jobs);
-    }
+    if (s.wal.use) {
+        // We want to make sure that only one beanstalkd tries
+        // to use the wal directory at a time. So acquire a lock
+        // now and never release it.
+        if (!waldirlock(&s.wal)) {
+            twarnx("failed to lock wal dir %s", s.wal.dir);
+            exit(10);
+        }
 
-    if (detach) {
-        daemonize();
+        list.prev = list.next = &list;
+        walinit(&s.wal, &list);
+        prot_replay(&s, &list);
     }
 
     srv(&s);
-    binlog_shutdown();
     return 0;
 }

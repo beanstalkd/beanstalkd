@@ -1,21 +1,3 @@
-/* job.c - a job in the queue */
-
-/* Copyright (C) 2007 Keith Rarick and Philotic Inc.
-
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +27,7 @@ store_job(job j)
 {
     int index = 0;
 
-    index = _get_job_hash_index(j->id);
+    index = _get_job_hash_index(j->r.id);
 
     j->ht_next = all_jobs[index];
     all_jobs[index] = j;
@@ -96,7 +78,7 @@ job_find(uint64 job_id)
     job jh = NULL;
     int index = _get_job_hash_index(job_id);
 
-    for (jh = all_jobs[index]; jh && jh->id != job_id; jh = jh->ht_next);
+    for (jh = all_jobs[index]; jh && jh->r.id != job_id; jh = jh->ht_next);
 
     return jh;
 }
@@ -109,18 +91,10 @@ allocate_job(int body_size)
     j = malloc(sizeof(struct job) + body_size);
     if (!j) return twarnx("OOM"), (job) 0;
 
-    j->id = 0;
-    j->state = JOB_STATE_INVALID;
-    j->created_at = nanoseconds();
-    j->reserve_ct = j->timeout_ct = j->release_ct = j->bury_ct = j->kick_ct = 0;
-    j->body_size = body_size;
+    memset(j, 0, sizeof(struct job));
+    j->r.created_at = nanoseconds();
+    j->r.body_size = body_size;
     j->next = j->prev = j; /* not in a linked list */
-    j->ht_next = NULL;
-    j->tube = NULL;
-    j->binlog = NULL;
-    j->heap_index = 0;
-    j->reserved_binlog_space = 0;
-
     return j;
 }
 
@@ -134,14 +108,14 @@ make_job_with_id(uint pri, int64 delay, int64 ttr,
     if (!j) return twarnx("OOM"), (job) 0;
 
     if (id) {
-        j->id = id;
+        j->r.id = id;
         if (id >= next_id) next_id = id + 1;
     } else {
-        j->id = next_id++;
+        j->r.id = next_id++;
     }
-    j->pri = pri;
-    j->delay = delay;
-    j->ttr = ttr;
+    j->r.pri = pri;
+    j->r.delay = delay;
+    j->r.ttr = ttr;
 
     store_job(j);
 
@@ -155,7 +129,7 @@ job_hash_free(job j)
 {
     job *slot;
 
-    slot = &all_jobs[_get_job_hash_index(j->id)];
+    slot = &all_jobs[_get_job_hash_index(j->r.id)];
     while (*slot && *slot != j) slot = &(*slot)->ht_next;
     if (*slot) {
         *slot = (*slot)->ht_next;
@@ -168,7 +142,7 @@ job_free(job j)
 {
     if (j) {
         TUBE_ASSIGN(j->tube, NULL);
-        if (j->state != JOB_STATE_COPY) job_hash_free(j);
+        if (j->r.state != Copy) job_hash_free(j);
     }
 
     free(j);
@@ -180,28 +154,22 @@ job_setheappos(void *j, int pos)
     ((job)j)->heap_index = pos;
 }
 
-/* We can't substrct any of these values because there are too many bits */
 int
-job_pri_cmp(void *ax, void *bx)
+job_pri_less(void *ax, void *bx)
 {
     job a = ax, b = bx;
-    if (a->pri > b->pri) return 1;
-    if (a->pri < b->pri) return -1;
-    if (a->id > b->id) return 1;
-    if (a->id < b->id) return -1;
-    return 0;
+    if (a->r.pri < b->r.pri) return 1;
+    if (a->r.pri > b->r.pri) return 0;
+    return a->r.id < b->r.id;
 }
 
-/* We can't substrct any of these values because there are too many bits */
 int
-job_delay_cmp(void *ax, void *bx)
+job_delay_less(void *ax, void *bx)
 {
     job a = ax, b = bx;
-    if (a->deadline_at > b->deadline_at) return 1;
-    if (a->deadline_at < b->deadline_at) return -1;
-    if (a->id > b->id) return 1;
-    if (a->id < b->id) return -1;
-    return 0;
+    if (a->r.deadline_at < b->r.deadline_at) return 1;
+    if (a->r.deadline_at > b->r.deadline_at) return 0;
+    return a->r.id < b->r.id;
 }
 
 job
@@ -211,19 +179,19 @@ job_copy(job j)
 
     if (!j) return NULL;
 
-    n = malloc(sizeof(struct job) + j->body_size);
+    n = malloc(sizeof(struct job) + j->r.body_size);
     if (!n) return twarnx("OOM"), (job) 0;
 
-    memcpy(n, j, sizeof(struct job) + j->body_size);
+    memcpy(n, j, sizeof(struct job) + j->r.body_size);
     n->next = n->prev = n; /* not in a linked list */
 
-    n->binlog = NULL; /* copies do not have refcnt on the binlog */
+    n->file = NULL; /* copies do not have refcnt on the wal */
 
     n->tube = 0; /* Don't use memcpy for the tube, which we must refcount. */
     TUBE_ASSIGN(n->tube, j->tube);
 
     /* Mark this job as a copy so it can be appropriately freed later on */
-    n->state = JOB_STATE_COPY;
+    n->r.state = Copy;
 
     return n;
 }
@@ -231,10 +199,10 @@ job_copy(job j)
 const char *
 job_state(job j)
 {
-    if (j->state == JOB_STATE_READY) return "ready";
-    if (j->state == JOB_STATE_RESERVED) return "reserved";
-    if (j->state == JOB_STATE_BURIED) return "buried";
-    if (j->state == JOB_STATE_DELAYED) return "delayed";
+    if (j->r.state == Ready) return "ready";
+    if (j->r.state == Reserved) return "reserved";
+    if (j->r.state == Buried) return "buried";
+    if (j->r.state == Delayed) return "delayed";
     return "invalid";
 }
 
@@ -280,13 +248,4 @@ size_t
 get_all_jobs_used()
 {
     return all_jobs_used;
-}
-
-void
-job_init()
-{
-    all_jobs = calloc(all_jobs_cap, sizeof(job));
-    if (!all_jobs) {
-        twarnx("Failed to allocate %d hash buckets", all_jobs_cap);
-    }
 }

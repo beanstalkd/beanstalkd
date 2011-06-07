@@ -68,7 +68,7 @@ fi
 %files
 %defattr(-,root,root,-)
 %doc %{_defaultdocdir}/%{name}-%{version}/protocol.txt
-%doc README COPYING README-DEVELOPERS README-TESTS doc/protocol.txt
+%doc README COPYING doc/protocol.txt
 %{_initrddir}/%{name}
 %{_bindir}/%{name}
 %{_mandir}/man1/%{name}.1.gz

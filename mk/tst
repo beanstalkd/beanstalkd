@@ -17,6 +17,6 @@ ct/_ctcheck.c: $(TOFILES) ct/gen
 
 ct/ct.o ct/_ctcheck.o: ct/ct.h ct/internal.h
 
-$(TOFILES): ct/ct.h
+$(TOFILES): $(HFILES) ct/ct.h
 
 CLEANFILES:=$(CLEANFILES) ct/_* ct/*.o

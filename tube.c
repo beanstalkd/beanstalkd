@@ -1,21 +1,3 @@
-/* tube.c - tubes implementation */
-
-/* Copyright (C) 2008 Keith Rarick and Philotic Inc.
-
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,8 +19,15 @@ make_tube(const char *name)
     strncpy(t->name, name, MAX_TUBE_NAME_LEN - 1);
     if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0') twarnx("truncating tube name");
 
-    t->ready.cmp = job_pri_cmp;
-    t->delay.cmp = job_delay_cmp;
+    t->ready.cap = 0;
+    t->delay.cap = 0;
+    t->ready.len = 0;
+    t->delay.len = 0;
+    t->ready.data = NULL;
+    t->delay.data = NULL;
+
+    t->ready.less = job_pri_less;
+    t->delay.less = job_delay_less;
     t->ready.rec = job_setheappos;
     t->delay.rec = job_setheappos;
     t->buried = (struct job) { };

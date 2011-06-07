@@ -1,21 +1,3 @@
-/* conn.c - network connection state */
-
-/* Copyright (C) 2007 Keith Rarick and Philotic Inc.
-
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,31 +8,8 @@
 
 #define SAFETY_MARGIN (1000000000) /* 1 second */
 
-/* Doubly-linked list of free connections. */
-static struct conn pool = { &pool, &pool };
-
 static int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
 static uint tot_conn_ct = 0;
-
-static conn
-conn_alloc()
-{
-    conn c;
-
-    c = conn_remove(pool.next);
-    if (!c) {
-        c = malloc(sizeof(struct conn));
-    }
-
-    return memset(c, 0, sizeof *c);
-}
-
-static void
-conn_free(conn c)
-{
-    c->sock.fd = 0;
-    conn_insert(&pool, c);
-}
 
 static void
 on_watch(ms a, tube t, size_t i)
@@ -72,12 +31,12 @@ make_conn(int fd, char start_state, tube use, tube watch)
     job j;
     conn c;
 
-    c = conn_alloc();
+    c = new(struct conn);
     if (!c) return twarn("OOM"), (conn) 0;
 
     ms_init(&c->watch, (ms_event_fn) on_watch, (ms_event_fn) on_ignore);
     if (!ms_append(&c->watch, watch)) {
-        conn_free(c);
+        free(c);
         return twarn("OOM"), (conn) 0;
     }
 
@@ -162,7 +121,7 @@ conntickat(conn c)
     }
 
     if (has_reserved_job(c)) {
-        t = soonest_job(c)->deadline_at - nanoseconds() - margin;
+        t = soonest_job(c)->r.deadline_at - nanoseconds() - margin;
         should_timeout = 1;
     }
     if (c->pending_timeout >= 0) {
@@ -233,7 +192,7 @@ soonest_job(conn c)
 
     if (soonest == NULL) {
         for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
-            if (j->deadline_at <= (soonest ? : j)->deadline_at) soonest = j;
+            if (j->r.deadline_at <= (soonest ? : j)->r.deadline_at) soonest = j;
         }
     }
     c->soonest_job = soonest;
@@ -243,7 +202,7 @@ soonest_job(conn c)
 int
 has_reserved_this_job(conn c, job j)
 {
-    return j && j->state == JOB_STATE_RESERVED && j->reserver == c;
+    return j && j->r.state == Reserved && j->reserver == c;
 }
 
 /* return true if c has a reserved job with less than one second until its
@@ -254,7 +213,7 @@ conn_has_close_deadline(conn c)
     int64 t = nanoseconds();
     job j = soonest_job(c);
 
-    return j && t >= j->deadline_at - SAFETY_MARGIN;
+    return j && t >= j->r.deadline_at - SAFETY_MARGIN;
 }
 
 int
@@ -270,11 +229,9 @@ conn_ready(conn c)
 
 
 int
-conncmp(conn a, conn b)
+connless(conn a, conn b)
 {
-    if (a->tickat > b->tickat) return 1;
-    if (a->tickat < b->tickat) return -1;
-    return 0;
+    return a->tickat < b->tickat;
 }
 
 
@@ -294,7 +251,7 @@ conn_close(conn c)
     job_free(c->in_job);
 
     /* was this a peek or stats command? */
-    if (c->out_job && !c->out_job->id) job_free(c->out_job);
+    if (c->out_job && !c->out_job->r.id) job_free(c->out_job);
 
     c->in_job = c->out_job = NULL;
     c->in_job_read = 0;
@@ -312,5 +269,5 @@ conn_close(conn c)
     c->use->using_ct--;
     TUBE_ASSIGN(c->use, NULL);
 
-    conn_free(c);
+    free(c);
 }

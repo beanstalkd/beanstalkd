@@ -1,20 +1,3 @@
-/* Copyright (C) 2007 Keith Rarick and Philotic Inc.
- * Copyright 2011 Keith Rarick
-
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,9 +24,9 @@ swap(Heap *h, int a, int b)
 
 
 static int
-cmp(Heap *h, int a, int b)
+less(Heap *h, int a, int b)
 {
-    return h->cmp(h->data[a], h->data[b]);
+    return h->less(h->data[a], h->data[b]);
 }
 
 
@@ -53,7 +36,7 @@ siftdown(Heap *h, int k)
     for (;;) {
         int p = (k-1) / 2; /* parent */
 
-        if (k == 0 || cmp(h, k, p) >= 0) {
+        if (k == 0 || less(h, p, k)) {
             return;
         }
 
@@ -74,8 +57,8 @@ siftup(Heap *h, int k)
 
         /* find the smallest of the three */
         s = k;
-        if (l < h->len && cmp(h, l, s) < 0) s = l;
-        if (r < h->len && cmp(h, r, s) < 0) s = r;
+        if (l < h->len && less(h, l, s)) s = l;
+        if (r < h->len && less(h, r, s)) s = r;
 
         if (s == k) {
             return; /* satisfies the heap property */
@@ -87,6 +70,8 @@ siftup(Heap *h, int k)
 }
 
 
+// Heapinsert inserts x into heap h according to h->less.
+// It returns 1 on success, otherwise 0.
 int
 heapinsert(Heap *h, void *x)
 {

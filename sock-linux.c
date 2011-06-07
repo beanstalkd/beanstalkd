@@ -1,5 +1,3 @@
-// Copyright 2011 Keith Rarick. See file COPYING for details.
-
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/epoll.h>
@@ -93,7 +91,9 @@ handle(Socket *s, int evset)
 {
     int c = 0;
 
-    if (evset & EPOLLIN) {
+    if (evset & (EPOLLHUP|EPOLLRDHUP)) {
+        c = 'h';
+    } else if (evset & EPOLLIN) {
         c = 'r';
     } else if (evset & EPOLLOUT) {
         c = 'w';

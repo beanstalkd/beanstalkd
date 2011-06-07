@@ -13,7 +13,7 @@ cttestheap_insert_one()
     Heap h = {0};
     job j;
 
-    h.cmp = job_pri_cmp;
+    h.less = job_pri_less;
     h.rec = job_setheappos;
 
     j = make_job(1, 0, 1, 0, 0);
@@ -32,7 +32,7 @@ cttestheap_insert_and_remove_one()
     int r;
     job j, j1;
 
-    h.cmp = job_pri_cmp;
+    h.less = job_pri_less;
     h.rec = job_setheappos;
     j1 = make_job(1, 0, 1, 0, 0);
     assertf(j1, "allocate job");
@@ -55,7 +55,7 @@ cttestheap_priority()
     int r;
     job j, j1, j2, j3;
 
-    h.cmp = job_pri_cmp;
+    h.less = job_pri_less;
     h.rec = job_setheappos;
     j1 = make_job(1, 0, 1, 0, 0);
     j2 = make_job(2, 0, 1, 0, 0);
@@ -100,7 +100,7 @@ cttestheap_fifo_property()
     int r;
     job j, j3a, j3b, j3c;
 
-    h.cmp = job_pri_cmp;
+    h.less = job_pri_less;
     h.rec = job_setheappos;
     j3a = make_job(3, 0, 1, 0, 0);
     j3b = make_job(3, 0, 1, 0, 0);
@@ -149,7 +149,7 @@ cttestheap_many_jobs()
     int r, i, n = 20;
     job j;
 
-    h.cmp = job_pri_cmp;
+    h.less = job_pri_less;
     h.rec = job_setheappos;
 
     for (i = 0; i < n; i++) {
@@ -162,8 +162,8 @@ cttestheap_many_jobs()
     last_pri = 0;
     for (i = 0; i < n; i++) {
         j = heapremove(&h, 0);
-        assertf(j->pri >= last_pri, "should come out in order");
-        last_pri = j->pri;
+        assertf(j->r.pri >= last_pri, "should come out in order");
+        last_pri = j->r.pri;
     }
 }
 
@@ -176,7 +176,7 @@ cttestheap_remove_k()
     int r, i, c, n = 20;
     job j;
 
-    h.cmp = job_pri_cmp;
+    h.less = job_pri_less;
     h.rec = job_setheappos;
 
     for (c = 0; c < 50; c++) {
@@ -194,8 +194,8 @@ cttestheap_remove_k()
         last_pri = 0;
         for (i = 1; i < n; i++) {
             j = heapremove(&h, 0);
-            assertf(j->pri >= last_pri, "should come out in order");
-            last_pri = j->pri;
+            assertf(j->r.pri >= last_pri, "should come out in order");
+            last_pri = j->r.pri;
         }
     }
 }

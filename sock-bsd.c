@@ -1,5 +1,3 @@
-// Copyright 2011 Keith Rarick. See file COPYING for details.
-
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -7,7 +5,12 @@
 #include <sys/time.h>
 #include "dat.h"
 
-static void handle(Socket *s, int events);
+enum
+{
+    Infinity = 1 << 30
+};
+
+static void handle(Socket*, int, int);
 
 static Handle          tick;
 static void            *tickval;
@@ -54,6 +57,11 @@ sockwant(Socket *s, int rw)
     case 'w':
         ev.filter = EVFILT_WRITE;
         break;
+    default:
+        // check only for hangup
+        ev.filter = EVFILT_READ;
+        ev.fflags = NOTE_LOWAT;
+        ev.data = Infinity;
     }
     ev.ident = s->fd;
     ev.udata = s;
@@ -83,7 +91,7 @@ sockmain()
         }
 
         for (i=0; i<r; i++) {
-            handle(evs[i].udata, evs[i].filter);
+            handle(evs[i].udata, evs[i].filter, evs[i].flags);
         }
 
     }
@@ -91,14 +99,13 @@ sockmain()
 
 
 static void
-handle(Socket *s, int filt)
+handle(Socket *s, int filt, int flags)
 {
-    switch (filt) {
-    case EVFILT_READ:
+    if (flags & EV_EOF) {
+        s->f(s->x, 'h');
+    } else if (filt == EVFILT_READ) {
         s->f(s->x, 'r');
-        break;
-    case EVFILT_WRITE:
+    } else if (filt == EVFILT_WRITE) {
         s->f(s->x, 'w');
-        break;
     }
 }
