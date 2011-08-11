@@ -608,6 +608,15 @@ remove_buried_job(job j)
 }
 
 static job
+remove_delayed_job(job j)
+{
+    if (!j || j->r.state != Delayed) return NULL;
+    heapremove(&j->tube->delay, j->heap_index);
+
+    return j;
+}
+
+static job
 remove_ready_job(job j)
 {
     if (!j || j->r.state != Ready) return NULL;
@@ -1278,7 +1287,8 @@ dispatch_cmd(conn c)
         j = job_find(id);
         j = remove_reserved_job(c, j) ? :
             remove_ready_job(j) ? :
-            remove_buried_job(j);
+            remove_buried_job(j) ? :
+            remove_delayed_job(j);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 

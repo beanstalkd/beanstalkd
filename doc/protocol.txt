@@ -245,8 +245,8 @@ RESERVED <id> <bytes>\r\n
 
 The delete command removes a job from the server entirely. It is normally used
 by the client when the job has successfully run to completion. A client can
-delete jobs that it has reserved, ready jobs, and jobs that are buried. The
-delete command looks like this:
+delete jobs that it has reserved, ready jobs, delayed jobs, and jobs that are
+buried. The delete command looks like this:
 
 delete <id>\r\n
 
