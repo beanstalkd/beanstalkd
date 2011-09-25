@@ -269,5 +269,9 @@ conn_close(conn c)
     c->use->using_ct--;
     TUBE_ASSIGN(c->use, NULL);
 
+    if (c->tickpos > -1) {
+        heapremove(&c->srv->conns, c->tickpos);
+    }
+
     free(c);
 }
