@@ -72,7 +72,7 @@ sockwant(Socket *s, int rw)
 void
 sockmain()
 {
-    int i, r, n = 500;
+    int i, r, n = 1;
     int64 e, t = nanoseconds();
     struct kevent evs[n];
 
