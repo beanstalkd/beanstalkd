@@ -72,6 +72,7 @@ struct stats {
     uint buried_ct;
     uint reserved_ct;
     uint pause_ct;
+    uint32   total_delete_ct;
     uint64   total_jobs_ct;
 };
 

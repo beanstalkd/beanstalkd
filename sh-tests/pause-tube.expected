@@ -1,6 +1,6 @@
 INSERTED 1
 INSERTED 2
-OK 251
+OK 265
 ---
 name: default
 current-jobs-urgent: 0
@@ -12,12 +12,13 @@ total-jobs: 2
 current-using: 1
 current-watching: 1
 current-waiting: 0
+cmd-delete: 0
 cmd-pause-tube: 0
 pause: 0
 pause-time-left: 0
 
 PAUSED
-OK 252
+OK 266
 ---
 name: default
 current-jobs-urgent: 0
@@ -29,6 +30,7 @@ total-jobs: 2
 current-using: 1
 current-watching: 1
 current-waiting: 0
+cmd-delete: 0
 cmd-pause-tube: 1
 pause: 10
 pause-time-left: 9
@@ -38,7 +40,7 @@ RESERVED 1 1
 1
 DELETED
 PAUSED
-OK 251
+OK 265
 ---
 name: default
 current-jobs-urgent: 1
@@ -50,6 +52,7 @@ total-jobs: 2
 current-using: 1
 current-watching: 1
 current-waiting: 0
+cmd-delete: 1
 cmd-pause-tube: 3
 pause: 3
 pause-time-left: 2
