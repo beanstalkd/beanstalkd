@@ -35,6 +35,7 @@ static T ts[] = {
     {"sh-tests/omit-time-left.commands", "sh-tests/omit-time-left.expected"},
     {"sh-tests/pause-tube.commands", "sh-tests/pause-tube.expected"},
     {"sh-tests/small_delay.commands", "sh-tests/small_delay.expected"},
+    {"sh-tests/stats_tube.commands", "sh-tests/stats_tube.expected"},
     {"sh-tests/too-big.commands", "sh-tests/too-big.expected"},
     {"sh-tests/ttr-large.commands", "sh-tests/ttr-large.expected"},
     {"sh-tests/zero_delay.commands", "sh-tests/zero_delay.expected"},

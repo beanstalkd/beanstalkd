@@ -485,6 +485,8 @@ to scalars. It contains these keys:
 
  - "pause" is the number of seconds the tube has been paused for.
 
+ - "cmd-delete" is the cumulative number of delete commands for this tube
+
  - "cmd-pause-tube" is the cumulative number of pause-tube commands for this
    tube.
 
