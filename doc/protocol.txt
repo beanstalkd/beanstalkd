@@ -478,7 +478,8 @@ to scalars. It contains these keys:
 
  - "current-jobs-buried" is the number of buried jobs in this tube.
 
- - "total-jobs" is the cumulative count of jobs created in this tube.
+ - "total-jobs" is the cumulative count of jobs created in this tube in
+   the current beanstalkd process.
 
  - "current-waiting" is the number of open connections that have issued a
    reserve command while watching this tube but not yet received a response.
@@ -508,7 +509,8 @@ OK <bytes>\r\n
    is a YAML file with statistical information represented a dictionary.
 
 The stats data for the system is a YAML file representing a single dictionary
-of strings to scalars. It contains these keys:
+of strings to scalars. Entries described as "cumulative" are reset when the
+beanstalkd process starts; they are not stored on disk with the -b flag.
 
  - "current-jobs-urgent" is the number of ready jobs with priority < 1024.
 
@@ -586,13 +588,13 @@ of strings to scalars. It contains these keys:
 
  - "version" is the version string of the server.
 
- - "rusage-utime" is the accumulated user CPU time of this process in seconds
+ - "rusage-utime" is the cumulative user CPU time of this process in seconds
    and microseconds.
 
- - "rusage-stime" is the accumulated system CPU time of this process in
+ - "rusage-stime" is the cumulative system CPU time of this process in
    seconds and microseconds.
 
- - "uptime" is the number of seconds since this server started running.
+ - "uptime" is the number of seconds since this server process started running.
 
  - "binlog-oldest-index" is the index of the oldest binlog file needed to
    store the current jobs
