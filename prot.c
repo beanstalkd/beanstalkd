@@ -44,6 +44,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_LIST_TUBE_USED "list-tube-used"
 #define CMD_LIST_TUBES_WATCHED "list-tubes-watched"
 #define CMD_STATS_TUBE "stats-tube "
+#define CMD_CLEAR_TUBE "clear-tube "
 #define CMD_QUIT "quit"
 #define CMD_PAUSE_TUBE "pause-tube"
 
@@ -69,6 +70,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_LIST_TUBE_USED_LEN CONSTSTRLEN(CMD_LIST_TUBE_USED)
 #define CMD_LIST_TUBES_WATCHED_LEN CONSTSTRLEN(CMD_LIST_TUBES_WATCHED)
 #define CMD_STATS_TUBE_LEN CONSTSTRLEN(CMD_STATS_TUBE)
+#define CMD_CLEAR_TUBE_LEN CONSTSTRLEN(CMD_CLEAR_TUBE)
 #define CMD_PAUSE_TUBE_LEN CONSTSTRLEN(CMD_PAUSE_TUBE)
 
 #define MSG_FOUND "FOUND"
@@ -79,6 +81,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_DELETED "DELETED\r\n"
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
+#define MSG_CLEARED "CLEARED\r\n"
 #define MSG_TOUCHED "TOUCHED\r\n"
 #define MSG_BURIED_FMT "BURIED %llu\r\n"
 #define MSG_INSERTED_FMT "INSERTED %llu\r\n"
@@ -130,7 +133,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_TOUCH 21
 #define OP_QUIT 22
 #define OP_PAUSE_TUBE 23
-#define TOTAL_OPS 24
+#define OP_CLEAR_TUBE 24
+#define TOTAL_OPS 25
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -721,6 +725,7 @@ which_cmd(conn c)
     TEST_CMD(c->cmd, CMD_TOUCH, OP_TOUCH);
     TEST_CMD(c->cmd, CMD_JOBSTATS, OP_JOBSTATS);
     TEST_CMD(c->cmd, CMD_STATS_TUBE, OP_STATS_TUBE);
+    TEST_CMD(c->cmd, CMD_CLEAR_TUBE, OP_CLEAR_TUBE);
     TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
     TEST_CMD(c->cmd, CMD_USE, OP_USE);
     TEST_CMD(c->cmd, CMD_WATCH, OP_WATCH);
@@ -1424,6 +1429,18 @@ dispatch_cmd(conn c)
         do_stats(c, (fmt_fn) fmt_stats_tube, t);
         t = NULL;
         break;
+    case OP_CLEAR_TUBE:
+        name = c->cmd + CMD_CLEAR_TUBE_LEN;
+        if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
+         
+        t = tube_find(name);
+        if (!t) return reply_msg(c, MSG_NOTFOUND);
+        
+        tube_clear(t);
+        reply_msg(c,  MSG_CLEARED);
+        
+        t = NULL;
+        break;
     case OP_LIST_TUBES:
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_LIST_TUBES_LEN + 2) {
@@ -1485,7 +1502,6 @@ dispatch_cmd(conn c)
         name = c->cmd + CMD_IGNORE_LEN;
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
-
         t = NULL;
         for (i = 0; i < c->watch.used; i++) {
             t = c->watch.items[i];
@@ -1789,6 +1805,7 @@ prottick(Srv *s)
     }
 
     update_conns();
+    tube_empty_trash();
 }
 
 void

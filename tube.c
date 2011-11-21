@@ -3,7 +3,10 @@
 #include <string.h>
 #include "dat.h"
 
+#define EMPTY_TRASH_JOBS 5
+
 struct ms tubes;
+struct ms trash_heaps;
 
 tube
 make_tube(const char *name)
@@ -68,6 +71,40 @@ tube_iref(tube t)
     ++t->refs;
 }
 
+void tube_clear(tube t)
+{ 
+    Heap *heaps[]={&t->ready,&t->delay}; //These are the heaps we need to clear
+    int count=sizeof(heaps)/sizeof(Heap*); //counter for the for loop
+    int i=0;
+    
+    for(i=0;i<count;i++)
+    {
+         //Instead of deleting the heaps, we move them to the trash
+        //and delete them in the main event handler
+        Heap * trash=malloc(sizeof(struct Heap));
+        
+        //Copy the current tube definition to the trash
+        memcpy(trash,heaps[i],sizeof(struct Heap));
+        
+        //"Empty" the heaps
+        heaps[i]->cap=heaps[i]->len=0;
+        heaps[i]->data=NULL;//we can se this to null because the data is now in the trash
+        
+        //Move the trash tube the trash list
+        ms_append(&trash_heaps,trash);
+    }
+    
+    /*clear the stats for the tube*/
+    t->stat.buried_ct=0;
+    t->stat.pause_ct=0;
+    t->stat.total_delete_ct=0;
+    t->stat.total_jobs_ct=0;
+    t->stat.urgent_ct=0;
+    t->stat.waiting_ct=0;
+    
+    ms_clear(&t->waiting);
+}
+
 static tube
 make_and_insert_tube(const char *name)
 {
@@ -104,3 +141,29 @@ tube_find_or_make(const char *name)
     return tube_find(name) ? : make_and_insert_tube(name);
 }
 
+void
+tube_empty_trash(){
+    Heap * heap;
+    while(heap=ms_take(&trash_heaps)){
+        job j;
+        int i=0;
+        while((j=heapremove(heap,0))!=0 && i++<EMPTY_TRASH_JOBS) 
+        {
+            job_remove(j);
+            j->r.state = Invalid;
+            job_free(j);
+        }
+        
+        if(j)
+        {
+            //this was not the last job in the heap, add the heap again for future use
+           ms_append(&trash_heaps,heap);
+        }
+        else
+        {
+            //no more jobs in the heap, delete it
+            free(heap->data);
+            free(heap);
+        }
+    }
+}

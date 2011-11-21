@@ -1,0 +1,20 @@
+use tubea
+put  1 0 0 4
+data
+put  1 0 0 4
+data
+put  1 0 0 4
+data
+put  1 0 0 4
+data
+put  1 0 0 4
+data
+put  1 0 0 4
+data
+watch tubea
+clear-tube tubea
+reserve-with-timeout 0
+put  1 0 0 2
+ok
+reserve-with-timeout 0
+quit
