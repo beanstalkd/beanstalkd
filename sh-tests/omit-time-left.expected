@@ -1,5 +1,5 @@
 INSERTED 1
-OK 135
+OK 143
 ---
 id: 1
 tube: default
@@ -9,6 +9,7 @@ age: 0
 delay: 0
 ttr: 5
 time-left: 0
+file: 0
 reserves: 0
 timeouts: 0
 releases: 0

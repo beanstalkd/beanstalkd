@@ -57,7 +57,7 @@ cmd-pause-tube: 3
 pause: 3
 pause-time-left: 2
 
-OK 135
+OK 143
 ---
 id: 2
 tube: default
@@ -67,6 +67,7 @@ age: 1
 delay: 1
 ttr: 1
 time-left: 0
+file: 0
 reserves: 0
 timeouts: 0
 releases: 0
@@ -75,7 +76,7 @@ kicks: 0
 
 RESERVED 2 1
 2
-OK 138
+OK 146
 ---
 id: 2
 tube: default
@@ -85,6 +86,7 @@ age: 4
 delay: 1
 ttr: 1
 time-left: 0
+file: 0
 reserves: 1
 timeouts: 0
 releases: 0

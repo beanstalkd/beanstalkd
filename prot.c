@@ -207,6 +207,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "delay: %" PRIu64 "\n" \
     "ttr: %" PRIu64 "\n" \
     "time-left: %" PRIu64 "\n" \
+    "file: %d\n" \
     "reserves: %u\n" \
     "timeouts: %u\n" \
     "releases: %u\n" \
@@ -1039,12 +1040,16 @@ fmt_job_stats(char *buf, size_t size, job j)
 {
     int64 t;
     int64 time_left;
+    int file = 0;
 
     t = nanoseconds();
     if (j->r.state == Reserved || j->r.state == Delayed) {
         time_left = (j->r.deadline_at - t) / 1000000000;
     } else {
         time_left = 0;
+    }
+    if (j->file) {
+        file = j->file->seq;
     }
     return snprintf(buf, size, STATS_JOB_FMT,
             j->r.id,
@@ -1055,6 +1060,7 @@ fmt_job_stats(char *buf, size_t size, job j)
             j->r.delay / 1000000000,
             j->r.ttr / 1000000000,
             time_left,
+            file,
             j->r.reserve_ct,
             j->r.timeout_ct,
             j->r.release_ct,
