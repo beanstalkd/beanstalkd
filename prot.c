@@ -195,7 +195,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "cmd-delete: %" PRIu64 "\n" \
     "cmd-pause-tube: %u\n" \
     "pause: %" PRIu64 "\n" \
-    "pause-time-left: %" PRIu64 "\n" \
+    "pause-time-left: %" PRId64 "\n" \
     "\r\n"
 
 #define STATS_JOB_FMT "---\n" \
@@ -203,10 +203,10 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "tube: %s\n" \
     "state: %s\n" \
     "pri: %u\n" \
-    "age: %" PRIu64 "\n" \
-    "delay: %" PRIu64 "\n" \
-    "ttr: %" PRIu64 "\n" \
-    "time-left: %" PRIu64 "\n" \
+    "age: %" PRId64 "\n" \
+    "delay: %" PRId64 "\n" \
+    "ttr: %" PRId64 "\n" \
+    "time-left: %" PRId64 "\n" \
     "file: %d\n" \
     "reserves: %u\n" \
     "timeouts: %u\n" \
