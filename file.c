@@ -10,7 +10,7 @@
 #include <string.h>
 #include "dat.h"
 
-static void warnpos(File*, char*, ...);
+static void warnpos(File*, int, char*, ...);
 static int  readrec(File*, job, int*);
 static int  readfull(File*, void*, int, int*, char*);
 
@@ -104,7 +104,7 @@ readrec(File *f, job l, int *err)
     r = read(f->fd, &namelen, sizeof(int));
     if (r == -1) {
         twarn("read");
-        warnpos(f, "error");
+        warnpos(f, 0, "error");
         *err = 1;
         return 0;
     }
@@ -113,7 +113,7 @@ readrec(File *f, job l, int *err)
     }
     sz += r;
     if (namelen >= MAX_TUBE_NAME_LEN) {
-        warnpos(f, "namelen %d exceeds maximum of %d", namelen, MAX_TUBE_NAME_LEN - 1);
+        warnpos(f, -r, "namelen %d exceeds maximum of %d", namelen, MAX_TUBE_NAME_LEN - 1);
         *err = 1;
         return 0;
     }
@@ -166,8 +166,8 @@ readrec(File *f, job l, int *err)
         // full record; read the job body
         if (namelen) {
             if (jr.body_size != j->r.body_size) {
-                warnpos(f, "job %llu size changed", j->r.id);
-                warnpos(f, "was %zu, now %zu", j->r.body_size, jr.body_size);
+                warnpos(f, -r, "job %llu size changed", j->r.id);
+                warnpos(f, -r, "was %zu, now %zu", j->r.body_size, jr.body_size);
                 goto Error;
             }
             r = readfull(f, j->body, j->r.body_size, err, "job body");
@@ -214,12 +214,12 @@ readfull(File *f, void *c, int n, int *err, char *desc)
     r = read(f->fd, c, n);
     if (r == -1) {
         twarn("read");
-        warnpos(f, "error reading %s", desc);
+        warnpos(f, 0, "error reading %s", desc);
         *err = 1;
         return 0;
     }
     if (r != n) {
-        warnpos(f, "unexpected EOF reading %s", desc);
+        warnpos(f, -r, "unexpected EOF reading %s", desc);
         *err = 1;
         return 0;
     }
@@ -228,13 +228,13 @@ readfull(File *f, void *c, int n, int *err, char *desc)
 
 
 static void
-warnpos(File *f, char *fmt, ...)
+warnpos(File *f, int adj, char *fmt, ...)
 {
     int off;
     va_list ap;
 
     off = lseek(f->fd, 0, SEEK_CUR);
-    fprintf(stderr, "%s:%u: ", f->path, off);
+    fprintf(stderr, "%s:%u: ", f->path, off+adj);
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
     va_end(ap);
