@@ -219,7 +219,7 @@ readfull(File *f, void *c, int n, int *err, char *desc)
         return 0;
     }
     if (r != n) {
-        warnpos(f, -r, "unexpected EOF reading %s", desc);
+        warnpos(f, -r, "unexpected EOF reading %d bytes (got %d): %s", n, r, desc);
         *err = 1;
         return 0;
     }
