@@ -1,0 +1,4 @@
+put 0 0 0 1
+a
+stats-job 1
+quit

@@ -38,6 +38,7 @@ static T ts[] = {
     {"sh-tests/stats_tube.commands", "sh-tests/stats_tube.expected"},
     {"sh-tests/too-big.commands", "sh-tests/too-big.expected"},
     {"sh-tests/ttr-large.commands", "sh-tests/ttr-large.expected"},
+    {"sh-tests/ttr-small.commands", "sh-tests/ttr-small.expected"},
     {"sh-tests/zero_delay.commands", "sh-tests/zero_delay.expected"},
     {},
 };
