@@ -14,7 +14,7 @@ also,
     $ make install PREFIX=/usr/local
 
 You might need to type "gmake"; our build requires GNU make.
-Requires Linux (2.6 series or later), Mac OS X, or FreeBSD.
+Requires Linux (2.6.17 or later), Mac OS X, or FreeBSD.
 See doc/protocol.txt for details of the network protocol.
 
 
