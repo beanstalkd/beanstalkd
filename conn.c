@@ -49,6 +49,7 @@ make_conn(int fd, char start_state, tube use, tube watch)
     c->type = 0;
     c->cmd_read = 0;
     c->pending_timeout = -1;
+    c->tickpos = -1;
     c->soonest_job = NULL;
     c->in_job = c->out_job = NULL;
     c->in_job_read = c->out_job_sent = 0;

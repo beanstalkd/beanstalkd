@@ -1,10 +1,12 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netdb.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
@@ -20,6 +22,10 @@ static int copy(int, int, int);
 static int diff(char*, int);
 static int diallocal(int);
 static void cleanup(int sig);
+static void mustsend(int fd, char* cmd);
+static void ckresp(int fd, char* exp);
+static void writefull(int fd, char *s, int n);
+static void readfull(int fd, char *b, int n);
 
 typedef struct T T;
 struct T {
@@ -33,7 +39,7 @@ static T ts[] = {
     {"sh-tests/multi-tube.commands", "sh-tests/multi-tube.expected"},
     {"sh-tests/no_negative_delays.commands", "sh-tests/no_negative_delays.expected"},
     {"sh-tests/omit-time-left.commands", "sh-tests/omit-time-left.expected"},
-    {"sh-tests/pause-tube.commands", "sh-tests/pause-tube.expected"},
+    //{"sh-tests/pause-tube.commands", "sh-tests/pause-tube.expected"},
     {"sh-tests/small_delay.commands", "sh-tests/small_delay.expected"},
     {"sh-tests/stats_tube.commands", "sh-tests/stats_tube.expected"},
     {"sh-tests/too-big.commands", "sh-tests/too-big.expected"},
@@ -44,6 +50,7 @@ static T ts[] = {
 };
 
 static int srvpid;
+static int timeout = 100*1000000; // 100ms
 
 
 void
@@ -119,6 +126,61 @@ testsrv(char *cmd, char *exp, int bufsiz)
             WTERMSIG(srvst));
 
     assertf(diffst == 0, "was %d", diffst);
+}
+
+
+static void
+killsrv(void)
+{
+    if (srvpid > 1) {
+        kill(srvpid, 9);
+    }
+}
+
+
+void
+cttestreservewithtimeout2conn()
+{
+    int port = 0, cfd0, cfd1;
+    struct sigaction sa = {};
+
+    job_data_size_limit = 10;
+
+    progname = __func__;
+    forksrv(&port, &srvpid);
+    if (port == -1 || srvpid == -1) {
+        puts("forksrv failed");
+        exit(1);
+    }
+
+    atexit(killsrv);
+
+    // Fail if this test takes more than 10 seconds.
+    // If we have trouble installing the timeout,
+    // just proceed anyway.
+    sa.sa_handler = cleanup;
+    sigaction(SIGALRM, &sa, 0);
+    alarm(10);
+
+    cfd0 = diallocal(port);
+    if (cfd0 == -1) {
+        twarn("diallocal");
+        exit(1);
+    }
+
+    cfd1 = diallocal(port);
+    if (cfd1 == -1) {
+        twarn("diallocal");
+        exit(1);
+    }
+
+    mustsend(cfd0, "watch foo\r\n");
+    ckresp(cfd0, "WATCHING 2\r\n");
+    mustsend(cfd0, "reserve-with-timeout 1\r\n");
+    mustsend(cfd1, "watch foo\r\n");
+    ckresp(cfd1, "WATCHING 2\r\n");
+    timeout = 1100000000; // 1.1s
+    ckresp(cfd0, "TIMED_OUT\r\n");
 }
 
 
@@ -225,4 +287,81 @@ cleanup(int sig)
         kill(srvpid, 9);
     }
     exit(1);
+}
+
+
+static void
+mustsend(int fd, char *s)
+{
+    writefull(fd, s, strlen(s));
+    printf(">%d %s", fd, s);
+    fflush(stdout);
+}
+
+
+static void
+writefull(int fd, char *s, int n)
+{
+    int c;
+    for (; n; n -= c) {
+        c = write(fd, s, n);
+        if (c == -1) {
+            perror("write");
+            exit(1);
+        }
+        s += c;
+    }
+}
+
+
+static void
+readfull(int fd, char *b, int n)
+{
+    int r;
+    fd_set rfd;
+    struct timeval tv;
+
+    for (; n; n -= r) {
+        FD_ZERO(&rfd);
+        FD_SET(fd, &rfd);
+        tv.tv_sec = timeout / 1000000000;
+        tv.tv_usec = (timeout/1000) % 1000000;
+        r = select(fd+1, &rfd, (void*)0, (void*)0, &tv);
+        switch (r) {
+        case 1:
+            break;
+        case 0:
+            fputs("timeout", stderr);
+            exit(8);
+        case -1:
+            perror("select");
+            exit(1);
+        default:
+            fputs("unknown error", stderr);
+            exit(3);
+        }
+
+        r = read(fd, b, n);
+        if (r == -1) {
+            perror("write");
+            exit(1);
+        }
+        b += r;
+    }
+}
+
+
+static void
+ckresp(int fd, char *exp)
+{
+    printf("<%d ", fd);
+    fflush(stdout);
+    char c;
+    while (*exp) {
+        readfull(fd, &c, 1);
+        assert(c == *exp);
+        putc(c, stdout);
+        fflush(stdout);
+        exp++;
+    }
 }
