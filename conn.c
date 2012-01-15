@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -10,6 +11,7 @@
 
 static int cur_conn_ct = 0, cur_worker_ct = 0, cur_producer_ct = 0;
 static uint tot_conn_ct = 0;
+int verbose = 0;
 
 static void
 on_watch(ms a, tube t, size_t i)
@@ -248,6 +250,9 @@ conn_close(conn c)
 {
     sockwant(&c->sock, 0);
     close(c->sock.fd);
+    if (verbose) {
+        printf("close %d\n", c->sock.fd);
+    }
 
     job_free(c->in_job);
 

@@ -65,6 +65,7 @@ typedef void(*Record)(void*, int);
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 
 extern const char version[];
+extern int verbose;
 
 struct stats {
     uint urgent_ct;

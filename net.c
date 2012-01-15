@@ -1,4 +1,5 @@
 #include <netdb.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -78,6 +79,22 @@ make_server_socket(char *host, char *port)
       setsockopt(fd, SOL_SOCKET, SO_LINGER,   &linger, sizeof linger);
       setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof flags);
 
+      if (verbose) {
+          char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV], *h = host, *p = port;
+          r = getnameinfo(ai->ai_addr, ai->ai_addrlen,
+                  hbuf, sizeof hbuf,
+                  pbuf, sizeof pbuf,
+                  NI_NUMERICHOST|NI_NUMERICSERV);
+          if (!r) {
+              h = hbuf;
+              p = pbuf;
+          }
+          if (ai->ai_family == AF_INET6) {
+              printf("bind %d [%s]:%s\n", fd, h, p);
+          } else {
+              printf("bind %d %s:%s\n", fd, h, p);
+          }
+      }
       r = bind(fd, ai->ai_addr, ai->ai_addrlen);
       if (r == -1) {
         twarn("bind()");

@@ -70,6 +70,7 @@ usage(char *msg, char *arg)
             " -c       compact the binlog (default)\n"
             " -n       do not compact the binlog\n"
             " -v       show version information\n"
+            " -V       increase verbosity\n"
             " -h       show this help\n",
             progname, JOB_DATA_SIZE_LIMIT_DEFAULT, Filesizedef);
     exit(arg ? 5 : 0);
@@ -152,6 +153,9 @@ opts(int argc, char **argv, Wal *w)
             case 'v':
                 printf("beanstalkd %s\n", version);
                 exit(0);
+            case 'V':
+                verbose++;
+                break;
             default:
                 usage("unknown option", argv[i]);
         }
@@ -168,6 +172,10 @@ main(int argc, char **argv)
 
     progname = argv[0];
     opts(argc, argv, &s.wal);
+
+    if (verbose) {
+        printf("pid %d\n", getpid());
+    }
 
     r = make_server_socket(host_addr, port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);

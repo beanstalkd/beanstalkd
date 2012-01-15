@@ -234,7 +234,6 @@ static struct conn dirty = {&dirty, &dirty};
 /* Doubly-linked list of connections with at least one reserved job. */
 static struct conn running = { &running, &running };
 
-#ifdef DEBUG
 static const char * op_names[] = {
     "<unknown>",
     CMD_PUT,
@@ -261,7 +260,6 @@ static const char * op_names[] = {
     CMD_QUIT,
     CMD_PAUSE_TUBE
 };
-#endif
 
 static job remove_buried_job(job j);
 
@@ -282,6 +280,9 @@ reply(conn c, const char *line, int len, int state)
     c->reply_sent = 0;
     c->state = state;
     dbgprintf("sending reply: %.*s", len, line);
+    if (verbose >= 2) {
+        printf(">%d reply %.*s\n", c->sock.fd, len-2, line);
+    }
 }
 
 #define reply_msg(c,m) reply((c),(m),CONSTSTRLEN(m),STATE_SENDWORD)
@@ -801,6 +802,10 @@ enqueue_incoming_job(conn c)
         return reply_msg(c, MSG_EXPECTED_CRLF);
     }
 
+    if (verbose >= 2) {
+        printf("<%d job %llu\n", c->sock.fd, j->r.id);
+    }
+
     if (drain_mode) {
         job_free(j);
         return reply_serr(c, MSG_DRAINING);
@@ -1166,6 +1171,9 @@ dispatch_cmd(conn c)
 
     type = which_cmd(c);
     dbgprintf("got %s command: \"%s\"\n", op_names[(int) type], c->cmd);
+    if (verbose >= 2) {
+        printf("<%d command %s\n", c->sock.fd, op_names[type]);
+    }
 
     switch (type) {
     case OP_PUT:
@@ -1704,7 +1712,12 @@ conn_data(conn c)
         /* (c->out_job_sent > j->r.body_size) can't happen */
 
         /* are we done? */
-        if (c->out_job_sent == j->r.body_size) return reset_conn(c);
+        if (c->out_job_sent == j->r.body_size) {
+            if (verbose >= 2) {
+                printf(">%d job %llu\n", c->sock.fd, j->r.id);
+            }
+            return reset_conn(c);
+        }
 
         /* otherwise we sent incomplete data, so just keep waiting */
         break;
@@ -1816,11 +1829,17 @@ h_accept(const int fd, const short which, Srv *s)
         update_conns();
         return;
     }
+    if (verbose) {
+        printf("accept %d\n", cfd);
+    }
 
     flags = fcntl(cfd, F_GETFL, 0);
     if (flags < 0) {
         twarn("getting flags");
         close(cfd);
+        if (verbose) {
+            printf("close %d\n", cfd);
+        }
         update_conns();
         return;
     }
@@ -1829,6 +1848,9 @@ h_accept(const int fd, const short which, Srv *s)
     if (r < 0) {
         twarn("setting O_NONBLOCK");
         close(cfd);
+        if (verbose) {
+            printf("close %d\n", cfd);
+        }
         update_conns();
         return;
     }
@@ -1837,6 +1859,9 @@ h_accept(const int fd, const short which, Srv *s)
     if (!c) {
         twarnx("make_conn() failed");
         close(cfd);
+        if (verbose) {
+            printf("close %d\n", cfd);
+        }
         update_conns();
         return;
     }
@@ -1850,6 +1875,9 @@ h_accept(const int fd, const short which, Srv *s)
     if (r == -1) {
         twarn("sockwant");
         close(cfd);
+        if (verbose) {
+            printf("close %d\n", cfd);
+        }
         update_conns();
         return;
     }
