@@ -503,15 +503,10 @@ filewrjobfull(File *f, job j)
 void
 filewclose(File *f)
 {
-    int r;
-
     if (!f) return;
     if (!f->iswopen) return;
     if (f->free) {
-        // Some compilers give a warning if the return value of ftruncate is
-        // ignored. So we pretend to use it.
-        r = ftruncate(f->fd, f->w->filesz - f->free);
-        if (r == -1); // do nothing
+        (void)ftruncate(f->fd, f->w->filesz - f->free);
     }
     close(f->fd);
     f->iswopen = 0;

@@ -8,9 +8,11 @@ QUICK START
 
 also,
 
-    $ make 'CFLAGS=-g -DDEBUG'
+    $ make CFLAGS='-g -DDEBUG'
+    $ make CC=clang
     $ make check
-    $ make install PREFIX=/usr/local
+    $ make install
+    $ make install PREFIX=/usr
 
 You might need to type "gmake"; our build requires GNU make.
 Requires Linux (2.6.17 or later), Mac OS X, or FreeBSD.
