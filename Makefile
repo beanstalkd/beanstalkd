@@ -50,7 +50,6 @@ dist: $(TARG)-$(VERS).tar.gz
 
 $(TARG)-$(VERS).tar:
 	git archive -o $@ --prefix=$(TARG)-$(VERS)/ v$(VERS)
-	tar --delete -f $@ $(TARG)-$(VERS)/vers.sh
 	mkdir -p $(TARG)-$(VERS)
 	echo 'echo "$(VERS)"' >$(TARG)-$(VERS)/vers.sh
 	chmod +x $(TARG)-$(VERS)/vers.sh
