@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -203,7 +204,7 @@ readrec(File *f, job l, int *err)
         // full record; read the job body
         if (namelen) {
             if (jr.body_size != j->r.body_size) {
-                warnpos(f, -r, "job %llu size changed", j->r.id);
+                warnpos(f, -r, "job %"PRIu64" size changed", j->r.id);
                 warnpos(f, -r, "was %zu, now %zu", j->r.body_size, jr.body_size);
                 goto Error;
             }
@@ -332,7 +333,7 @@ readrec5(File *f, job l, int *err)
         // full record; read the job body
         if (namelen) {
             if (jr.body_size != j->r.body_size) {
-                warnpos(f, -r, "job %llu size changed", j->r.id);
+                warnpos(f, -r, "job %"PRIu64" size changed", j->r.id);
                 warnpos(f, -r, "was %zu, now %zu", j->r.body_size, jr.body_size);
                 goto Error;
             }
