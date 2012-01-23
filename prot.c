@@ -80,8 +80,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
 #define MSG_TOUCHED "TOUCHED\r\n"
-#define MSG_BURIED_FMT "BURIED %llu\r\n"
-#define MSG_INSERTED_FMT "INSERTED %llu\r\n"
+#define MSG_BURIED_FMT "BURIED %"PRIu64"\r\n"
+#define MSG_INSERTED_FMT "INSERTED %"PRIu64"\r\n"
 #define MSG_NOT_IGNORED "NOT_IGNORED\r\n"
 
 #define MSG_NOTFOUND_LEN CONSTSTRLEN(MSG_NOTFOUND)
@@ -313,7 +313,7 @@ reply_job(conn c, job j, const char *word)
     c->out_job = j;
     c->out_job_sent = 0;
 
-    return reply_line(c, STATE_SENDJOB, "%s %llu %u\r\n",
+    return reply_line(c, STATE_SENDJOB, "%s %"PRIu64" %u\r\n",
                       word, j->r.id, j->r.body_size - 2);
 }
 
@@ -803,7 +803,7 @@ enqueue_incoming_job(conn c)
     }
 
     if (verbose >= 2) {
-        printf("<%d job %llu\n", c->sock.fd, j->r.id);
+        printf("<%d job %"PRIu64"\n", c->sock.fd, j->r.id);
     }
 
     if (drain_mode) {
@@ -1714,7 +1714,7 @@ conn_data(conn c)
         /* are we done? */
         if (c->out_job_sent == j->r.body_size) {
             if (verbose >= 2) {
-                printf(">%d job %llu\n", c->sock.fd, j->r.id);
+                printf(">%d job %"PRIu64"\n", c->sock.fd, j->r.id);
             }
             return reset_conn(c);
         }
@@ -1920,7 +1920,7 @@ prot_replay(Srv *s, job list)
             /* fall through */
         default:
             r = enqueue_job(s, j, delay, 0);
-            if (r < 1) twarnx("error recovering job %llu", j->r.id);
+            if (r < 1) twarnx("error recovering job %"PRIu64, j->r.id);
         }
     }
 }
