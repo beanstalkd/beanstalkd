@@ -69,6 +69,9 @@ struct stats {
     uint pause_ct;
     uint64   total_delete_ct;
     uint64   total_jobs_ct;
+
+    uint64   total_put_ct;
+    uint64   total_reserve_ct;
 };
 
 
