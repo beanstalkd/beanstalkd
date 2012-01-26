@@ -55,12 +55,6 @@ typedef void(*Record)(void*, int);
 #define twarnx(fmt, args...) warnx("%s:%d in %s: " fmt, \
                                    __FILE__, __LINE__, __func__, ##args)
 
-#ifdef DEBUG
-#define dbgprintf(fmt, args...) ((void) fprintf(stderr, fmt, ##args))
-#else
-#define dbgprintf(fmt, ...) ((void) 0)
-#endif
-
 #define URGENT_THRESHOLD 1024
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 

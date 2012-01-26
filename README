@@ -8,7 +8,7 @@ QUICK START
 
 also,
 
-    $ make CFLAGS='-g -DDEBUG'
+    $ make CFLAGS=-g
     $ make CC=clang
     $ make check
     $ make install

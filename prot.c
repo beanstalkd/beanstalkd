@@ -279,7 +279,6 @@ reply(conn c, const char *line, int len, int state)
     c->reply_len = len;
     c->reply_sent = 0;
     c->state = state;
-    dbgprintf("sending reply: %.*s", len, line);
     if (verbose >= 2) {
         printf(">%d reply %.*s\n", c->sock.fd, len-2, line);
     }
@@ -358,11 +357,8 @@ next_eligible_job(int64 now)
     size_t i;
     job j = NULL, candidate;
 
-    dbgprintf("tubes.used = %zu\n", tubes.used);
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
-        dbgprintf("for %s t->waiting.used=%zu t->ready.len=%d t->pause=%" PRIu64 "\n",
-                t->name, t->waiting.used, t->ready.len, t->pause);
         if (t->pause) {
             if (t->deadline_at > now) continue;
             t->pause = 0;
@@ -373,7 +369,6 @@ next_eligible_job(int64 now)
                 j = candidate;
             }
         }
-        dbgprintf("i = %zu, tubes.used = %zu\n", i, tubes.used);
     }
 
     return j;
@@ -385,9 +380,7 @@ process_queue()
     job j;
     int64 now = nanoseconds();
 
-    dbgprintf("processing queue\n");
     while ((j = next_eligible_job(now))) {
-        dbgprintf("got eligible job %"PRIu64" in %s\n", j->r.id, j->tube->name);
         heapremove(&j->tube->ready, j->heap_index);
         ready_ct--;
         if (j->r.pri < URGENT_THRESHOLD) {
@@ -1170,7 +1163,6 @@ dispatch_cmd(conn c)
     }
 
     type = which_cmd(c);
-    dbgprintf("got %s command: \"%s\"\n", op_names[(int) type], c->cmd);
     if (verbose >= 2) {
         printf("<%d command %s\n", c->sock.fd, op_names[type]);
     }
@@ -1583,10 +1575,8 @@ conn_timeout(conn c)
     }
 
     if (should_timeout) {
-        dbgprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
         return reply_msg(remove_waiting_conn(c), MSG_DEADLINE_SOON);
     } else if (conn_waiting(c) && c->pending_timeout >= 0) {
-        dbgprintf("conn_waiting(%p) = %d\n", c, conn_waiting(c));
         c->pending_timeout = -1;
         return reply_msg(remove_waiting_conn(c), MSG_TIMED_OUT);
     }
@@ -1757,7 +1747,6 @@ h_conn(const int fd, const short which, conn c)
     }
 
     if (which == 'h') {
-        dbgprintf("client hung up fd=%d\n", fd);
         conn_close(c);
         return;
     }
@@ -1793,8 +1782,6 @@ prottick(Srv *s)
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
 
-        dbgprintf("delay for %s t->waiting.used=%zu t->ready.len=%d t->pause=%" PRIu64 "\n",
-                t->name, t->waiting.used, t->ready.len, t->pause);
         if (t->pause && t->deadline_at <= now) {
             t->pause = 0;
             process_queue();
@@ -1870,7 +1857,6 @@ h_accept(const int fd, const short which, Srv *s)
     c->sock.f = (Handle)prothandle;
     c->sock.fd = cfd;
 
-    dbgprintf("accepted conn, fd=%d\n", cfd);
     r = sockwant(&c->sock, 'r');
     if (r == -1) {
         twarn("sockwant");
