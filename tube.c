@@ -10,21 +10,12 @@ make_tube(const char *name)
 {
     tube t;
 
-    t = malloc(sizeof(struct tube));
+    t = new(struct tube);
     if (!t) return NULL;
-
-    t->refs = 0;
 
     t->name[MAX_TUBE_NAME_LEN - 1] = '\0';
     strncpy(t->name, name, MAX_TUBE_NAME_LEN - 1);
     if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0') twarnx("truncating tube name");
-
-    t->ready.cap = 0;
-    t->delay.cap = 0;
-    t->ready.len = 0;
-    t->delay.len = 0;
-    t->ready.data = NULL;
-    t->delay.data = NULL;
 
     t->ready.less = job_pri_less;
     t->delay.less = job_delay_less;
@@ -33,10 +24,6 @@ make_tube(const char *name)
     t->buried = (struct job) { };
     t->buried.prev = t->buried.next = &t->buried;
     ms_init(&t->waiting, NULL, NULL);
-
-    t->stat = (struct stats) {0, 0, 0, 0, 0};
-    t->using_ct = t->watching_ct = 0;
-    t->deadline_at = t->pause = 0;
 
     return t;
 }

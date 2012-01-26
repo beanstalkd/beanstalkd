@@ -13,9 +13,6 @@ srv(Srv *s)
 
     s->sock.x = s;
     s->sock.f = (Handle)srvaccept;
-    s->conns.cap = 0;
-    s->conns.len = 0;
-    s->conns.data = NULL;
     s->conns.less = (Less)connless;
     s->conns.rec = (Record)connrec;
 

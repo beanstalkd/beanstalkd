@@ -42,19 +42,13 @@ make_conn(int fd, char start_state, tube use, tube watch)
         return twarn("OOM"), (conn) 0;
     }
 
-    c->use = NULL; /* initialize */
     TUBE_ASSIGN(c->use, use);
     use->using_ct++;
 
     c->sock.fd = fd;
     c->state = start_state;
-    c->type = 0;
-    c->cmd_read = 0;
     c->pending_timeout = -1;
     c->tickpos = -1;
-    c->soonest_job = NULL;
-    c->in_job = c->out_job = NULL;
-    c->in_job_read = c->out_job_sent = 0;
     c->prev = c->next = c; /* must be out of a linked list right now */
     j = &c->reserved_jobs;
     j->prev = j->next = j;
