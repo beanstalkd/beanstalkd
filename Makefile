@@ -50,10 +50,10 @@ dist: $(TARG)-$(VERS).tar.gz
 
 $(TARG)-$(VERS).tar:
 	git archive -o $@ --prefix=$(TARG)-$(VERS)/ v$(VERS)
-	mkdir -p $(TARG)-$(VERS)
-	echo 'echo "$(VERS)"' >$(TARG)-$(VERS)/vers.sh
-	chmod +x $(TARG)-$(VERS)/vers.sh
-	tar --append -f $@ $(TARG)-$(VERS)/vers.sh
+	mkdir -p $(TARG)-$(VERS)/mk
+	echo 'printf "$(VERS)"' >$(TARG)-$(VERS)/mk/vers.sh
+	chmod +x $(TARG)-$(VERS)/mk/vers.sh
+	tar --append -f $@ $(TARG)-$(VERS)/mk/vers.sh
 	sed 's/@VERSION@/$(VERS)/' <pkg/beanstalkd.spec.in >$(TARG)-$(VERS)/beanstalkd.spec
 	tar --append -f $@ $(TARG)-$(VERS)/beanstalkd.spec
 	cp NEWS.md $(TARG)-$(VERS)/NEWS.md
