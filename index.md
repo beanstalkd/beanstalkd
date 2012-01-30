@@ -32,11 +32,10 @@ First, run `beanstalkd` on one or more machines. There is no configuration
 file and only a handful of command-line options.
 
 {% highlight bash %}
-$ ./beanstalkd -d -l 10.0.1.5 -p 11300
+$ ./beanstalkd -l 10.0.1.5 -p 11300
 {% endhighlight %}
 
-This starts up `beanstalkd` as a daemon listening on address
-10.0.1.5, port 11300.
+This starts up `beanstalkd` listening on address 10.0.1.5, port 11300.
 
 ## Use It
 
