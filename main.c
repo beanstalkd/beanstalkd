@@ -57,7 +57,7 @@ usage(char *msg, char *arg)
     fprintf(stderr, "Use: %s [OPTIONS]\n"
             "\n"
             "Options:\n"
-            " -b DIR   wal directory (must be absolute path if used with -d)\n"
+            " -b DIR   wal directory\n"
             " -f MS    fsync at most once every MS milliseconds"
                        " (use -f 0 for \"always fsync\")\n"
             " -F       never fsync (default)\n"
