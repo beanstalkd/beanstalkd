@@ -5,7 +5,7 @@ title: Download
 
 ## Source
 
-Beanstalk is distributed under the GNU GPL version 3.
+Beanstalk is distributed under the [MIT license][mit].
 
 {% assign want = true %}
 {% for post in site.posts %}
@@ -85,3 +85,4 @@ You can also find beanstalkd source at <http://repo.or.cz/w/beanstalkd.git>.
 
 [libevent]: http://monkey.org/~provos/libevent/
 [client library]: http://wiki.github.com/kr/beanstalkd/client-libraries
+[mit]: http://www.opensource.org/licenses/mit-license
