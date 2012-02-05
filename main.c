@@ -12,6 +12,18 @@
 static char *user = NULL;
 static char *port = "11300";
 static char *host_addr;
+static int detach = 0;
+
+static void
+nullfd(int fd, int flags)
+{
+    int r;
+
+    close(fd);
+    r = open("/dev/null", flags);
+    if (r != fd) twarn("open(\"/dev/null\")"), exit(1);
+}
+
 
 static void
 su(const char *user) {
@@ -30,6 +42,32 @@ su(const char *user) {
     if (r == -1) twarn("setuid(%d \"%s\")", pwent->pw_uid, user), exit(34);
 }
 
+static void
+dfork()
+{
+    pid_t p;
+
+    p = fork();
+    if (p == -1) exit(1);
+    if (p) exit(0);
+}
+
+static void
+daemonize()
+{
+    int r;
+
+    r = chdir("/");
+    if (r) return twarn("chdir");
+
+    nullfd(0, O_RDONLY);
+    nullfd(1, O_WRONLY);
+    nullfd(2, O_WRONLY);
+    umask(0);
+    dfork();
+    setsid();
+    dfork();
+}
 
 static void
 set_sig_handlers()
@@ -57,6 +95,7 @@ usage(char *msg, char *arg)
     fprintf(stderr, "Use: %s [OPTIONS]\n"
             "\n"
             "Options:\n"
+            " -d       detach\n"
             " -b DIR   wal directory\n"
             " -f MS    fsync at most once every MS milliseconds"
                        " (use -f 0 for \"always fsync\")\n"
@@ -94,6 +133,15 @@ require_arg(char *opt, char *arg)
     return arg;
 }
 
+static char *
+get_realpath(char *opt, char *arg)
+{
+    arg = require_arg(opt, arg);
+    if (access(arg, 0) == -1) usage("invalid wal directory, not exsited", opt);
+    return realpath(arg, NULL);
+}
+
+
 static void
 warn_systemd_ignored_option(char *opt, char *arg)
 {
@@ -112,6 +160,9 @@ opts(int argc, char **argv, Wal *w)
         if (argv[i][0] != '-') usage("unknown option", argv[i]);
         if (argv[i][1] == 0 || argv[i][2] != 0) usage("unknown option",argv[i]);
         switch (argv[i][1]) {
+            case 'd':
+                detach = 1;
+                break;
             case 'p':
                 port = require_arg("-p", argv[++i]);
                 warn_systemd_ignored_option("-p", argv[i]);
@@ -145,7 +196,7 @@ opts(int argc, char **argv, Wal *w)
                 user = require_arg("-u", argv[++i]);
                 break;
             case 'b':
-                w->dir = require_arg("-b", argv[++i]);
+                w->dir = get_realpath("-b", argv[++i]);
                 w->use = 1;
                 break;
             case 'h':
@@ -199,6 +250,8 @@ main(int argc, char **argv)
         walinit(&s.wal, &list);
         prot_replay(&s, &list);
     }
+
+    if (detach) daemonize();
 
     srv(&s);
     return 0;
