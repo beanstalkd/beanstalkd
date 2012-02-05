@@ -3,6 +3,10 @@
 #include <sys/epoll.h>
 #include "dat.h"
 
+#ifndef EPOLLRDHUP
+#define EPOLLRDHUP 0x2000
+#endif
+
 static void handle(Socket *s, int events);
 
 static Handle tick;
@@ -17,7 +21,7 @@ sockinit(Handle f, void *x, int64 ns)
     tick = f;
     tickval = x;
     ival = ns / 1000000;
-    epfd = epoll_create1(0);
+    epfd = epoll_create(1);
     if (epfd == -1) {
         twarn("epoll_create");
         exit(1);
