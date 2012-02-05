@@ -133,6 +133,15 @@ require_arg(char *opt, char *arg)
     return arg;
 }
 
+static char *
+get_realpath(char *opt, char *arg)
+{
+    arg = require_arg(opt, arg);
+    if (access(arg, 0) == -1) usage("invalid wal directory, not exsited", opt);
+    return realpath(arg, NULL);
+}
+
+
 static void
 warn_systemd_ignored_option(char *opt, char *arg)
 {
@@ -187,7 +196,7 @@ opts(int argc, char **argv, Wal *w)
                 user = require_arg("-u", argv[++i]);
                 break;
             case 'b':
-                w->dir = require_arg("-b", argv[++i]);
+                w->dir = get_realpath("-b", argv[++i]);
                 w->use = 1;
                 break;
             case 'h':
