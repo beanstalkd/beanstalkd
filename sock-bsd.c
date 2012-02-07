@@ -34,38 +34,88 @@ sockinit(Handle f, void *x, int64 ns)
     }
 }
 
+int
+set_read_kqueue(Socket *s, int en) {
+    struct kevent ev = {};
+    struct timespec ts = {};
+
+    if (en) {
+      ev.flags = EV_ADD;
+    } else {
+      ev.flags = EV_DELETE;
+    }
+    ev.filter = EVFILT_READ;
+    ev.ident = s->fd;
+    ev.udata = s;
+    return kevent(kq, &ev, 1, NULL, 0, &ts);
+}
+
+int
+set_only_hangups_kqueue(Socket* s, int en) {
+    struct kevent ev = {};
+    struct timespec ts = {};
+
+    if (en) {
+      ev.flags = EV_ADD;
+    } else {
+      ev.flags = EV_DELETE;
+    }
+    ev.filter = EVFILT_READ;
+    ev.fflags = NOTE_LOWAT;
+    ev.ident = s->fd;
+    ev.udata = s;
+    ev.data = Infinity;
+    return kevent(kq, &ev, 1, NULL, 0, &ts);
+  
+}
+
+int
+set_write_kqueue(Socket *s, int en) {
+    struct kevent ev = {};
+    struct timespec ts = {};
+
+    if (en) {
+      ev.flags = EV_ADD;
+    } else {
+      ev.flags = EV_DELETE;
+    }
+    ev.filter = EVFILT_WRITE;
+    ev.ident = s->fd;
+    ev.udata = s;
+    return kevent(kq, &ev, 1, NULL, 0, &ts);
+}
+
 
 int
 sockwant(Socket *s, int rw)
 {
-    struct kevent ev = {};
-    struct timespec ts = {};
-
     if (!s->added && !rw) {
         return 0;
     } else if (rw) {
         s->added = 1;
-        ev.flags = EV_ADD;
     } else {
-        ev.flags = EV_DELETE;
+      set_read_kqueue(s, 0);
+      set_write_kqueue(s, 0);
+      set_only_hangups_kqueue(s, 0);
+      return 0;
     }
 
     switch (rw) {
     case 'r':
-        ev.filter = EVFILT_READ;
+      set_read_kqueue(s, 1);
+      set_write_kqueue(s, 0);
         break;
     case 'w':
-        ev.filter = EVFILT_WRITE;
+      set_read_kqueue(s, 0);
+      set_write_kqueue(s, 1);
         break;
     default:
-        // check only for hangup
-        ev.filter = EVFILT_READ;
-        ev.fflags = NOTE_LOWAT;
-        ev.data = Infinity;
+      set_read_kqueue(s, 0);
+      set_write_kqueue(s, 0);
+      set_only_hangups_kqueue(s, 1);
+
     }
-    ev.ident = s->fd;
-    ev.udata = s;
-    return kevent(kq, &ev, 1, NULL, 0, &ts);
+    return 0;
 }
 
 
