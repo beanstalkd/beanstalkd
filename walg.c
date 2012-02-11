@@ -457,7 +457,7 @@ walread(Wal *w, job list, int min, int max)
 
         fd = open(f->path, O_RDONLY);
         if (fd < 0) {
-            twarn("%s", f->path);
+            twarn("open %s", f->path);
             free(f->path);
             free(f);
             continue;
