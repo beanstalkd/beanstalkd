@@ -36,6 +36,8 @@ $ ./beanstalkd -l 10.0.1.5 -p 11300
 {% endhighlight %}
 
 This starts up `beanstalkd` listening on address 10.0.1.5, port 11300.
+For more information on how to run beanstalkd as a bacground service,
+in production, see [the adm directory][adm].
 
 ## Use It
 
@@ -81,3 +83,4 @@ fantastic piece of software!
 [mailinglist]: http://groups.google.com/group/beanstalk-talk
 [memcached]: http://www.danga.com/memcached/
 [client libraries]: http://wiki.github.com/kr/beanstalkd/client-libraries
+[adm]: https://github.com/kr/beanstalkd/tree/master/adm
