@@ -36,7 +36,7 @@ $ ./beanstalkd -l 10.0.1.5 -p 11300
 {% endhighlight %}
 
 This starts up `beanstalkd` listening on address 10.0.1.5, port 11300.
-For more information on how to run beanstalkd as a bacground service,
+For more information on how to run beanstalkd as a background service,
 in production, see [the adm directory][adm].
 
 ## Use It
