@@ -53,11 +53,11 @@ $(TARG)-$(VERS).tar:
 	mkdir -p $(TARG)-$(VERS)/mk
 	echo 'printf "$(VERS)"' >$(TARG)-$(VERS)/mk/vers.sh
 	chmod +x $(TARG)-$(VERS)/mk/vers.sh
-	tar --append -f $@ $(TARG)-$(VERS)/mk/vers.sh
+	$(TAR) --append -f $@ $(TARG)-$(VERS)/mk/vers.sh
 	sed 's/@VERSION@/$(VERS)/' <pkg/beanstalkd.spec.in >$(TARG)-$(VERS)/beanstalkd.spec
-	tar --append -f $@ $(TARG)-$(VERS)/beanstalkd.spec
+	$(TAR) --append -f $@ $(TARG)-$(VERS)/beanstalkd.spec
 	cp NEWS.md $(TARG)-$(VERS)/NEWS.md
-	tar --append -f $@ $(TARG)-$(VERS)/NEWS.md
+	$(TAR) --append -f $@ $(TARG)-$(VERS)/NEWS.md
 	rm -r $(TARG)-$(VERS)
 
 $(TARG)-$(VERS).tar.gz: $(TARG)-$(VERS).tar
