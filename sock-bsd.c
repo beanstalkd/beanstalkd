@@ -38,34 +38,41 @@ sockinit(Handle f, void *x, int64 ns)
 int
 sockwant(Socket *s, int rw)
 {
-    struct kevent ev = {};
+    int n = 0;
+    struct kevent evs[2] = {}, *ev = evs;
     struct timespec ts = {};
 
-    if (!s->added && !rw) {
-        return 0;
-    } else if (rw) {
-        s->added = 1;
-        ev.flags = EV_ADD;
-    } else {
-        ev.flags = EV_DELETE;
+    if (s->added) {
+        ev->ident = s->fd;
+        ev->filter = s->added;
+        ev->flags = EV_DELETE;
+        ev++;
+        n++;
     }
 
-    switch (rw) {
-    case 'r':
-        ev.filter = EVFILT_READ;
-        break;
-    case 'w':
-        ev.filter = EVFILT_WRITE;
-        break;
-    default:
-        // check only for hangup
-        ev.filter = EVFILT_READ;
-        ev.fflags = NOTE_LOWAT;
-        ev.data = Infinity;
+    if (rw) {
+        ev->ident = s->fd;
+        switch (rw) {
+        case 'r':
+            ev->filter = EVFILT_READ;
+            break;
+        case 'w':
+            ev->filter = EVFILT_WRITE;
+            break;
+        default:
+            // check only for hangup
+            ev->filter = EVFILT_READ;
+            ev->fflags = NOTE_LOWAT;
+            ev->data = Infinity;
+        }
+        ev->flags = EV_ADD;
+        ev->udata = s;
+        s->added = ev->filter;
+        ev++;
+        n++;
     }
-    ev.ident = s->fd;
-    ev.udata = s;
-    return kevent(kq, &ev, 1, NULL, 0, &ts);
+
+    return kevent(kq, evs, n, NULL, 0, &ts);
 }
 
 
