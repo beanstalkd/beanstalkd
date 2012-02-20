@@ -15,33 +15,21 @@ tests() {
     done | cut -d ' ' -f 3 | fixsyms | egrep ^cttest
 }
 
-ts=`tests "$@" || (echo >&2 no tests found; exit 1)`
-
 gen() {
     printf '#include "internal.h"\n'
     printf '\n'
 
-    i=0
     for t in "$@"
-    do
-        printf 'extern void %s(void);\n' $t
-        i=`expr $i + 1`
+    do printf 'void %s(void);\n' $t
     done
+    printf '\n'
 
-    printf '\nint\nmain(int argc, char *argv[])\n{\n'
-
-    printf '    T ts[%d] = {};\n' $i
-
-    i=0
+    printf 'T ctmain[] = {\n'
     for t in "$@"
-    do
-        printf '    ctrun(&ts[%d], %d, %s, "%s");\n' $i $i $t $t
-        i=`expr $i + 1`
+    do printf '    {%s, "%s"},\n' $t $t
     done
-
-    printf '    ctreport(ts, %d);\n' $i
-    printf '    return 0;\n'
-    printf '}\n'
+    printf '    {},\n'
+    printf '};\n'
 }
 
-gen $ts
+gen `tests "$@" || (echo >&2 no tests found; exit 1)`

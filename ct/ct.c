@@ -1,4 +1,4 @@
-/* CT - (Relatively) Easy Unit Testing for C */
+// CT - simple-minded unit testing for C
 
 #include <string.h>
 #include <stdlib.h>
@@ -10,134 +10,31 @@
 #include <errno.h>
 #include "internal.h"
 
-static void die(int code, int err, const char *msg);
-static int  failed(int s);
-
-
-void
-ctrun(T *t, int i, void (*f)(void), const char *name)
-{
-    pid_t pid;
-    int r;
-    FILE *out;
-
-    if (i % 10 == 0) {
-        if (i % 50 == 0) {
-            putchar('\n');
-        }
-        printf("%5d", i);
-    }
-
-    t->name = name;
-
-    out = tmpfile();
-    if (!out) die(1, errno, "tmpfile");
-    t->fd = fileno(out);
-
-    fflush(stdout);
-    fflush(stderr);
-
-    pid = fork();
-    if (pid < 0) {
-        die(1, errno, "fork");
-    } else if (!pid) {
-        r = dup2(t->fd, 1); // send stdout to tmpfile
-        if (r == -1) die(3, errno, "dup2");
-
-        r = close(t->fd);
-        if (r == -1) die(3, errno, "fclose");
-
-        r = dup2(1, 2); // send stderr to stdout
-        if (r < 0) die(3, errno, "dup2");
-
-        f();
-        exit(0);
-    }
-
-    r = waitpid(pid, &t->status, 0);
-    if (r != pid) die(3, errno, "wait");
-
-    if (!t->status) {
-        putchar('.');
-    } else if (failed(t->status)) {
-        putchar('F');
-    } else {
-        putchar('E');
-    }
-
-    fflush(stdout);
-}
-
 
 void
 ctlogpn(char *p, int n, char *fmt, ...)
 {
-  va_list arg;
+    va_list arg;
 
-  printf("%s:%d: ", p, n);
-  va_start(arg, fmt);
-  vprintf(fmt, arg);
-  va_end(arg);
-  putchar('\n');
+    printf("%s:%d: ", p, n);
+    va_start(arg, fmt);
+    vprintf(fmt, arg);
+    va_end(arg);
+    putchar('\n');
 }
+
 
 void
 ctfail(void)
 {
-  fflush(stdout);
-  fflush(stderr);
-  abort();
-}
-
-
-static int
-failed(int s)
-{
-    return WIFSIGNALED(s) && (WTERMSIG(s) == SIGABRT);
-}
-
-
-void
-ctreport(T ts[], int n)
-{
-    int i, r, s;
-    char buf[1024]; // arbitrary size
-    int cf = 0, ce = 0;
-
-    putchar('\n');
-    for (i = 0; i < n; i++) {
-        if (!ts[i].status) continue;
-
-        printf("\n%s: ", ts[i].name);
-        if (failed(ts[i].status)) {
-            cf++;
-            printf("failure");
-        } else {
-            ce++;
-            printf("error");
-            if (WIFEXITED(ts[i].status)) {
-                printf(" (exit status %d)", WEXITSTATUS(ts[i].status));
-            }
-            if (WIFSIGNALED(ts[i].status)) {
-                printf(" (signal %d)", WTERMSIG(ts[i].status));
-            }
-        }
-
-        putchar('\n');
-        lseek(ts[i].fd, 0, SEEK_SET);
-        while ((r = read(ts[i].fd, buf, sizeof(buf)))) {
-            s = fwrite(buf, 1, r, stdout);
-            if (r != s) die(3, errno, "fwrite");
-        }
-    }
-
-    printf("\n%d tests; %d failures; %d errors.\n", n, cf, ce);
-    exit(cf || ce);
+    fflush(stdout);
+    fflush(stderr);
+    abort();
 }
 
 
 static void
-die(int code, int err, const char *msg)
+die(int code, int err, char *msg)
 {
     putc('\n', stderr);
 
@@ -149,4 +46,118 @@ die(int code, int err, const char *msg)
     fputs(strerror(err), stderr);
     putc('\n', stderr);
     exit(code);
+}
+
+
+static int
+failed(int s)
+{
+    return WIFSIGNALED(s) && (WTERMSIG(s) == SIGABRT);
+}
+
+
+static void
+run(T t[])
+{
+    int pid;
+    FILE *out;
+
+    for (; t->f; t++) {
+        out = tmpfile();
+        if (!out) {
+            die(1, errno, "tmpfile");
+        }
+        t->fd = fileno(out);
+        pid = fork();
+        if (pid < 0) {
+            die(1, errno, "fork");
+        } else if (!pid) {
+            if (dup2(t->fd, 1) == -1) {
+                die(3, errno, "dup2");
+            }
+            if (close(t->fd) == -1) {
+                die(3, errno, "fclose");
+            }
+            if (dup2(1, 2) == -1) {
+                die(3, errno, "dup2");
+            }
+            t->f();
+            exit(0);
+        }
+
+        if (waitpid(pid, &t->status, 0) != pid) {
+            die(3, errno, "wait");
+        }
+
+        if (!t->status) {
+            putchar('.');
+        } else if (failed(t->status)) {
+            putchar('F');
+        } else {
+            putchar('E');
+        }
+        fflush(stdout);
+    }
+}
+
+
+static void
+copyfd(int out, int in)
+{
+    int n;
+    char buf[1024]; // arbitrary size
+
+    while ((n = read(in, buf, sizeof(buf))) != 0) {
+        if (write(out, buf, n) != n) {
+            die(3, errno, "write");
+        }
+    }
+}
+
+
+static int
+report(T t[])
+{
+    int nfail = 0, nerr = 0;
+
+    putchar('\n');
+    for (; t->f; t++) {
+        if (!t->status) {
+            continue;
+        }
+
+        printf("\n%s: ", t->name);
+        if (failed(t->status)) {
+            nfail++;
+            printf("failure");
+        } else {
+            nerr++;
+            printf("error");
+            if (WIFEXITED(t->status)) {
+                printf(" (exit status %d)", WEXITSTATUS(t->status));
+            }
+            if (WIFSIGNALED(t->status)) {
+                printf(" (signal %d)", WTERMSIG(t->status));
+            }
+        }
+
+        putchar('\n');
+        lseek(t->fd, 0, SEEK_SET);
+        copyfd(1, t->fd);
+    }
+
+    if (nfail || nerr) {
+        printf("\n%d failures; %d errors.\n", nfail, nerr);
+    } else {
+        printf("\nPASS\n");
+    }
+    return nfail || nerr;
+}
+
+
+int
+main(int argc, char *argv[])
+{
+    run(ctmain);
+    return report(ctmain);
 }

@@ -1,11 +1,10 @@
 typedef struct T T;
 
-
 struct T {
-    int status, fd;
-    const char *name;
+    void (*f)(void);
+    char *name;
+    int  status;
+    int  fd;
 };
 
-
-void ctreport(T ts[], int n);
-void ctrun(T *t, int i, void(*f)(void), const char *name);
+extern T ctmain[];
