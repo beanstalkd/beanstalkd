@@ -25,6 +25,20 @@ Read [{{ post.version }} release notes](/beanstalkd{{ post.url }}).
 
 ## Packages
 
+### Debian
+
+Debian includes a beanstalkd package. To install, type
+
+    sudo apt-get install beanstalkd
+
+### Ubuntu
+
+Ubuntu includes a beanstalkd package. To install, type
+
+    sudo apt-get install beanstalkd
+
+There is also a PPA at <https://launchpad.net/~jernej/+archive/beanstalkd>.
+
 ### MacPorts
 
 Just type:
