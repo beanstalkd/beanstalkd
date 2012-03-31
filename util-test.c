@@ -19,23 +19,20 @@ cttestallocf()
 void
 cttestoptnone()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         NULL,
     };
 
-    optparse(&s, args);
-    assert(strcmp(s.port, Portdef) == 0);
-    assert(s.addr == NULL);
+    optparse(&srv, args);
+    assert(strcmp(srv.port, Portdef) == 0);
+    assert(srv.addr == NULL);
     assert(job_data_size_limit == JOB_DATA_SIZE_LIMIT_DEFAULT);
-    assert(s.wal.filesz == Filesizedef);
-    assert(s.wal.nocomp == 0);
-    assert(s.wal.wantsync == 0);
-    assert(s.user == NULL);
-    assert(s.wal.dir == NULL);
-    assert(s.wal.use == 0);
+    assert(srv.wal.filesz == Filesizedef);
+    assert(srv.wal.nocomp == 0);
+    assert(srv.wal.wantsync == 0);
+    assert(srv.user == NULL);
+    assert(srv.wal.dir == NULL);
+    assert(srv.wal.use == 0);
     assert(verbose == 0);
 }
 
@@ -43,64 +40,52 @@ cttestoptnone()
 void
 cttestoptp()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-p1234",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(strcmp(s.port, "1234") == 0);
+    optparse(&srv, args);
+    assert(strcmp(srv.port, "1234") == 0);
 }
 
 
 void
 cttestoptl()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-llocalhost",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(strcmp(s.addr, "localhost") == 0);
+    optparse(&srv, args);
+    assert(strcmp(srv.addr, "localhost") == 0);
 }
 
 
 void
 cttestoptlseparate()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-l",
         "localhost",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(strcmp(s.addr, "localhost") == 0);
+    optparse(&srv, args);
+    assert(strcmp(srv.addr, "localhost") == 0);
 }
 
 
 void
 cttestoptz()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-z1234",
         NULL,
     };
 
-    optparse(&s, args);
+    optparse(&srv, args);
     assert(job_data_size_limit == 1234);
 }
 
@@ -108,131 +93,107 @@ cttestoptz()
 void
 cttestopts()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-s1234",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(s.wal.filesz == 1234);
+    optparse(&srv, args);
+    assert(srv.wal.filesz == 1234);
 }
 
 
 void
 cttestoptc()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-n",
         "-c",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(s.wal.nocomp == 0);
+    optparse(&srv, args);
+    assert(srv.wal.nocomp == 0);
 }
 
 
 void
 cttestoptn()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-n",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(s.wal.nocomp == 1);
+    optparse(&srv, args);
+    assert(srv.wal.nocomp == 1);
 }
 
 
 void
 cttestoptf()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-f1234",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(s.wal.syncrate == 1234000000);
-    assert(s.wal.wantsync == 1);
+    optparse(&srv, args);
+    assert(srv.wal.syncrate == 1234000000);
+    assert(srv.wal.wantsync == 1);
 }
 
 
 void
 cttestoptF()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-f1234",
         "-F",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(s.wal.wantsync == 0);
+    optparse(&srv, args);
+    assert(srv.wal.wantsync == 0);
 }
 
 
 void
 cttestoptu()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-ukr",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(strcmp(s.user, "kr") == 0);
+    optparse(&srv, args);
+    assert(strcmp(srv.user, "kr") == 0);
 }
 
 
 void
 cttestoptb()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-bfoo",
         NULL,
     };
 
-    optparse(&s, args);
-    assert(strcmp(s.wal.dir, "foo") == 0);
-    assert(s.wal.use == 1);
+    optparse(&srv, args);
+    assert(strcmp(srv.wal.dir, "foo") == 0);
+    assert(srv.wal.use == 1);
 }
 
 
 void
 cttestoptV()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-V",
         NULL,
     };
 
-    optparse(&s, args);
+    optparse(&srv, args);
     assert(verbose == 1);
 }
 
@@ -240,16 +201,13 @@ cttestoptV()
 void
 cttestoptV_V()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-V",
         "-V",
         NULL,
     };
 
-    optparse(&s, args);
+    optparse(&srv, args);
     assert(verbose == 2);
 }
 
@@ -257,14 +215,11 @@ cttestoptV_V()
 void
 cttestoptVVV()
 {
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     char *args[] = {
         "-VVV",
         NULL,
     };
 
-    optparse(&s, args);
+    optparse(&srv, args);
     assert(verbose == 3);
 }

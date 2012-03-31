@@ -1,12 +1,5 @@
-check-ct: ct/_ctcheck
+check: ct/_ctcheck
 	ct/_ctcheck
-.PHONY: check-ct
-
-check-shell: $(TARG)
-	./check.sh sh-tests/*.sh
-.PHONY: check-shell
-
-check: check-ct check-shell
 .PHONY: check
 
 ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES)

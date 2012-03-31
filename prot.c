@@ -411,7 +411,7 @@ delay_q_peek()
 }
 
 static int
-enqueue_job(Srv *s, job j, int64 delay, char update_store)
+enqueue_job(Server *s, job j, int64 delay, char update_store)
 {
     int r;
 
@@ -444,7 +444,7 @@ enqueue_job(Srv *s, job j, int64 delay, char update_store)
 }
 
 static int
-bury_job(Srv *s, job j, char update_store)
+bury_job(Server *s, job j, char update_store)
 {
     int z;
 
@@ -500,7 +500,7 @@ delay_q_take()
 }
 
 static int
-kick_buried_job(Srv *s, tube t)
+kick_buried_job(Server *s, tube t)
 {
     int r;
     job j;
@@ -537,7 +537,7 @@ get_delayed_job_ct()
 }
 
 static int
-kick_delayed_job(Srv *s, tube t)
+kick_delayed_job(Server *s, tube t)
 {
     int r;
     job j;
@@ -568,7 +568,7 @@ kick_delayed_job(Srv *s, tube t)
 
 /* return the number of jobs successfully kicked */
 static uint
-kick_buried_jobs(Srv *s, tube t, uint n)
+kick_buried_jobs(Server *s, tube t, uint n)
 {
     uint i;
     for (i = 0; (i < n) && kick_buried_job(s, t); ++i);
@@ -577,7 +577,7 @@ kick_buried_jobs(Srv *s, tube t, uint n)
 
 /* return the number of jobs successfully kicked */
 static uint
-kick_delayed_jobs(Srv *s, tube t, uint n)
+kick_delayed_jobs(Server *s, tube t, uint n)
 {
     uint i;
     for (i = 0; (i < n) && kick_delayed_job(s, t); ++i);
@@ -585,7 +585,7 @@ kick_delayed_jobs(Srv *s, tube t, uint n)
 }
 
 static uint
-kick_jobs(Srv *s, tube t, uint n)
+kick_jobs(Server *s, tube t, uint n)
 {
     if (buried_job_p(t)) return kick_buried_jobs(s, t, n);
     return kick_delayed_jobs(s, t, n);
@@ -833,7 +833,7 @@ static int
 fmt_stats(char *buf, size_t size, void *x)
 {
     int whead = 0, wcur = 0;
-    Srv *srv;
+    Server *srv;
     struct rusage ru = {{0, 0}, {0, 0}};
 
     srv = x;
@@ -1763,7 +1763,7 @@ prothandle(conn c, int ev)
 }
 
 void
-prottick(Srv *s)
+prottick(Server *s)
 {
     int r;
     job j;
@@ -1802,7 +1802,7 @@ prottick(Srv *s)
 }
 
 void
-h_accept(const int fd, const short which, Srv *s)
+h_accept(const int fd, const short which, Server *s)
 {
     conn c;
     int cfd, flags, r;
@@ -1883,7 +1883,7 @@ prot_init()
 }
 
 void
-prot_replay(Srv *s, job list)
+prot_replay(Server *s, job list)
 {
     job j, nj;
     int64 t, delay;

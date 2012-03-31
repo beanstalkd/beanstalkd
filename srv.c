@@ -3,9 +3,18 @@
 #include <sys/socket.h>
 #include "dat.h"
 
+struct Server srv = {
+    Portdef,
+    NULL,
+    NULL,
+    {
+        Filesizedef,
+    },
+};
+
 
 void
-srv(Srv *s)
+srvserve(Server *s)
 {
     int r;
 
@@ -35,7 +44,7 @@ srv(Srv *s)
 
 
 void
-srvschedconn(Srv *s, conn c)
+srvschedconn(Server *s, conn c)
 {
     if (c->tickpos > -1) {
         heapremove(&s->conns, c->tickpos);
@@ -47,14 +56,14 @@ srvschedconn(Srv *s, conn c)
 
 
 void
-srvaccept(Srv *s, int ev)
+srvaccept(Server *s, int ev)
 {
     h_accept(s->sock.fd, ev, s);
 }
 
 
 void
-srvtick(Srv *s, int ev)
+srvtick(Server *s, int ev)
 {
     prottick(s);
 }

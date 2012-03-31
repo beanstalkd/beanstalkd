@@ -1,7 +1,0 @@
-use tubea
-put 0 0 0 0
-
-delete 1
-stats-tube tubea
-stats-tube default
-quit

@@ -50,41 +50,38 @@ int
 main(int argc, char **argv)
 {
     int r;
-    Srv s = {};
-    s.port = Portdef;
-    s.wal.filesz = Filesizedef;
     struct job list = {};
 
     progname = argv[0];
-    optparse(&s, argv+1);
+    optparse(&srv, argv+1);
 
     if (verbose) {
         printf("pid %d\n", getpid());
     }
 
-    r = make_server_socket(s.addr, s.port);
+    r = make_server_socket(srv.addr, srv.port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
-    s.sock.fd = r;
+    srv.sock.fd = r;
 
     prot_init();
 
-    if (s.user) su(s.user);
+    if (srv.user) su(srv.user);
     set_sig_handlers();
 
-    if (s.wal.use) {
+    if (srv.wal.use) {
         // We want to make sure that only one beanstalkd tries
         // to use the wal directory at a time. So acquire a lock
         // now and never release it.
-        if (!waldirlock(&s.wal)) {
-            twarnx("failed to lock wal dir %s", s.wal.dir);
+        if (!waldirlock(&srv.wal)) {
+            twarnx("failed to lock wal dir %s", srv.wal.dir);
             exit(10);
         }
 
         list.prev = list.next = &list;
-        walinit(&s.wal, &list);
-        prot_replay(&s, &list);
+        walinit(&srv.wal, &list);
+        prot_replay(&srv, &list);
     }
 
-    srv(&s);
+    srvserve(&srv);
     return 0;
 }

@@ -145,7 +145,7 @@ parse_size_t(char *str)
 
 
 void
-optparse(Srv *s, char **argv)
+optparse(Server *s, char **argv)
 {
     int64 ms;
     char *arg, c, *tmp;
