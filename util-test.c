@@ -73,6 +73,23 @@ cttestoptl()
 
 
 void
+cttestoptlseparate()
+{
+    Srv s = {};
+    s.port = Portdef;
+    s.wal.filesz = Filesizedef;
+    char *args[] = {
+        "-l",
+        "localhost",
+        NULL,
+    };
+
+    optparse(&s, args);
+    assert(strcmp(s.addr, "localhost") == 0);
+}
+
+
+void
 cttestoptz()
 {
     Srv s = {};
