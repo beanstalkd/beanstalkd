@@ -4,7 +4,7 @@ set -e
 
 fixsyms() {
     if test "`uname -s|tr A-Z a-z`" = darwin
-    then egrep -v [.]eh$ | egrep ^_ | sed s/^_//
+    then egrep -v [.] | egrep ^_ | sed s/^_//
     else cat
     fi
 }
