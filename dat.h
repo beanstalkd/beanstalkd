@@ -214,6 +214,7 @@ void warnx(const char *fmt, ...);
 char* fmtalloc(char *fmt, ...);
 void* zalloc(int n);
 #define new(T) zalloc(sizeof(T))
+void optparse(Srv*, char**);
 
 extern const char *progname;
 
@@ -375,10 +376,16 @@ int  filewrjobshort(File*, job);
 int  filewrjobfull(File*, job);
 
 
+#define Portdef "11300"
+
 struct Srv {
     Socket sock;
     Heap   conns;
     Wal    wal;
+
+    char *port;
+    char *addr;
+    char *user;
 };
 void srv(Srv *srv);
 void srvaccept(Srv *s, int ev);
