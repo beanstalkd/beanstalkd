@@ -229,10 +229,7 @@ static int drain_mode = 0;
 static int64 started_at;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
-static struct conn dirty = {&dirty, &dirty};
-
-/* Doubly-linked list of connections with at least one reserved job. */
-static struct conn running = { &running, &running };
+static conn dirty;
 
 static const char * op_names[] = {
     "<unknown>",
@@ -274,7 +271,9 @@ reply(conn c, const char *line, int len, int state)
 {
     if (!c) return;
 
-    connwant(c, 'w', &dirty);
+    connwant(c, 'w');
+    c->next = dirty;
+    dirty = c;
     c->reply = line;
     c->reply_len = len;
     c->reply_sent = 0;
@@ -484,7 +483,6 @@ enqueue_reserved_jobs(conn c)
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
         c->soonest_job = NULL;
-        if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
     }
 }
 
@@ -970,7 +968,9 @@ wait_for_job(conn c, int timeout)
     /* Set the pending timeout to the requested timeout amount */
     c->pending_timeout = timeout;
 
-    connwant(c, 'h', &dirty); // only care if they hang up
+    connwant(c, 'h'); // only care if they hang up
+    c->next = dirty;
+    dirty = c;
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1116,7 +1116,6 @@ remove_this_reserved_job(conn c, job j)
         j->reserver = NULL;
     }
     c->soonest_job = NULL;
-    if (!job_list_any_p(&c->reserved_jobs)) conn_remove(c);
     return j;
 }
 
@@ -1598,7 +1597,9 @@ do_cmd(conn c)
 static void
 reset_conn(conn c)
 {
-    connwant(c, 'r', &dirty);
+    connwant(c, 'r');
+    c->next = dirty;
+    dirty = c;
 
     /* was this a peek or stats command? */
     if (c->out_job && c->out_job->r.state == Copy) job_free(c->out_job);
@@ -1726,7 +1727,10 @@ update_conns()
     int r;
     conn c;
 
-    while ((c = conn_remove(dirty.next))) { /* assignment */
+    while (dirty) {
+        c = dirty;
+        dirty = dirty->next;
+        c->next = NULL;
         r = sockwant(&c->sock, c->rw);
         if (r == -1) {
             twarn("sockwant");

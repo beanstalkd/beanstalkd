@@ -171,7 +171,7 @@ struct tube {
 };
 
 struct conn {
-    conn prev, next; /* linked list of connections */
+    conn next;
     Server *srv;
     Socket sock;
     char state;
@@ -278,13 +278,10 @@ conn make_conn(int fd, char start_state, tube use, tube watch);
 
 int  connless(conn a, conn b);
 void connrec(conn c, int i);
-void connwant(conn c, const int mask, conn list);
+void connwant(conn c, int rw);
 void connsched(conn c);
 
 void conn_close(conn c);
-
-conn conn_remove(conn c);
-void conn_insert(conn head, conn c);
 
 int count_cur_conns(void);
 uint count_tot_conns(void);

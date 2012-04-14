@@ -49,7 +49,6 @@ make_conn(int fd, char start_state, tube use, tube watch)
     c->state = start_state;
     c->pending_timeout = -1;
     c->tickpos = -1;
-    c->prev = c->next = c; /* must be out of a linked list right now */
     j = &c->reserved_jobs;
     j->prev = j->next = j;
 
@@ -134,10 +133,9 @@ conntickat(conn c)
 
 
 void
-connwant(conn c, int rw, conn list)
+connwant(conn c, int rw)
 {
     c->rw = rw;
-    conn_insert(list, c);
     connsched(c);
 }
 
@@ -149,35 +147,6 @@ connsched(conn c)
     srvschedconn(c->srv, c);
 }
 
-
-static int
-conn_list_any_p(conn head)
-{
-    return head->next != head || head->prev != head;
-}
-
-conn
-conn_remove(conn c)
-{
-    if (!conn_list_any_p(c)) return NULL; /* not in a doubly-linked list */
-
-    c->next->prev = c->prev;
-    c->prev->next = c->next;
-
-    c->prev = c->next = c;
-    return c;
-}
-
-void
-conn_insert(conn head, conn c)
-{
-    if (conn_list_any_p(c)) return; /* already in a linked list */
-
-    c->prev = head->prev;
-    c->next = head;
-    head->prev->next = c;
-    head->prev = c;
-}
 
 /* return the reserved job with the earliest deadline,
  * or NULL if there's no reserved job */
@@ -262,7 +231,6 @@ conn_close(conn c)
     cur_conn_ct--; /* stats */
 
     remove_waiting_conn(c);
-    conn_remove(c);
     if (has_reserved_job(c)) enqueue_reserved_jobs(c);
 
     ms_clear(&c->watch);
