@@ -229,7 +229,7 @@ static int drain_mode = 0;
 static int64 started_at;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
-static conn dirty;
+static Conn *dirty;
 
 static const char * op_names[] = {
     "<unknown>",
@@ -267,7 +267,7 @@ buried_job_p(tube t)
 }
 
 static void
-reply(conn c, const char *line, int len, int state)
+reply(Conn *c, char *line, int len, int state)
 {
     if (!c) return;
 
@@ -289,7 +289,7 @@ reply(conn c, const char *line, int len, int state)
                          reply_msg((c),(e)))
 
 static void
-reply_line(conn c, int state, const char *fmt, ...)
+reply_line(Conn *c, int state, const char *fmt, ...)
 {
     int r;
     va_list ap;
@@ -305,7 +305,7 @@ reply_line(conn c, int state, const char *fmt, ...)
 }
 
 static void
-reply_job(conn c, job j, const char *word)
+reply_job(Conn *c, job j, const char *word)
 {
     /* tell this connection which job to send */
     c->out_job = j;
@@ -315,8 +315,8 @@ reply_job(conn c, job j, const char *word)
                       word, j->r.id, j->r.body_size - 2);
 }
 
-conn
-remove_waiting_conn(conn c)
+Conn *
+remove_waiting_conn(Conn *c)
 {
     tube t;
     size_t i;
@@ -334,7 +334,7 @@ remove_waiting_conn(conn c)
 }
 
 static void
-reserve_job(conn c, job j)
+reserve_job(Conn *c, job j)
 {
     j->r.deadline_at = nanoseconds() + j->r.ttr;
     global_stat.reserved_ct++; /* stats */
@@ -471,7 +471,7 @@ bury_job(Server *s, job j, char update_store)
 }
 
 void
-enqueue_reserved_jobs(conn c)
+enqueue_reserved_jobs(Conn *c)
 {
     int r;
     job j;
@@ -624,7 +624,7 @@ remove_ready_job(job j)
 }
 
 static void
-enqueue_waiting_conn(conn c)
+enqueue_waiting_conn(Conn *c)
 {
     tube t;
     size_t i;
@@ -639,13 +639,13 @@ enqueue_waiting_conn(conn c)
 }
 
 static job
-find_reserved_job_in_conn(conn c, job j)
+find_reserved_job_in_conn(Conn *c, job j)
 {
     return (j && j->reserver == c && j->r.state == Reserved) ? j : NULL;
 }
 
 static job
-touch_job(conn c, job j)
+touch_job(Conn *c, job j)
 {
     j = find_reserved_job_in_conn(c, j);
     if (j) {
@@ -662,14 +662,14 @@ peek_job(uint64 id)
 }
 
 static void
-check_err(conn c, const char *s)
+check_err(Conn *c, const char *s)
 {
     if (errno == EAGAIN) return;
     if (errno == EINTR) return;
     if (errno == EWOULDBLOCK) return;
 
     twarn("%s", s);
-    conn_close(c);
+    connclose(c);
     return;
 }
 
@@ -690,14 +690,14 @@ scan_line_end(const char *s, int size)
 }
 
 static int
-cmd_len(conn c)
+cmd_len(Conn *c)
 {
     return scan_line_end(c->cmd, c->cmd_read);
 }
 
 /* parse the command line */
 static int
-which_cmd(conn c)
+which_cmd(Conn *c)
 {
 #define TEST_CMD(s,c,o) if (strncmp((s), (c), CONSTSTRLEN(c)) == 0) return (o);
     TEST_CMD(c->cmd, CMD_PUT, OP_PUT);
@@ -730,7 +730,7 @@ which_cmd(conn c)
  * buffer. If c->in_job exists, this assumes that c->in_job->body is empty.
  * This function is idempotent(). */
 static void
-fill_extra_data(conn c)
+fill_extra_data(Conn *c)
 {
     int extra_bytes, job_data_bytes = 0, cmd_bytes;
 
@@ -759,7 +759,7 @@ fill_extra_data(conn c)
 }
 
 static void
-_skip(conn c, int n, const char *line, int len)
+_skip(Conn *c, int n, char *line, int len)
 {
     /* Invert the meaning of in_job_read while throwing away data -- it
      * counts the bytes that remain to be thrown away. */
@@ -779,7 +779,7 @@ _skip(conn c, int n, const char *line, int len)
 #define skip(c,n,m) (_skip(c,n,m,CONSTSTRLEN(m)))
 
 static void
-enqueue_incoming_job(conn c)
+enqueue_incoming_job(Conn *c)
 {
     int r;
     job j = c->in_job;
@@ -891,7 +891,7 @@ fmt_stats(char *buf, size_t size, void *x)
             wcur,
             srv->wal.nmig,
             srv->wal.nrec,
-            srv->wal.filesz);
+            srv->wal.filesize);
 
 }
 
@@ -960,7 +960,7 @@ read_tube_name(char **tubename, char *buf, char **end)
 }
 
 static void
-wait_for_job(conn c, int timeout)
+wait_for_job(Conn *c, int timeout)
 {
     c->state = STATE_WAIT;
     enqueue_waiting_conn(c);
@@ -976,7 +976,7 @@ wait_for_job(conn c, int timeout)
 typedef int(*fmt_fn)(char *, size_t, void *);
 
 static void
-do_stats(conn c, fmt_fn fmt, void *data)
+do_stats(Conn *c, fmt_fn fmt, void *data)
 {
     int r, stats_len;
 
@@ -1000,7 +1000,7 @@ do_stats(conn c, fmt_fn fmt, void *data)
 }
 
 static void
-do_list_tubes(conn c, ms l)
+do_list_tubes(Conn *c, ms l)
 {
     char *buf;
     tube t;
@@ -1094,7 +1094,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
 }
 
 static void
-maybe_enqueue_incoming_job(conn c)
+maybe_enqueue_incoming_job(Conn *c)
 {
     job j = c->in_job;
 
@@ -1107,7 +1107,7 @@ maybe_enqueue_incoming_job(conn c)
 
 /* j can be NULL */
 static job
-remove_this_reserved_job(conn c, job j)
+remove_this_reserved_job(Conn *c, job j)
 {
     j = job_remove(j);
     if (j) {
@@ -1120,7 +1120,7 @@ remove_this_reserved_job(conn c, job j)
 }
 
 static job
-remove_reserved_job(conn c, job j)
+remove_reserved_job(Conn *c, job j)
 {
     return remove_this_reserved_job(c, find_reserved_job_in_conn(c, j));
 }
@@ -1140,7 +1140,7 @@ prot_remove_tube(tube t)
 }
 
 static void
-dispatch_cmd(conn c)
+dispatch_cmd(Conn *c)
 {
     int r, i, timeout = -1;
     int z;
@@ -1189,7 +1189,7 @@ dispatch_cmd(conn c)
         /* don't allow trailing garbage */
         if (end_buf[0] != '\0') return reply_msg(c, MSG_BAD_FORMAT);
 
-        conn_set_producer(c);
+        connsetproducer(c);
 
         if (ttr < 1000000000) {
             ttr = 1000000000;
@@ -1279,9 +1279,9 @@ dispatch_cmd(conn c)
         }
 
         op_ct[type]++;
-        conn_set_worker(c);
+        connsetworker(c);
 
-        if (conn_has_close_deadline(c) && !conn_ready(c)) {
+        if (conndeadlinesoon(c) && !conn_ready(c)) {
             return reply_msg(c, MSG_DEADLINE_SOON);
         }
 
@@ -1510,7 +1510,7 @@ dispatch_cmd(conn c)
         reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
         break;
     case OP_QUIT:
-        conn_close(c);
+        connclose(c);
         break;
     case OP_PAUSE_TUBE:
         op_ct[type]++;
@@ -1545,17 +1545,17 @@ dispatch_cmd(conn c)
  *
  * If any of these happen, we must do the appropriate thing. */
 static void
-conn_timeout(conn c)
+conn_timeout(Conn *c)
 {
     int r, should_timeout = 0;
     job j;
 
     /* Check if the client was trying to reserve a job. */
-    if (conn_waiting(c) && conn_has_close_deadline(c)) should_timeout = 1;
+    if (conn_waiting(c) && conndeadlinesoon(c)) should_timeout = 1;
 
     /* Check if any reserved jobs have run out of time. We should do this
      * whether or not the client is waiting for a new reservation. */
-    while ((j = soonest_job(c))) {
+    while ((j = connsoonestjob(c))) {
         if (j->r.deadline_at >= nanoseconds()) break;
 
         /* This job is in the middle of being written out. If we return it to
@@ -1588,14 +1588,14 @@ enter_drain_mode(int sig)
 }
 
 static void
-do_cmd(conn c)
+do_cmd(Conn *c)
 {
     dispatch_cmd(c);
     fill_extra_data(c);
 }
 
 static void
-reset_conn(conn c)
+reset_conn(Conn *c)
 {
     connwant(c, 'r');
     c->next = dirty;
@@ -1610,7 +1610,7 @@ reset_conn(conn c)
 }
 
 static void
-conn_data(conn c)
+conn_data(Conn *c)
 {
     int r, to_read;
     job j;
@@ -1620,7 +1620,7 @@ conn_data(conn c)
     case STATE_WANTCOMMAND:
         r = read(c->sock.fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
         if (r == -1) return check_err(c, "read()");
-        if (r == 0) return conn_close(c); /* the client hung up */
+        if (r == 0) return connclose(c); /* the client hung up */
 
         c->cmd_read += r; /* we got some bytes */
 
@@ -1645,7 +1645,7 @@ conn_data(conn c)
         to_read = min(c->in_job_read, BUCKET_BUF_SIZE);
         r = read(c->sock.fd, bucket, to_read);
         if (r == -1) return check_err(c, "read()");
-        if (r == 0) return conn_close(c); /* the client hung up */
+        if (r == 0) return connclose(c); /* the client hung up */
 
         c->in_job_read -= r; /* we got some bytes */
 
@@ -1660,7 +1660,7 @@ conn_data(conn c)
 
         r = read(c->sock.fd, j->body + c->in_job_read, j->r.body_size -c->in_job_read);
         if (r == -1) return check_err(c, "read()");
-        if (r == 0) return conn_close(c); /* the client hung up */
+        if (r == 0) return connclose(c); /* the client hung up */
 
         c->in_job_read += r; /* we got some bytes */
 
@@ -1671,7 +1671,7 @@ conn_data(conn c)
     case STATE_SENDWORD:
         r= write(c->sock.fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
         if (r == -1) return check_err(c, "write()");
-        if (r == 0) return conn_close(c); /* the client hung up */
+        if (r == 0) return connclose(c); /* the client hung up */
 
         c->reply_sent += r; /* we got some bytes */
 
@@ -1691,7 +1691,7 @@ conn_data(conn c)
 
         r = writev(c->sock.fd, iov, 2);
         if (r == -1) return check_err(c, "writev()");
-        if (r == 0) return conn_close(c); /* the client hung up */
+        if (r == 0) return connclose(c); /* the client hung up */
 
         /* update the sent values */
         c->reply_sent += r;
@@ -1725,7 +1725,7 @@ static void
 update_conns()
 {
     int r;
-    conn c;
+    Conn *c;
 
     while (dirty) {
         c = dirty;
@@ -1734,24 +1734,24 @@ update_conns()
         r = sockwant(&c->sock, c->rw);
         if (r == -1) {
             twarn("sockwant");
-            conn_close(c);
+            connclose(c);
         }
     }
 }
 
 static void
-h_conn(const int fd, const short which, conn c)
+h_conn(const int fd, const short which, Conn *c)
 {
     if (fd != c->sock.fd) {
         twarnx("Argh! event fd doesn't match conn fd.");
         close(fd);
-        conn_close(c);
+        connclose(c);
         update_conns();
         return;
     }
 
     if (which == 'h') {
-        conn_close(c);
+        connclose(c);
         return;
     }
 
@@ -1761,7 +1761,7 @@ h_conn(const int fd, const short which, conn c)
 }
 
 static void
-prothandle(conn c, int ev)
+prothandle(Conn *c, int ev)
 {
     h_conn(c->sock.fd, ev, c);
 }
@@ -1793,7 +1793,7 @@ prottick(Server *s)
     }
 
     while (s->conns.len) {
-        conn c = s->conns.data[0];
+        Conn *c = s->conns.data[0];
         if (c->tickat > now) {
             break;
         }
@@ -1808,7 +1808,7 @@ prottick(Server *s)
 void
 h_accept(const int fd, const short which, Server *s)
 {
-    conn c;
+    Conn *c;
     int cfd, flags, r;
     socklen_t addrlen;
     struct sockaddr_in6 addr;

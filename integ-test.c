@@ -723,7 +723,7 @@ cttestbinlogsizelimit()
     mkdtemp(dir);
     srv.wal.dir = dir;
     srv.wal.use = 1;
-    srv.wal.filesz = size;
+    srv.wal.filesize = size;
     srv.wal.syncrate = 0;
     srv.wal.wantsync = 1;
 
@@ -755,7 +755,7 @@ cttestbinlogallocation()
     mkdtemp(dir);
     srv.wal.dir = dir;
     srv.wal.use = 1;
-    srv.wal.filesz = size;
+    srv.wal.filesize = size;
     srv.wal.syncrate = 0;
     srv.wal.wantsync = 1;
 
@@ -839,7 +839,7 @@ cttestbinlogdiskfull()
     mkdtemp(dir);
     srv.wal.dir = dir;
     srv.wal.use = 1;
-    srv.wal.filesz = size;
+    srv.wal.filesize = size;
     srv.wal.syncrate = 0;
     srv.wal.wantsync = 1;
 
@@ -908,7 +908,7 @@ cttestbinlogdiskfulldelete()
     mkdtemp(dir);
     srv.wal.dir = dir;
     srv.wal.use = 1;
-    srv.wal.filesz = size;
+    srv.wal.filesize = size;
     srv.wal.syncrate = 0;
     srv.wal.wantsync = 1;
 

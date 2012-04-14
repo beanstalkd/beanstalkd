@@ -166,7 +166,7 @@ optparse(Server *s, char **argv)
                     job_data_size_limit = parse_size_t(EARGF(flagusage("-z")));
                     break;
                 case 's':
-                    s->wal.filesz = parse_size_t(EARGF(flagusage("-s")));
+                    s->wal.filesize = parse_size_t(EARGF(flagusage("-s")));
                     break;
                 case 'c':
                     s->wal.nocomp = 0;

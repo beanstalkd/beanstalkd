@@ -427,7 +427,7 @@ filewopen(File *f)
         return;
     }
 
-    r = falloc(fd, f->w->filesz);
+    r = falloc(fd, f->w->filesize);
     if (r) {
         close(fd);
         errno = r;
@@ -449,7 +449,7 @@ filewopen(File *f)
     f->fd = fd;
     f->iswopen = 1;
     fileincref(f);
-    f->free = f->w->filesz - n;
+    f->free = f->w->filesize - n;
     f->resv = 0;
 }
 
@@ -513,7 +513,7 @@ filewclose(File *f)
     if (!f) return;
     if (!f->iswopen) return;
     if (f->free) {
-        (void)ftruncate(f->fd, f->w->filesz - f->free);
+        (void)ftruncate(f->fd, f->w->filesize - f->free);
     }
     close(f->fd);
     f->iswopen = 0;

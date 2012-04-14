@@ -28,7 +28,7 @@ cttestoptnone()
     assert(strcmp(srv.port, Portdef) == 0);
     assert(srv.addr == NULL);
     assert(job_data_size_limit == JOB_DATA_SIZE_LIMIT_DEFAULT);
-    assert(srv.wal.filesz == Filesizedef);
+    assert(srv.wal.filesize == Filesizedef);
     assert(srv.wal.nocomp == 0);
     assert(srv.wal.wantsync == 0);
     assert(srv.user == NULL);
@@ -121,7 +121,7 @@ cttestopts()
     };
 
     optparse(&srv, args);
-    assert(srv.wal.filesz == 1234);
+    assert(srv.wal.filesize == 1234);
 }
 
 

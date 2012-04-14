@@ -44,7 +44,7 @@ srvserve(Server *s)
 
 
 void
-srvschedconn(Server *s, conn c)
+srvschedconn(Server *s, Conn *c)
 {
     if (c->tickpos > -1) {
         heapremove(&s->conns, c->tickpos);
