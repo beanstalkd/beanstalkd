@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+#include <unistd.h>
 #include "ct/ct.h"
 #include "dat.h"
 
@@ -34,6 +35,27 @@ cttestoptnone()
     assert(srv.wal.dir == NULL);
     assert(srv.wal.use == 0);
     assert(verbose == 0);
+}
+
+
+static void
+success(void)
+{
+    _exit(0);
+}
+
+
+void
+cttestoptminus()
+{
+    char *args[] = {
+        "-",
+        NULL,
+    };
+
+    atexit(success);
+    optparse(&srv, args);
+    assertf(0, "optparse failed to call exit");
 }
 
 
@@ -222,4 +244,19 @@ cttestoptVVV()
 
     optparse(&srv, args);
     assert(verbose == 3);
+}
+
+
+void
+cttestoptVnVu()
+{
+    char *args[] = {
+        "-VnVukr",
+        NULL,
+    };
+
+    optparse(&srv, args);
+    assert(verbose == 2);
+    assert(srv.wal.nocomp == 1);
+    assert(strcmp(srv.user, "kr") == 0);
 }

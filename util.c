@@ -152,6 +152,10 @@ optparse(Server *s, char **argv)
 #   define EARGF(x) (*arg ? (tmp=arg,arg="",tmp) : *argv ? *argv++ : (x))
 
     while ((arg = *argv++) && *arg++ == '-') {
+        if (!*arg) {
+            warnx("unknown argument: %s", arg-1);
+            usage(5);
+        }
         while ((c = *arg++)) {
             switch (c) {
                 case 'p':
