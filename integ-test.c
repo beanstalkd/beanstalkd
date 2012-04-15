@@ -5,10 +5,12 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <netdb.h>
 #include <netinet/ip.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/wait.h>
