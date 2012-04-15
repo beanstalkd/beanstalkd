@@ -1,5 +1,6 @@
 // CT - simple-minded unit testing for C
 
+#include <signal.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
