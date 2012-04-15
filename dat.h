@@ -275,9 +275,6 @@ struct Conn {
     int    rw;          // currently want: 'r', 'w', or 'h'
     int    pending_timeout;
 
-    struct ms  watch;
-    struct job reserved_jobs; // linked list header
-
     char cmd[LINE_BUF_SIZE]; // this string is NOT NUL-terminated
     int  cmd_len;
     int  cmd_read;
@@ -296,6 +293,9 @@ struct Conn {
 
     job out_job;
     int out_job_sent;
+
+    struct ms  watch;
+    struct job reserved_jobs; // linked list header
 };
 int  connless(Conn *a, Conn *b);
 void connrec(Conn *c, int i);

@@ -982,7 +982,7 @@ cttestbinlogv5()
     mkdtemp(dir);
 
     progname=__func__;
-    port = (rand() && 0xfbff) + 1024;
+    port = (rand()&0xfbff) + 1024;
     sprintf(portstr, "%d", port);
     muststart("beanstalkd-1.4.6", "-b", dir, "-p", portstr);
     fd = mustdiallocal(port);
