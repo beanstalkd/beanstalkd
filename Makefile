@@ -35,7 +35,6 @@ HFILES=\
 CLEANFILES=\
 	vers.c\
 	$(TARG)-*.tar.gz\
-	doc/*.1*
 
 include mk/cmd
 include mk/tst

@@ -1,0 +1,115 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "BEANSTALKD" "1" "April 2012" "" ""
+.
+.SH "NAME"
+\fBbeanstalkd\fR \- simple, fast work queue
+.
+.SH "SYNOPSIS"
+\fBbeanstalkd\fR [\fIoptions\fR]
+.
+.SH "DESCRIPTION"
+\fBBeanstalkd\fR is a simple work\-queue service\. Its interface is generic, though it was originally designed for reducing the latency of page views in high\-volume web applications by running time\-consuming tasks asynchronously\.
+.
+.P
+When started, \fBbeanstalkd\fR opens a socket (or uses a file descriptor provided by the init(1) system, see \fIENVIRONMENT\fR) and listens for incoming connections\. For each connection, it reads a sequence of commands to create, reserve, delete, and otherwise manipulate "jobs", units of work to be done\. See file \fBdoc/protocol\.txt\fR in the \fBbeanstalkd\fR distribution for a thorough description of the meaning and format of the \fBbeanstalkd\fR protocol\.
+.
+.SH "OPTIONS"
+.
+.TP
+\fB\-b\fR \fIpath\fR
+Use a binlog to keep jobs on persistent storage in directory \fIpath\fR\. Upon startup, \fBbeanstalkd\fR will recover any binlog that is present in \fIpath\fR, then, during normal operation, append new jobs and changes in state to the binlog\.
+.
+.TP
+\fB\-c\fR
+Perform online, incremental compaction of binlog files\. Negates \fB\-n\fR\. This is the default behavior\.
+.
+.IP
+(Do not use this option, except to negate \fB\-n\fR\. Both \fB\-c\fR and \fB\-n\fR will likely be removed in a future \fBbeanstalkd\fR release\.)
+.
+.TP
+\fB\-f\fR \fIms\fR
+Call fsync(2) at most once every \fIms\fR milliseconds\. Larger values for \fIms\fR reduce disk activity and improve speed at the cost of safety\. A power failure could result in the loss of up to \fIms\fR milliseconds of history\.
+.
+.IP
+A \fIms\fR value of 0 will cause \fBbeanstalkd\fR to call fsync every time it writes to the binlog\.
+.
+.IP
+(This option has no effect without \fB\-b\fR\.)
+.
+.TP
+\fB\-F\fR
+Never call fsync(2)\. Equivalent to \fB\-f\fR with an infinite \fIms\fR value\.
+.
+.IP
+This is the default behavior\.
+.
+.IP
+(This option has no effect without \fB\-b\fR\.)
+.
+.TP
+\fB\-h\fR
+Show a brief help message and exit\.
+.
+.TP
+\fB\-l\fR \fIaddr\fR
+Listen on address \fIaddr\fR (default is 0\.0\.0\.0)\.
+.
+.IP
+(Option \fB\-l\fR has no effect if sd\-daemon(5) socket activation is being used\. See also \fIENVIRONMENT\fR\.)
+.
+.TP
+\fB\-n\fR
+Turn off binlog compaction, negating \fB\-c\fR\.
+.
+.IP
+(Do not use this option\. Both \fB\-c\fR and \fB\-n\fR will likely be removed in a future \fBbeanstalkd\fR release\.)
+.
+.TP
+\fB\-p\fR \fIport\fR
+Listen on TCP port \fIport\fR (default is 11300)\.
+.
+.IP
+(Option \fB\-p\fR has no effect if sd\-daemon(5) socket activation is being used\. See also \fIENVIRONMENT\fR\.)
+.
+.TP
+\fB\-s\fR \fIbytes\fR
+The size in bytes of each binlog file\.
+.
+.IP
+(This option has no effect without \fB\-b\fR\.)
+.
+.TP
+\fB\-u\fR \fIuser\fR
+Become the user \fIuser\fR and its primary group\.
+.
+.TP
+\fB\-V\fR
+Increase verbosity\. May be used more than once to produce more verbose output\. The output format is subject to change\.
+.
+.TP
+\fB\-v\fR
+Print the version string and exit\.
+.
+.TP
+\fB\-z\fR \fIbytes\fR
+The maximum size in bytes of a job\.
+.
+.SH "ENVIRONMENT"
+.
+.TP
+\fBLISTEN_PID\fR, \fBLISTEN_FDS\fR
+These variables can be set by init(1)\. See sd_listen_fds(3) for details\.
+.
+.SH "SEE ALSO"
+sd\-daemon(5), sd_listen_fds(5)
+.
+.P
+Files \fBREADME\fR and \fBdoc/protocol\.txt\fR in the \fBbeanstalkd\fR distribution\.
+.
+.P
+\fIhttp://kr\.github\.com/beanstalkd/\fR
+.
+.SH "AUTHOR"
+\fBBeanstalkd\fR is written and maintained by Keith Rarick with the help of many others\.

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' value='text/html;charset=utf8'>
+  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <title>beanstalkd(1) - simple, fast work queue</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#OPTIONS">OPTIONS</a>
+    <a href="#ENVIRONMENT">ENVIRONMENT</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+    <a href="#AUTHOR">AUTHOR</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>beanstalkd(1)</li>
+    <li class='tc'></li>
+    <li class='tr'>beanstalkd(1)</li>
+  </ol>
+
+  <h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>beanstalkd</code> - <span class="man-whatis">simple, fast work queue</span>
+</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>beanstalkd</code> [<var>options</var>]</p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p><code>Beanstalkd</code> is a simple work-queue service. Its interface is
+generic, though it was originally designed for reducing the latency of
+page views in high-volume web applications by running time-consuming
+tasks asynchronously.</p>
+
+<p>When started, <code>beanstalkd</code> opens a socket (or uses a file descriptor
+provided by the <span class="man-ref">init<span class="s">(1)</span></span> system, see <a href="#ENVIRONMENT" title="ENVIRONMENT" data-bare-link="true">ENVIRONMENT</a>) and listens for
+incoming connections. For each connection, it reads a sequence of
+commands to create, reserve, delete, and otherwise manipulate "jobs",
+units of work to be done. See file <code>doc/protocol.txt</code> in the
+<code>beanstalkd</code> distribution for a thorough description of the meaning
+and format of the <code>beanstalkd</code> protocol.</p>
+
+<h2 id="OPTIONS">OPTIONS</h2>
+
+<dl>
+<dt class="flush"><code>-b</code> <var>path</var></dt><dd><p>Use a binlog to keep jobs on persistent storage in directory <var>path</var>.
+Upon startup, <code>beanstalkd</code> will recover any binlog that is present
+in <var>path</var>, then, during normal operation, append new jobs and
+changes in state to the binlog.</p></dd>
+<dt class="flush"><code>-c</code></dt><dd><p>Perform online, incremental compaction of binlog files. Negates
+<code>-n</code>. This is the default behavior.</p>
+
+<p>(Do not use this option, except to negate <code>-n</code>. Both <code>-c</code> and <code>-n</code>
+will likely be removed in a future <code>beanstalkd</code> release.)</p></dd>
+<dt class="flush"><code>-f</code> <var>ms</var></dt><dd><p>Call <span class="man-ref">fsync<span class="s">(2)</span></span> at most once every <var>ms</var> milliseconds. Larger values
+for <var>ms</var> reduce disk activity and improve speed at the cost of
+safety. A power failure could result in the loss of up to <var>ms</var>
+milliseconds of history.</p>
+
+<p>A <var>ms</var> value of 0 will cause <code>beanstalkd</code> to call fsync every time
+it writes to the binlog.</p>
+
+<p>(This option has no effect without <code>-b</code>.)</p></dd>
+<dt class="flush"><code>-F</code></dt><dd><p>Never call <span class="man-ref">fsync<span class="s">(2)</span></span>. Equivalent to <code>-f</code> with an infinite <var>ms</var> value.</p>
+
+<p>This is the default behavior.</p>
+
+<p>(This option has no effect without <code>-b</code>.)</p></dd>
+<dt class="flush"><code>-h</code></dt><dd><p>Show a brief help message and exit.</p></dd>
+<dt class="flush"><code>-l</code> <var>addr</var></dt><dd><p>Listen on address <var>addr</var> (default is 0.0.0.0).</p>
+
+<p>(Option <code>-l</code> has no effect if <span class="man-ref">sd-daemon<span class="s">(5)</span></span> socket activation is
+being used. See also <a href="#ENVIRONMENT" title="ENVIRONMENT" data-bare-link="true">ENVIRONMENT</a>.)</p></dd>
+<dt class="flush"><code>-n</code></dt><dd><p>Turn off binlog compaction, negating <code>-c</code>.</p>
+
+<p>(Do not use this option. Both <code>-c</code> and <code>-n</code> will likely be removed
+in a future <code>beanstalkd</code> release.)</p></dd>
+<dt class="flush"><code>-p</code> <var>port</var></dt><dd><p>Listen on TCP port <var>port</var> (default is 11300).</p>
+
+<p>(Option <code>-p</code> has no effect if <span class="man-ref">sd-daemon<span class="s">(5)</span></span> socket activation is
+being used. See also <a href="#ENVIRONMENT" title="ENVIRONMENT" data-bare-link="true">ENVIRONMENT</a>.)</p></dd>
+<dt><code>-s</code> <var>bytes</var></dt><dd><p>The size in bytes of each binlog file.</p>
+
+<p>(This option has no effect without <code>-b</code>.)</p></dd>
+<dt class="flush"><code>-u</code> <var>user</var></dt><dd><p>Become the user <var>user</var> and its primary group.</p></dd>
+<dt class="flush"><code>-V</code></dt><dd><p>Increase verbosity. May be used more than once to produce more
+verbose output. The output format is subject to change.</p></dd>
+<dt class="flush"><code>-v</code></dt><dd><p>Print the version string and exit.</p></dd>
+<dt><code>-z</code> <var>bytes</var></dt><dd><p>The maximum size in bytes of a job.</p></dd>
+</dl>
+
+
+<h2 id="ENVIRONMENT">ENVIRONMENT</h2>
+
+<dl>
+<dt><code>LISTEN_PID</code>, <code>LISTEN_FDS</code></dt><dd>These variables can be set by <span class="man-ref">init<span class="s">(1)</span></span>. See <span class="man-ref">sd_listen_fds<span class="s">(3)</span></span> for
+details.</dd>
+</dl>
+
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><span class="man-ref">sd-daemon<span class="s">(5)</span></span>, <span class="man-ref">sd_listen_fds<span class="s">(5)</span></span></p>
+
+<p>Files <code>README</code> and <code>doc/protocol.txt</code> in the <code>beanstalkd</code>
+distribution.</p>
+
+<p><a href="http://kr.github.com/beanstalkd/" data-bare-link="true">http://kr.github.com/beanstalkd/</a></p>
+
+<h2 id="AUTHOR">AUTHOR</h2>
+
+<p><code>Beanstalkd</code> is written and maintained by Keith Rarick with the help
+of many others.</p>
+
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'></li>
+    <li class='tc'>April 2012</li>
+    <li class='tr'>beanstalkd(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>
