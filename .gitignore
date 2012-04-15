@@ -4,3 +4,4 @@ ct/_*
 beanstalkd
 beanstalkd-*.tar.gz
 NEWS.md
+doc/*.1*

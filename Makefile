@@ -35,6 +35,7 @@ HFILES=\
 CLEANFILES=\
 	vers.c\
 	$(TARG)-*.tar.gz\
+	doc/*.1*
 
 include mk/cmd
 include mk/tst
@@ -62,3 +63,6 @@ $(TARG)-$(VERS).tar:
 
 $(TARG)-$(VERS).tar.gz: $(TARG)-$(VERS).tar
 	gzip -f $<
+
+doc/beanstalkd.1 doc/beanstalkd.1.html: doc/beanstalkd.ronn
+	ronn $<

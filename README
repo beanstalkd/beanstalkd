@@ -1,22 +1,28 @@
 This is beanstalkd, a fast, general-purpose work queue.
 See http://kr.github.com/beanstalkd/ for general info.
 
+
 QUICK START
 
     $ make
     $ ./beanstalkd
 
-also,
 
+also try,
+
+    $ ./beanstalkd -h
+    $ ./beanstalkd -VVV
     $ make CFLAGS=-g
     $ make CC=clang
     $ make check
     $ make install
     $ make install PREFIX=/usr
 
-You might need to type "gmake"; our build requires GNU make.
 Requires Linux (2.6.17 or later), Mac OS X, or FreeBSD.
 See doc/protocol.txt for details of the network protocol.
+
+Uses ronn to generate the manual.
+See http://github.com/rtomayko/ronn.
 
 
 SUBDIRECTORIES
@@ -33,7 +39,8 @@ TESTS
 Unit tests are in *-test.c. See https://github.com/kr/ct for
 information on how to write them.
 
-Copyright 2007-2011 the authors of beanstalkd.
+
+Copyright © 2007-2012 the authors of beanstalkd.
 Copyright in contributions to beanstalkd is retained
 by the original copyright holder of each contribution.
-See the COPYING file for terms of use.
+See file LICENSE for terms of use.
