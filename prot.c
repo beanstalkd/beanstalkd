@@ -1525,6 +1525,12 @@ dispatch_cmd(Conn *c)
         t = tube_find(name);
         if (!t) return reply_msg(c, MSG_NOTFOUND);
 
+        // Always pause for a positive amount of time, to make sure
+        // that waiting clients wake up when the deadline arrives.
+        if (delay == 0) {
+            delay = 1;
+        }
+
         t->deadline_at = nanoseconds() + delay;
         t->pause = delay;
         t->stat.pause_ct++;
