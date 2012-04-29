@@ -53,6 +53,7 @@ main(int argc, char **argv)
     struct job list = {};
 
     progname = argv[0];
+    setvbuf(stdout, NULL, _IONBF, 0);
     optparse(&srv, argv+1);
 
     if (verbose) {
