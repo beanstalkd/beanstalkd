@@ -1,0 +1,28 @@
+# System configuration for the beanstalkd daemon
+
+# Available options correspond to the options to the
+# beanstalkd commandline.
+
+BEANSTALKD_ADDR=0.0.0.0
+BEANSTALKD_PORT=11300
+BEANSTALKD_USER=beanstalkd
+
+# Job size is left to the default. Uncomment and set it
+# to a value to have it take affect.
+#BEANSTALKD_MAX_JOB_SIZE=65535
+
+# Using the binlog is off by default.
+#
+# The direcory to house the binlog.  This will be created
+# if it does not exist
+#BEANSTALKD_BINLOG_DIR=/var/lib/beanstalkd/binlog
+#
+# fsync the binlog at most once every N milliseconds.
+# setting this to 0 means 'always fsync'. If this is unset,
+# and the binlog is used, then no explicit fsync is ever
+# performed.  That is, the -F option is used.
+#BEANSTALKD_BINLOG_FSYNC_PERIOD=
+#
+# The size of each binlog file.  This is rounded
+# up to the nearest 512 byte boundary.
+#BEANSTALKD_BINLOG_SIZE=10485760
