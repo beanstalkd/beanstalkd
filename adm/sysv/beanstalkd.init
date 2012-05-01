@@ -61,7 +61,7 @@ start() {
         fi
     fi
 
-    daemon $exec -d $options
+    daemon "$exec $options &"
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile

@@ -1,0 +1,3 @@
+
+SystemV init.d is not recommended for use in production by the
+developers of beanstalk!  Use these scripts at your own risk.
