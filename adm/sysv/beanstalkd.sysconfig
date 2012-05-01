@@ -7,6 +7,11 @@ BEANSTALKD_ADDR=0.0.0.0
 BEANSTALKD_PORT=11300
 BEANSTALKD_USER=beanstalkd
 
+# maximum connections is limited by the number of open files allowed
+# use this to increase ulimit -n
+# default open file limit is 1024
+#BEANSTALKD_MAXCONNECTIONS=1024
+
 # Job size is left to the default. Uncomment and set it
 # to a value to have it take affect.
 #BEANSTALKD_MAX_JOB_SIZE=65535

@@ -60,6 +60,11 @@ start() {
             options="${options} -s ${BEANSTALKD_BINLOG_SIZE}"
         fi
     fi
+    if [ -n "${BEANSTALKD_MAXCONNECTIONS}" ]; then
+		#increase open files ulimit to support higher concurrent connections
+        echo "increasing open file limit to $BEANSTALKD_MAXCONNECTIONS"
+		ulimit -n $BEANSTALKD_MAXCONNECTIONS
+	fi
 
     daemon "$exec $options &"
     retval=$?
