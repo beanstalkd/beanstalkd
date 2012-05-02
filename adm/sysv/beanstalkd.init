@@ -59,6 +59,21 @@ start() {
         if [ "${BEANSTALKD_BINLOG_SIZE}" != "" ]; then
             options="${options} -s ${BEANSTALKD_BINLOG_SIZE}"
         fi
+
+		##1.4.6 at least is prone to leave a lock file around after shutting down
+		##this breaks startup after upgrade to 1.5, so work around this
+		##unknown if this happens w/o binlog enabled...
+        #check for stale lock file in binlog
+		if [ -e "${BEANSTALKD_BINLOG_DIR}/lock" ]
+		 then
+			if ps xa| grep -qv $exec
+			 then
+				echo "found old lock file and beanstalk isn't running - deleting it"
+				rm -f ${BEANSTALKD_BINLOG_DIR}/lock
+			fi
+		fi
+
+
     fi
     if [ -n "${BEANSTALKD_MAXCONNECTIONS}" ]; then
 		#increase open files ulimit to support higher concurrent connections
