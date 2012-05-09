@@ -283,6 +283,26 @@ reply(Conn *c, char *line, int len, int state)
     }
 }
 
+
+void
+protrmdirty(Conn *c)
+{
+    Conn *x, *newdirty = NULL;
+
+    while (dirty) {
+        x = dirty;
+        dirty = dirty->next;
+        x->next = NULL;
+
+        if (x != c) {
+            x->next = newdirty;
+            newdirty = x;
+        }
+    }
+    dirty = newdirty;
+}
+
+
 #define reply_msg(c,m) reply((c),(m),CONSTSTRLEN(m),STATE_SENDWORD)
 
 #define reply_serr(c,e) (twarnx("server error: %s",(e)),\
