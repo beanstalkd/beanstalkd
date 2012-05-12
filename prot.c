@@ -830,7 +830,6 @@ enqueue_incoming_job(Conn *c)
     r = enqueue_job(c->srv, j, j->r.delay, 1);
     if (r < 0) return reply_serr(c, MSG_INTERNAL_ERROR);
 
-    op_ct[OP_PUT]++; /* stats */
     global_stat.total_jobs_ct++;
     j->tube->stat.total_jobs_ct++;
 
@@ -1200,6 +1199,8 @@ dispatch_cmd(Conn *c)
         errno = 0;
         body_size = strtoul(size_buf, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+
+        op_ct[type]++;
 
         if (body_size > job_data_size_limit) {
             /* throw away the job body and respond with JOB_TOO_BIG */
