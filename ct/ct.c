@@ -103,14 +103,14 @@ run(T t[])
 
 
 static void
-copyfd(int out, int in)
+copyfd(FILE *out, int in)
 {
     int n;
     char buf[1024]; // arbitrary size
 
     while ((n = read(in, buf, sizeof(buf))) != 0) {
-        if (write(out, buf, n) != n) {
-            die(3, errno, "write");
+        if (fwrite(buf, 1, n, out) != n) {
+            die(3, errno, "fwrite");
         }
     }
 }
@@ -144,7 +144,7 @@ report(T t[])
 
         putchar('\n');
         lseek(t->fd, 0, SEEK_SET);
-        copyfd(1, t->fd);
+        copyfd(stdout, t->fd);
     }
 
     if (nfail || nerr) {
