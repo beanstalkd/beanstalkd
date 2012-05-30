@@ -82,6 +82,11 @@ Just type:
 
     sudo emerge beanstalkd
 
+## Automated instalation
+
+### Chef
+A cookbook can be found here at [digitalpioneers/public-cookbooks](https://github.com/digitalpioneers/public-cookbooks)
+
 ## Client Libraries
 
 See the [client library][] page to find a library for your favorite
