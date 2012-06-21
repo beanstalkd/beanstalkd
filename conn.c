@@ -236,5 +236,6 @@ connclose(Conn *c)
         heapremove(&c->srv->conns, c->tickpos);
     }
 
+    protrmdirty(c);
     free(c);
 }
