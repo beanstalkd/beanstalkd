@@ -44,18 +44,6 @@ srvserve(Server *s)
 
 
 void
-srvschedconn(Server *s, Conn *c)
-{
-    if (c->tickpos > -1) {
-        heapremove(&s->conns, c->tickpos);
-    }
-    if (c->tickat) {
-        heapinsert(&s->conns, c);
-    }
-}
-
-
-void
 srvaccept(Server *s, int ev)
 {
     h_accept(s->sock.fd, ev, s);

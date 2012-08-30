@@ -384,5 +384,4 @@ struct Server {
 };
 void srvserve(Server *srv);
 void srvaccept(Server *s, int ev);
-void srvschedconn(Server *srv, Conn *c);
 void srvtick(Server *s, int ev);
