@@ -39,6 +39,12 @@ Ubuntu includes a beanstalkd package. To install, type
 
 There is also a PPA at <https://launchpad.net/~jernej/+archive/beanstalkd>.
 
+### Homebrew OS X
+
+[Homebrew](http://mxcl.github.com/homebrew/) includes a beanstalkd package for OS X. To install, type
+
+    brew install beanstalkd
+
 ### MacPorts
 
 Just type:
