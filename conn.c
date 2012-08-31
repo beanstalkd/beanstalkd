@@ -143,11 +143,13 @@ connwant(Conn *c, int rw)
 void
 connsched(Conn *c)
 {
-    if (c->tickpos > -1)
+    if (c->tickpos > -1) {
         heapremove(&c->srv->conns, c->tickpos);
+    }
     c->tickat = conntickat(c);
-    if (c->tickat)
+    if (c->tickat) {
         heapinsert(&c->srv->conns, c);
+    }
 }
 
 
