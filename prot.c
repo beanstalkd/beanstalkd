@@ -1777,11 +1777,6 @@ h_conn(const int fd, const short which, Conn *c)
         return;
     }
 
-    if (which == 'h') {
-        connclose(c);
-        return;
-    }
-
     conn_data(c);
     while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
     update_conns();

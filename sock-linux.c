@@ -96,7 +96,7 @@ handle(Socket *s, int evset)
     int c = 0;
 
     if (evset & (EPOLLHUP|EPOLLRDHUP)) {
-        c = 'h';
+        c = 'r';
     } else if (evset & EPOLLIN) {
         c = 'r';
     } else if (evset & EPOLLOUT) {

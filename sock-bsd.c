@@ -108,9 +108,7 @@ sockmain()
 static void
 handle(Socket *s, int filt, int flags)
 {
-    if (flags & EV_EOF) {
-        s->f(s->x, 'h');
-    } else if (filt == EVFILT_READ) {
+    if (filt == EVFILT_READ) {
         s->f(s->x, 'r');
     } else if (filt == EVFILT_WRITE) {
         s->f(s->x, 'w');
