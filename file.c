@@ -285,12 +285,6 @@ readrec5(File *f, job l, int *err)
         return 0;
     }
 
-    if (namelen < 0) {
-        warnpos(f, -r, "namelen %d is negative", namelen);
-        *err = 1;
-        return 0;
-    }
-
     if (namelen) {
         r = readfull(f, tubename, namelen, err, "v5 tube name");
         if (!r) {
