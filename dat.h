@@ -257,7 +257,7 @@ void enqueue_reserved_jobs(Conn *c);
 void enter_drain_mode(int sig);
 void h_accept(const int fd, const short which, Server* srv);
 void prot_remove_tube(tube t);
-void prot_replay(Server *s, job list);
+int  prot_replay(Server *s, job list);
 
 
 int make_server_socket(char *host_addr, char *port);

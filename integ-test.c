@@ -96,7 +96,7 @@ mustdiallocal(int port)
 static int
 mustforksrv()
 {
-    int r, len, port;
+    int r, len, port, ok;
     struct sockaddr_in addr;
 
     srv.sock.fd = make_server_socket("127.0.0.1", "0");
@@ -140,7 +140,11 @@ mustforksrv()
 
         list.prev = list.next = &list;
         walinit(&srv.wal, &list);
-        prot_replay(&srv, &list);
+        ok = prot_replay(&srv, &list);
+        if (!ok) {
+            twarnx("failed to replay log");
+            exit(11);
+        }
     }
 
     srvserve(&srv); /* does not return */

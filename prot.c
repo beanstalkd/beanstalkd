@@ -1908,17 +1908,25 @@ prot_init()
     if (!default_tube) twarnx("Out of memory during startup!");
 }
 
-void
+// For each job in list, inserts the job into the appropriate data
+// structures and adds it to the log.
+//
+// Returns 1 on success, 0 on failure.
+int
 prot_replay(Server *s, job list)
 {
     job j, nj;
     int64 t, delay;
-    int r;
+    int r, z;
 
     for (j = list->next ; j != list ; j = nj) {
         nj = j->next;
         job_remove(j);
-        walresvupdate(&s->wal, j); /* reserve space for a delete */
+        z = walresvupdate(&s->wal, j);
+        if (!z) {
+            twarnx("failed to reserve space");
+            return 0;
+        }
         delay = 0;
         switch (j->r.state) {
         case Buried:
@@ -1935,4 +1943,5 @@ prot_replay(Server *s, job list)
             if (r < 1) twarnx("error recovering job %"PRIu64, j->r.id);
         }
     }
+    return 1;
 }

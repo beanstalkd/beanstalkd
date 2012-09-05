@@ -80,7 +80,11 @@ main(int argc, char **argv)
 
         list.prev = list.next = &list;
         walinit(&srv.wal, &list);
-        prot_replay(&srv, &list);
+        r = prot_replay(&srv, &list);
+        if (!r) {
+            twarnx("failed to replay log");
+            return 1;
+        }
     }
 
     srvserve(&srv);
