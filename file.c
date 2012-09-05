@@ -158,6 +158,12 @@ readrec(File *f, job l, int *err)
         return 0;
     }
 
+    if (namelen < 0) {
+        warnpos(f, -r, "namelen %d is negative", namelen);
+        *err = 1;
+        return 0;
+    }
+
     if (namelen) {
         r = readfull(f, tubename, namelen, err, "tube name");
         if (!r) {
@@ -275,6 +281,12 @@ readrec5(File *f, job l, int *err)
     sz += r;
     if (namelen >= MAX_TUBE_NAME_LEN) {
         warnpos(f, -r, "namelen %d exceeds maximum of %d", namelen, MAX_TUBE_NAME_LEN - 1);
+        *err = 1;
+        return 0;
+    }
+
+    if (namelen < 0) {
+        warnpos(f, -r, "namelen %d is negative", namelen);
         *err = 1;
         return 0;
     }
