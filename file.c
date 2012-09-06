@@ -201,7 +201,7 @@ readrec(File *f, job l, int *err)
     case Delayed:
         if (!j) {
             if (jr.body_size > job_data_size_limit) {
-                warnpos(f, -r, "job %"PRIu64" is too big (%zd > %zd)", j->r.id, job_data_size_limit);
+                warnpos(f, -r, "job %"PRIu64" is too big (%zd > %zd)", jr.id, job_data_size_limit);
                 goto Error;
             }
             t = tube_find_or_make(tubename);
@@ -322,7 +322,7 @@ readrec5(File *f, job l, int *err)
     case Delayed:
         if (!j) {
             if (jr.body_size > job_data_size_limit) {
-                warnpos(f, -r, "job %"PRIu64" is too big (%zd > %zd)", j->r.id, job_data_size_limit);
+                warnpos(f, -r, "job %"PRIu64" is too big (%zd > %zd)", jr.id, job_data_size_limit);
                 goto Error;
             }
             t = tube_find_or_make(tubename);
