@@ -10,7 +10,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <ctype.h>
 #include <inttypes.h>
 #include <stdarg.h>
 #include "dat.h"
@@ -978,7 +977,7 @@ read_pri(uint *pri, const char *buf, char **end)
 
     errno = 0;
     while (buf[0] == ' ') buf++;
-    if (!isdigit(buf[0])) return -1;
+    if (buf[0] < '0' || '9' < buf[0]) return -1;
     tpri = strtoul(buf, &tend, 10);
     if (tend == buf) return -1;
     if (errno && errno != ERANGE) return -1;
