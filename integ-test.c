@@ -155,7 +155,8 @@ mustforksrv()
 static char *
 readline(int fd)
 {
-    int r, c = 0, p = 0, i = 0;
+    int r, i = 0;
+    char c = 0, p = 0;
     static char buf[1024];
     fd_set rfd;
     struct timeval tv;
