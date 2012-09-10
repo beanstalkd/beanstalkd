@@ -19,7 +19,7 @@
 #include "dat.h"
 
 static int srvpid, port, fd, size;
-static int64 timeout = 5000000000; // 5s
+static int64 timeout = 5000000000LL; // 5s
 static char dir[] = "/tmp/beanstalkd.test.XXXXXX";
 
 static byte fallocpat[3];
