@@ -484,8 +484,14 @@ to scalars. It contains these keys:
  - "total-jobs" is the cumulative count of jobs created in this tube in
    the current beanstalkd process.
 
+ - "current-using" is the number of open connections that are currently
+   using this tube.
+
  - "current-waiting" is the number of open connections that have issued a
    reserve command while watching this tube but not yet received a response.
+
+ - "current-watching" is the number of open connections that are currently
+   watching this tube.
 
  - "pause" is the number of seconds the tube has been paused for.
 
