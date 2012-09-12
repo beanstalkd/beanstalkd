@@ -1,9 +1,0 @@
-PREFIX=/usr/local
-BINDIR=$(PREFIX)/bin
-CFLAGS=-Wall -Werror\
-	-Wformat=2\
-
-LDFLAGS=
-OS=$(shell uname -s | tr A-Z a-z)
-INSTALL=install
-TAR=tar
