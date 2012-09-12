@@ -12,10 +12,11 @@
 #include <string.h>
 #include "dat.h"
 
-static void warnpos(File*, int, char*, ...);
 static int  readrec(File*, job, int*);
 static int  readrec5(File*, job, int*);
 static int  readfull(File*, void*, int, int*, char*);
+static void warnpos(File*, int, char*, ...)
+__attribute__((format(printf, 3, 4)));
 
 FAlloc *falloc = &rawfalloc;
 
@@ -201,7 +202,10 @@ readrec(File *f, job l, int *err)
     case Delayed:
         if (!j) {
             if (jr.body_size > job_data_size_limit) {
-                warnpos(f, -r, "job %"PRIu64" is too big (%zd > %zd)", jr.id, job_data_size_limit);
+                warnpos(f, -r, "job %"PRIu64" is too big (%"PRId32" > %zu)",
+                        jr.id,
+                        jr.body_size,
+                        job_data_size_limit);
                 goto Error;
             }
             t = tube_find_or_make(tubename);
@@ -217,7 +221,7 @@ readrec(File *f, job l, int *err)
         if (namelen) {
             if (jr.body_size != j->r.body_size) {
                 warnpos(f, -r, "job %"PRIu64" size changed", j->r.id);
-                warnpos(f, -r, "was %zu, now %zu", j->r.body_size, jr.body_size);
+                warnpos(f, -r, "was %d, now %d", j->r.body_size, jr.body_size);
                 goto Error;
             }
             r = readfull(f, j->body, j->r.body_size, err, "job body");
@@ -280,7 +284,7 @@ readrec5(File *f, job l, int *err)
     }
     sz += r;
     if (namelen >= MAX_TUBE_NAME_LEN) {
-        warnpos(f, -r, "namelen %d exceeds maximum of %d", namelen, MAX_TUBE_NAME_LEN - 1);
+        warnpos(f, -r, "namelen %zu exceeds maximum of %d", namelen, MAX_TUBE_NAME_LEN - 1);
         *err = 1;
         return 0;
     }
@@ -322,7 +326,10 @@ readrec5(File *f, job l, int *err)
     case Delayed:
         if (!j) {
             if (jr.body_size > job_data_size_limit) {
-                warnpos(f, -r, "job %"PRIu64" is too big (%zd > %zd)", jr.id, job_data_size_limit);
+                warnpos(f, -r, "job %"PRIu64" is too big (%"PRId32" > %zu)",
+                        jr.id,
+                        jr.body_size,
+                        job_data_size_limit);
                 goto Error;
             }
             t = tube_find_or_make(tubename);
@@ -350,7 +357,7 @@ readrec5(File *f, job l, int *err)
         if (namelen) {
             if (jr.body_size != j->r.body_size) {
                 warnpos(f, -r, "job %"PRIu64" size changed", j->r.id);
-                warnpos(f, -r, "was %zu, now %zu", j->r.body_size, jr.body_size);
+                warnpos(f, -r, "was %"PRId32", now %"PRId32, j->r.body_size, jr.body_size);
                 goto Error;
             }
             r = readfull(f, j->body, j->r.body_size, err, "v5 job body");
@@ -408,7 +415,6 @@ readfull(File *f, void *c, int n, int *err, char *desc)
     }
     return r;
 }
-
 
 static void
 warnpos(File *f, int adj, char *fmt, ...)

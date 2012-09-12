@@ -11,6 +11,10 @@ const char *progname;
 
 static void
 vwarnx(const char *err, const char *fmt, va_list args)
+__attribute__((format(printf, 2, 0)));
+
+static void
+vwarnx(const char *err, const char *fmt, va_list args)
 {
     fprintf(stderr, "%s: ", progname);
     if (fmt) {

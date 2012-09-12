@@ -314,6 +314,10 @@ protrmdirty(Conn *c)
                          reply_msg((c),(e)))
 
 static void
+reply_line(Conn*, int, const char*, ...)
+__attribute__((format(printf, 3, 4)));
+
+static void
 reply_line(Conn *c, int state, const char *fmt, ...)
 {
     int r;
@@ -1052,7 +1056,7 @@ do_list_tubes(Conn *c, ms l)
     buf[1] = '\n';
 
     c->out_job_sent = 0;
-    return reply_line(c, STATE_SENDJOB, "OK %d\r\n", resp_z - 2);
+    return reply_line(c, STATE_SENDJOB, "OK %zu\r\n", resp_z - 2);
 }
 
 static int
@@ -1528,7 +1532,7 @@ dispatch_cmd(Conn *c)
         TUBE_ASSIGN(t, NULL);
         if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
-        reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
+        reply_line(c, STATE_SENDWORD, "WATCHING %zu\r\n", c->watch.used);
         break;
     case OP_IGNORE:
         name = c->cmd + CMD_IGNORE_LEN;
@@ -1547,7 +1551,7 @@ dispatch_cmd(Conn *c)
         if (t) ms_remove(&c->watch, t); /* may free t if refcount => 0 */
         t = NULL;
 
-        reply_line(c, STATE_SENDWORD, "WATCHING %d\r\n", c->watch.used);
+        reply_line(c, STATE_SENDWORD, "WATCHING %zu\r\n", c->watch.used);
         break;
     case OP_QUIT:
         connclose(c);

@@ -51,11 +51,6 @@ typedef int(FAlloc)(int, int);
 
 #define min(a,b) ((a)<(b)?(a):(b))
 
-#define twarn(fmt, args...) warn("%s:%d in %s: " fmt, \
-                                 __FILE__, __LINE__, __func__, ##args)
-#define twarnx(fmt, args...) warnx("%s:%d in %s: " fmt, \
-                                   __FILE__, __LINE__, __func__, ##args)
-
 #define URGENT_THRESHOLD 1024
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 
@@ -171,9 +166,14 @@ struct tube {
 };
 
 
-void warn(const char *fmt, ...);
-void warnx(const char *fmt, ...);
-char* fmtalloc(char *fmt, ...);
+#define twarn(fmt, args...) warn("%s:%d in %s: " fmt, \
+                                 __FILE__, __LINE__, __func__, ##args)
+#define twarnx(fmt, args...) warnx("%s:%d in %s: " fmt, \
+                                   __FILE__, __LINE__, __func__, ##args)
+
+void warn(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+void warnx(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+char* fmtalloc(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void* zalloc(int n);
 #define new(T) zalloc(sizeof(T))
 void optparse(Server*, char**);

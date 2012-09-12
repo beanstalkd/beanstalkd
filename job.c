@@ -49,7 +49,7 @@ rehash()
     all_jobs_cap = primes[++cur_prime];
     all_jobs = calloc(all_jobs_cap, sizeof(job));
     if (!all_jobs) {
-        twarnx("Failed to allocate %d new hash buckets", all_jobs_cap);
+        twarnx("Failed to allocate %zu new hash buckets", all_jobs_cap);
         hash_table_was_oom = 1;
         --cur_prime;
         all_jobs = old;
