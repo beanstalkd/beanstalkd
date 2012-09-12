@@ -518,18 +518,16 @@ delay_q_take()
 }
 
 static int
-kick_buried_job(Server *s, tube t)
+kick_buried_job(Server *s, job j)
 {
     int r;
-    job j;
     int z;
 
-    if (!buried_job_p(t)) return 0;
-    j = remove_buried_job(t->buried.next);
-
     z = walresvupdate(&s->wal, j);
-    if (!z) return heapinsert(&t->delay, j), 0; /* put it back */
+    if (!z) return 0;
     j->walresv += z;
+
+    remove_buried_job(j);
 
     j->r.kick_ct++;
     r = enqueue_job(s, j, 0, 1);
@@ -555,21 +553,16 @@ get_delayed_job_ct()
 }
 
 static int
-kick_delayed_job(Server *s, tube t)
+kick_delayed_job(Server *s, job j)
 {
     int r;
-    job j;
     int z;
 
-    if (t->delay.len == 0) {
-        return 0;
-    }
-
-    j = heapremove(&t->delay, 0);
-
     z = walresvupdate(&s->wal, j);
-    if (!z) return heapinsert(&t->delay, j), 0; /* put it back */
+    if (!z) return 0;
     j->walresv += z;
+
+    heapremove(&j->tube->delay, j->heap_index);
 
     j->r.kick_ct++;
     r = enqueue_job(s, j, 0, 1);
@@ -589,7 +582,9 @@ static uint
 kick_buried_jobs(Server *s, tube t, uint n)
 {
     uint i;
-    for (i = 0; (i < n) && kick_buried_job(s, t); ++i);
+    for (i = 0; (i < n) && buried_job_p(t); ++i) {
+        kick_buried_job(s, t->buried.next);
+    }
     return i;
 }
 
@@ -598,7 +593,9 @@ static uint
 kick_delayed_jobs(Server *s, tube t, uint n)
 {
     uint i;
-    for (i = 0; (i < n) && kick_delayed_job(s, t); ++i);
+    for (i = 0; (i < n) && (t->delay.len > 0); ++i) {
+        kick_delayed_job(s, (job)t->delay.data[0]);
+    }
     return i;
 }
 
