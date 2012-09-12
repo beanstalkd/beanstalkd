@@ -1,6 +1,14 @@
-include mk/inc
+PREFIX=/usr/local
+BINDIR=$(PREFIX)/bin
+CFLAGS=-Wall -Werror\
+	-Wformat=2\
 
-VERS=$(shell mk/vers.sh)
+LDFLAGS=
+OS=$(shell uname -s | tr A-Z a-z)
+INSTALL=install
+TAR=tar
+
+VERS=$(shell ./vers.sh)
 TARG=beanstalkd
 MOFILE=main.o
 OFILES=\
@@ -36,24 +44,60 @@ CLEANFILES=\
 	vers.c\
 	$(TARG)-*.tar.gz\
 
-include mk/cmd
-include mk/tst
+.PHONY: all
+all: $(TARG)
 
-vers.c:
-	mk/verc.sh >vers.c
-ifneq ($(shell mk/verc.sh),$(shell cat vers.c 2>/dev/null))
+$(TARG): $(OFILES) $(MOFILE)
+	$(LINK.o) -o $@ $^ $(LDLIBS)
+
+.PHONY: install
+install: $(BINDIR) $(BINDIR)/$(TARG)
+
+$(BINDIR):
+	$(INSTALL) -d $@
+
+$(BINDIR)/%: %
+	$(INSTALL) $< $@
+
+CLEANFILES:=$(CLEANFILES) $(TARG)
+
+$(OFILES) $(MOFILE): $(HFILES)
+
+.PHONY: clean
+clean:
+	rm -f *.o $(CLEANFILES)
+
+.PHONY: check
+check: ct/_ctcheck
+	ct/_ctcheck
+
+ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES)
+
+ct/_ctcheck.c: $(TOFILES) ct/gen
+	ct/gen $(TOFILES) >$@.part
+	mv $@.part $@
+
+ct/ct.o ct/_ctcheck.o: ct/ct.h ct/internal.h
+
+$(TOFILES): $(HFILES) ct/ct.h
+
+CLEANFILES:=$(CLEANFILES) ct/_* ct/*.o
+
+ifneq ($(shell ./verc.sh),$(shell cat vers.c 2>/dev/null))
 .PHONY: vers.c
 endif
+vers.c:
+	./verc.sh >vers.c
 
-dist: $(TARG)-$(VERS).tar.gz
 .PHONY: dist
+dist: $(TARG)-$(VERS).tar.gz
 
 $(TARG)-$(VERS).tar:
 	git archive -o $@ --prefix=$(TARG)-$(VERS)/ v$(VERS)
 	mkdir -p $(TARG)-$(VERS)/mk
-	echo 'printf "$(VERS)"' >$(TARG)-$(VERS)/mk/vers.sh
-	chmod +x $(TARG)-$(VERS)/mk/vers.sh
-	$(TAR) --append -f $@ $(TARG)-$(VERS)/mk/vers.sh
+	echo 'printf "$(VERS)"' >$(TARG)-$(VERS)/vers.sh
+	chmod +x $(TARG)-$(VERS)/vers.sh
+	$(TAR) --append -f $@ $(TARG)-$(VERS)/vers.sh
 	sed 's/@VERSION@/$(VERS)/' <pkg/beanstalkd.spec.in >$(TARG)-$(VERS)/beanstalkd.spec
 	$(TAR) --append -f $@ $(TARG)-$(VERS)/beanstalkd.spec
 	cp NEWS.md $(TARG)-$(VERS)/NEWS.md
