@@ -35,7 +35,7 @@ pkg	miscelaneous files for packagers
 
 TESTS
 
-Unit tests are in *-test.c. See https://github.com/kr/ct for
+Unit tests are in test*.c. See https://github.com/kr/ct for
 information on how to write them.
 
 
