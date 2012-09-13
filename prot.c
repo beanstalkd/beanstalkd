@@ -10,7 +10,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <ctype.h>
 #include <inttypes.h>
 #include <stdarg.h>
 #include "dat.h"
