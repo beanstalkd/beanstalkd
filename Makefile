@@ -109,3 +109,5 @@ $(TARG)-$(VERS).tar.gz: $(TARG)-$(VERS).tar
 
 doc/beanstalkd.1 doc/beanstalkd.1.html: doc/beanstalkd.ronn
 	ronn $<
+
+sock-darwin.o sock-freebsd.o: sock-bsd.c
