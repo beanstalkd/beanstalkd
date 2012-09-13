@@ -171,8 +171,6 @@ struct tube {
 };
 
 
-void v(void);
-
 void warn(const char *fmt, ...);
 void warnx(const char *fmt, ...);
 char* fmtalloc(char *fmt, ...);

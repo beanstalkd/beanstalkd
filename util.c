@@ -9,11 +9,6 @@
 
 const char *progname;
 
-void
-v()
-{
-}
-
 static void
 vwarnx(const char *err, const char *fmt, va_list args)
 {
