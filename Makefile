@@ -4,7 +4,7 @@ CFLAGS=-Wall -Werror\
 	-Wformat=2\
 
 LDFLAGS=
-OS=$(shell uname -s | tr A-Z a-z)
+OS=$(shell uname|tr A-Z a-z)
 INSTALL=install
 TAR=tar
 
@@ -12,17 +12,16 @@ VERS=$(shell ./vers.sh)
 TARG=beanstalkd
 MOFILE=main.o
 OFILES=\
+	$(OS).o\
 	conn.o\
 	file.o\
 	heap.o\
 	job.o\
 	ms.o\
 	net.o\
-	port-$(OS).o\
 	primes.o\
 	prot.o\
 	sd-daemon.o\
-	sock-$(OS).o\
 	serv.o\
 	time.o\
 	tube.o\
@@ -110,4 +109,4 @@ $(TARG)-$(VERS).tar.gz: $(TARG)-$(VERS).tar
 doc/beanstalkd.1 doc/beanstalkd.1.html: doc/beanstalkd.ronn
 	ronn $<
 
-sock-darwin.o sock-freebsd.o: sock-bsd.c
+freebsd.o: darwin.c

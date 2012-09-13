@@ -1,3 +1,6 @@
+#define _XOPEN_SOURCE 600
+#include <stdint.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/epoll.h>
@@ -8,6 +11,16 @@
 #endif
 
 static int epfd;
+
+
+/* Allocate disk space.
+ * Expects fd's offset to be 0; may also reset fd's offset to 0.
+ * Returns 0 on success, and a positive errno otherwise. */
+int
+rawfalloc(int fd, int len)
+{
+    return posix_fallocate(fd, 0, len);
+}
 
 
 int
