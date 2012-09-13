@@ -26,7 +26,7 @@ typedef struct Wal    Wal;
 
 typedef void(*evh)(int, short, void *);
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
-typedef void(*Handle)(void*, int rw); // rw can also be 'h' for hangup
+typedef void(*Handle)(void*, int rw);
 typedef int(*Less)(void*, void*);
 typedef void(*Record)(void*, int);
 typedef int(FAlloc)(int, int);
@@ -89,10 +89,9 @@ struct Socket {
     void   *x;
     int    added;
 };
-
-void sockinit(Handle tick, void *x, int64 ns);
-int  sockwant(Socket *s, int rw);
-void sockmain(void); // does not return
+int sockinit(void);
+int sockwant(Socket*, int);
+int socknext(Socket**, int64);
 
 struct ms {
     size_t used, cap, last;
@@ -382,4 +381,3 @@ struct Server {
 };
 void srvserve(Server *srv);
 void srvaccept(Server *s, int ev);
-void srvtick(Server *s, int ev);

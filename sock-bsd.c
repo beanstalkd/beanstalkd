@@ -10,28 +10,18 @@ enum
     Infinity = 1 << 30
 };
 
-static void handle(Socket*, int, int);
-
-static Handle          tick;
-static void            *tickval;
-static int             kq;
-static int64           ival;
-static struct timespec ivalts;
+static int kq;
 
 
-void
-sockinit(Handle f, void *x, int64 ns)
+int
+sockinit(void)
 {
-    tick = f;
-    tickval = x;
-    ival = ns;
-    ivalts.tv_sec = ns / 1000000000;
-    ivalts.tv_nsec = ns % 1000000000;
     kq = kqueue();
     if (kq == -1) {
         twarn("kqueue");
-        exit(1);
+        return -1;
     }
+    return 0;
 }
 
 
@@ -76,41 +66,29 @@ sockwant(Socket *s, int rw)
 }
 
 
-void
-sockmain()
+int
+socknext(Socket **s, int64 timeout)
 {
-    int i, r, n = 1;
-    int64 e, t = nanoseconds();
-    struct kevent evs[n];
+    int r;
+    struct kevent ev;
+    static struct timespec ts;
 
-    for (;;) {
-        r = kevent(kq, NULL, 0, evs, n, &ivalts);
-        if (r == -1 && errno != EINTR) {
-            twarn("kevent");
-            exit(1);
-        }
-
-        // should tick?
-        e = nanoseconds();
-        if (e-t > ival) {
-            tick(tickval, 0);
-            t = e;
-        }
-
-        for (i=0; i<r; i++) {
-            handle(evs[i].udata, evs[i].filter, evs[i].flags);
-        }
-
+    ts.tv_sec = timeout / 1000000000;
+    ts.tv_nsec = timeout % 1000000000;
+    r = kevent(kq, NULL, 0, &ev, 1, &ts);
+    if (r == -1 && errno != EINTR) {
+        twarn("kevent");
+        return -1;
     }
-}
 
-
-static void
-handle(Socket *s, int filt, int flags)
-{
-    if (filt == EVFILT_READ) {
-        s->f(s->x, 'r');
-    } else if (filt == EVFILT_WRITE) {
-        s->f(s->x, 'w');
+    if (r > 0) {
+        *s = ev.udata;
+        switch (ev.filter) {
+        case EVFILT_READ:
+            return 'r';
+        case EVFILT_WRITE:
+            return 'w';
+        }
     }
+    return 0;
 }
