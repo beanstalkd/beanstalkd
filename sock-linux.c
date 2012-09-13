@@ -7,25 +7,18 @@
 #define EPOLLRDHUP 0x2000
 #endif
 
-static void handle(Socket *s, int events);
-
-static Handle tick;
-static void   *tickval;
-static int    epfd;
-static int    ival; // ms
+static int epfd;
 
 
-void
-sockinit(Handle f, void *x, int64 ns)
+int
+sockinit(void)
 {
-    tick = f;
-    tickval = x;
-    ival = ns / 1000000;
     epfd = epoll_create(1);
     if (epfd == -1) {
         twarn("epoll_create");
-        exit(1);
+        return -1;
     }
+    return 0;
 }
 
 
@@ -61,47 +54,25 @@ sockwant(Socket *s, int rw)
 }
 
 
-void
-sockmain()
+int
+socknext(Socket **s, int64 timeout)
 {
-    int i, r, n = 1;
-    int64 e, t = nanoseconds();
-    struct epoll_event evs[n];
+    int r;
+    struct epoll_event ev;
 
-    for (;;) {
-        r = epoll_wait(epfd, evs, n, ival);
-        if (r == -1 && errno != EINTR) {
-            twarn("epoll_wait");
-            exit(1);
-        }
-
-        // should tick?
-        e = nanoseconds();
-        if ((e-t) / 1000000 > ival) {
-            tick(tickval, 0);
-            t = e;
-        }
-
-        for (i=0; i<r; i++) {
-            handle(evs[i].data.ptr, evs[i].events);
-        }
-
-    }
-}
-
-
-static void
-handle(Socket *s, int evset)
-{
-    int c = 0;
-
-    if (evset & (EPOLLHUP|EPOLLRDHUP)) {
-        c = 'r';
-    } else if (evset & EPOLLIN) {
-        c = 'r';
-    } else if (evset & EPOLLOUT) {
-        c = 'w';
+    r = epoll_wait(epfd, &ev, 1, (int)(timeout/1000000));
+    if (r == -1 && errno != EINTR) {
+        twarn("epoll_wait");
+        exit(1);
     }
 
-    s->f(s->x, c);
+    if (r) {
+        *s = ev.data.ptr;
+        if (ev.events & (EPOLLIN|EPOLLHUP|EPOLLRDHUP)) {
+            return 'r';
+        } else if (ev.events & EPOLLOUT) {
+            return 'w';
+        }
+    }
+    return 0;
 }

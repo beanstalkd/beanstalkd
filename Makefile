@@ -23,7 +23,7 @@ OFILES=\
 	prot.o\
 	sd-daemon.o\
 	sock-$(OS).o\
-	srv.o\
+	serv.o\
 	time.o\
 	tube.o\
 	util.o\
