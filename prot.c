@@ -1421,7 +1421,8 @@ dispatch_cmd(Conn *c)
         j = job_find(id);
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        if (kick_buried_job(c->srv, j) || kick_delayed_job(c->srv, j)) {
+        if ((j->r.state == Buried && kick_buried_job(c->srv, j)) ||
+            (j->r.state == Delayed && kick_delayed_job(c->srv, j))) {
             reply(c, MSG_KICKED, MSG_KICKED_LEN, STATE_SENDWORD);
         } else {
             return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
