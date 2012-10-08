@@ -9,8 +9,8 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <netdb.h>
-#include <netinet/ip.h>
 #include <netinet/in.h>
+#include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/wait.h>
