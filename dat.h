@@ -24,7 +24,6 @@ typedef struct Socket Socket;
 typedef struct Server Server;
 typedef struct Wal    Wal;
 
-typedef void(*evh)(int, short, void *);
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 typedef void(*Handle)(void*, int rw);
 typedef int(*Less)(void*, void*);
