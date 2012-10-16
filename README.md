@@ -1,8 +1,9 @@
+# Beanstalkd
+
 This is beanstalkd, a fast, general-purpose work queue.
 See http://kr.github.com/beanstalkd/ for general info.
 
-
-QUICK START
+## QUICK START
 
     $ make
     $ ./beanstalkd
@@ -25,15 +26,18 @@ Uses ronn to generate the manual.
 See http://github.com/rtomayko/ronn.
 
 
-SUBDIRECTORIES
+## SUBDIRECTORIES
 
 adm	files useful for system administrators
 ct	testing tool; see https://github.com/kr/ct
 doc	documentation
 pkg	miscelaneous files for packagers
 
+## PROTOCOL
 
-TESTS
+For more information checkout the [beanstalkd protocol](master/doc/protocol.md).
+
+## TESTS
 
 Unit tests are in *-test.c. See https://github.com/kr/ct for
 information on how to write them.
