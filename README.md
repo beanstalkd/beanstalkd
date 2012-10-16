@@ -35,7 +35,7 @@ pkg	miscelaneous files for packagers
 
 ## PROTOCOL
 
-For more information checkout the [beanstalkd protocol](doc/protocol.md).
+For more information checkout the [beanstalkd protocol](master/doc/protocol.md).
 
 ## TESTS
 
