@@ -106,6 +106,9 @@ socknext(Socket **s, int64 timeout)
 
     if (r > 0) {
         *s = ev.udata;
+        if (ev.flags & EV_EOF) {
+            return 'h';
+        }
         switch (ev.filter) {
         case EVFILT_READ:
             return 'r';

@@ -1764,7 +1764,10 @@ conn_data(Conn *c)
         /* otherwise we sent incomplete data, so just keep waiting */
         break;
     case STATE_WAIT:
-        // nothing
+        if (c->halfclosed) {
+            c->pending_timeout = -1;
+            return reply_msg(remove_waiting_conn(c), MSG_TIMED_OUT);
+        }
         break;
     }
 }
@@ -1799,6 +1802,10 @@ h_conn(const int fd, const short which, Conn *c)
         connclose(c);
         update_conns();
         return;
+    }
+
+    if (which == 'h') {
+        c->halfclosed = 1;
     }
 
     conn_data(c);

@@ -168,7 +168,7 @@ A timeout value of `0` will cause the server to immediately return either a resp
 ###### Non-succesful responses
 
 * `DEADLINE_SOON\r\n` During the TTR of a reserved job, the last second is kept by the server as a safety margin, during which the client will not be made to wait for another job. If the client issues a reserve command during the safety margin, or if the safety margin arrives while the client is waiting on a reserve command.
-* `TIMED_OUT\r\n` If a non-negative timeout was specified and the timeout exceeded before a job became available, the server will respond with TIMED_OUT.
+* `TIMED_OUT\r\n` If a non-negative timeout was specified and the timeout exceeded before a job became available, or if the client's connection is half-closed, the server will respond with TIMED_OUT.
 
 Otherwise, the only other response to this command is a successful reservation
 in the form of a text line followed by the job body:

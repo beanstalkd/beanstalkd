@@ -271,6 +271,7 @@ struct Conn {
     job    soonest_job; // memoization of the soonest job
     int    rw;          // currently want: 'r', 'w', or 'h'
     int    pending_timeout;
+    char   halfclosed;
 
     char cmd[LINE_BUF_SIZE]; // this string is NOT NUL-terminated
     int  cmd_len;

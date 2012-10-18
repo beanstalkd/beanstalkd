@@ -225,7 +225,8 @@ the server automatically releases it.
 TIMED_OUT\r\n
 
 If a non-negative timeout was specified and the timeout exceeded before a job
-became available, the server will respond with TIMED_OUT.
+became available, or if the client's connection is half-closed, the server
+will respond with TIMED_OUT.
 
 Otherwise, the only other response to this command is a successful reservation
 in the form of a text line followed by the job body:
