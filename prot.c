@@ -244,7 +244,6 @@ static const char * op_names[] = {
     CMD_RELEASE,
     CMD_BURY,
     CMD_KICK,
-    CMD_JOBKICK,
     CMD_STATS,
     CMD_JOBSTATS,
     CMD_PEEK_BURIED,
@@ -260,7 +259,8 @@ static const char * op_names[] = {
     CMD_RESERVE_TIMEOUT,
     CMD_TOUCH,
     CMD_QUIT,
-    CMD_PAUSE_TUBE
+    CMD_PAUSE_TUBE,
+    CMD_JOBKICK,
 };
 
 static job remove_buried_job(job j);
