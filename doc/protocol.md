@@ -37,16 +37,14 @@ Names only supports ASCII strings.
 
 ### Job Lifecycle
 
-A job in beanstalk gets created by a client with the `put` command. During its life it can be in one of four states:
+A job in beanstalk gets created by a client with the `put` command. During its life it can be in one of four states: `ready`, `reserved`, `delayed`, or `buried`. After the `put` command, a job typically starts out ready. It waits in the ready queue until a worker comes along and runs the "reserve" command. If this job is next in the queue, it will be reserved for the worker. The worker will execute the job; when it is finished the worker will send a `delete` command to delete the job.
 
 | Status              | Description   |
 | --------------------| ------------- |
-| `ready`             | it waits in the ready queue until a worker comes along and runs the "reserve" command |
+| `ready`             | waiting to be reserved and processed after being put onto a tubed |
 | `reserved`          | if this job is next in the queue, it will be reserved for the worker. The worker will execute the job |
-| `delayed`           | when it's waiting "x" seconds before to be `ready` |
-| `buried`            | when it is finished the worker will send a "delete" ; when it is finished the worker will send a "delete" |
-
-
+| `delayed`           | waiting to become ready after the specified delay. |
+| `buried`            | waiting to be kicked, usually after job fails to process |
 
 Here is a picture of the typical job lifecycle:
 
