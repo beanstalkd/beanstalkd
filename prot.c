@@ -46,6 +46,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_STATS_TUBE "stats-tube "
 #define CMD_QUIT "quit"
 #define CMD_PAUSE_TUBE "pause-tube"
+#define CMD_BIND "bind"
+#define CMD_UNBIND "unbind"
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
@@ -71,6 +73,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_LIST_TUBES_WATCHED_LEN CONSTSTRLEN(CMD_LIST_TUBES_WATCHED)
 #define CMD_STATS_TUBE_LEN CONSTSTRLEN(CMD_STATS_TUBE)
 #define CMD_PAUSE_TUBE_LEN CONSTSTRLEN(CMD_PAUSE_TUBE)
+#define CMD_BIND_LEN CONSTSTRLEN(CMD_BIND)
+#define CMD_UNBIND_LEN CONSTSTRLEN(CMD_UNBIND)
 
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
@@ -85,6 +89,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_BURIED_FMT "BURIED %"PRIu64"\r\n"
 #define MSG_INSERTED_FMT "INSERTED %"PRIu64"\r\n"
 #define MSG_NOT_IGNORED "NOT_IGNORED\r\n"
+#define MSG_BINDED "BINDED\r\n"
+#define MSG_UNBINDED "UNBINDED\r\n"
 
 #define MSG_NOTFOUND_LEN CONSTSTRLEN(MSG_NOTFOUND)
 #define MSG_DELETED_LEN CONSTSTRLEN(MSG_DELETED)
@@ -93,6 +99,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_BURIED_LEN CONSTSTRLEN(MSG_BURIED)
 #define MSG_KICKED_LEN CONSTSTRLEN(MSG_KICKED)
 #define MSG_NOT_IGNORED_LEN CONSTSTRLEN(MSG_NOT_IGNORED)
+#define MSG_BINDED_LEN CONSTSTRLEN(MSG_BINDED)
 
 #define MSG_OUT_OF_MEMORY "OUT_OF_MEMORY\r\n"
 #define MSG_INTERNAL_ERROR "INTERNAL_ERROR\r\n"
@@ -134,7 +141,9 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_QUIT 22
 #define OP_PAUSE_TUBE 23
 #define OP_JOBKICK 24
-#define TOTAL_OPS 25
+#define OP_BIND 25
+#define OP_UNBIND 26
+#define TOTAL_OPS 27
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -196,6 +205,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-using: %u\n" \
     "current-watching: %u\n" \
     "current-waiting: %u\n" \
+    "current-fanout: %u\n" \
     "cmd-delete: %" PRIu64 "\n" \
     "cmd-pause-tube: %u\n" \
     "pause: %" PRIu64 "\n" \
@@ -261,6 +271,8 @@ static const char * op_names[] = {
     CMD_QUIT,
     CMD_PAUSE_TUBE,
     CMD_JOBKICK,
+    CMD_BIND,
+    CMD_UNBIND,
 };
 
 static job remove_buried_job(job j);
@@ -750,6 +762,8 @@ which_cmd(Conn *c)
     TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
     TEST_CMD(c->cmd, CMD_QUIT, OP_QUIT);
     TEST_CMD(c->cmd, CMD_PAUSE_TUBE, OP_PAUSE_TUBE);
+    TEST_CMD(c->cmd, CMD_BIND, OP_BIND);
+    TEST_CMD(c->cmd, CMD_UNBIND, OP_UNBIND);
     return OP_UNKNOWN;
 }
 
@@ -805,6 +819,57 @@ _skip(Conn *c, int n, char *line, int len)
 
 #define skip(c,n,m) (_skip(c,n,m,CONSTSTRLEN(m)))
 
+static int
+dispatch_fanout_job(Conn *c, job j)
+{
+    int i, r;
+    job n;
+    tube t;
+
+    for (i=0; i<j->tube->fanout.used; i++) {
+        t = j->tube->fanout.items[i];
+
+        n = job_clone(j, t);
+        if (!n) return 0;
+
+        if (n->walresv) return 0;
+        n->walresv = walresvput(&c->srv->wal, n);
+        if (!n->walresv) return 0;
+
+        global_stat.total_jobs_ct++;
+        t->stat.total_jobs_ct++;
+
+        r = enqueue_job(c->srv, n, n->r.delay, 1);
+        if (r < 0) return 0;
+
+        if (r==0) { 
+            /* out of memory trying to grow the queue, so it gets buried */
+            bury_job(c->srv, n, 0);
+            printf("bury job\n");
+        }
+    }
+    return 1;
+}
+
+static int
+migrate_jobs(Conn *c, tube s, tube t)
+{
+    job j;
+
+    while (s->ready.len || s->delay.len) {
+        j = s->ready.len ? s->ready.data[0] : s->delay.data[0];
+        if (!dispatch_fanout_job(c, j)) return 0;
+        
+        if(!remove_ready_job(j)) remove_delayed_job(j); 
+
+        j->r.state = Invalid;
+        walwrite(&c->srv->wal, j);
+        walmaint(&c->srv->wal);
+        job_free(j);
+    }
+    return 1;
+}
+
 static void
 enqueue_incoming_job(Conn *c)
 {
@@ -827,6 +892,15 @@ enqueue_incoming_job(Conn *c)
     if (drain_mode) {
         job_free(j);
         return reply_serr(c, MSG_DRAINING);
+    }
+    
+    if (j->tube->fanout.used > 0) {
+        if(dispatch_fanout_job(c, j))
+            reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j->r.id);
+        else
+            reply_serr(c, MSG_INTERNAL_ERROR);
+        job_free(j);
+        return;
     }
 
     if (j->walresv) return reply_serr(c, MSG_INTERNAL_ERROR);
@@ -1112,6 +1186,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.total_jobs_ct,
             t->using_ct,
             t->watching_ct,
+            (int)(t->fanout.used),
             t->stat.waiting_ct,
             t->stat.total_delete_ct,
             t->stat.pause_ct,
@@ -1177,7 +1252,7 @@ dispatch_cmd(Conn *c)
     uint pri, body_size;
     int64 delay, ttr;
     uint64 id;
-    tube t = NULL;
+    tube t = NULL, t2 = NULL;
 
     /* NUL-terminate this string so we can use strtol and friends */
     c->cmd[c->cmd_len - 2] = '\0';
@@ -1581,6 +1656,51 @@ dispatch_cmd(Conn *c)
         t->stat.pause_ct++;
 
         reply_line(c, STATE_SENDWORD, "PAUSED\r\n");
+        break;
+    case OP_BIND:
+        r = read_tube_name(&name, c->cmd + CMD_BIND_LEN, &delay_buf);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        
+        *delay_buf = '\0'; 
+        TUBE_ASSIGN(t, tube_find_or_make(name));
+        if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
+        
+        r = read_tube_name(&name, delay_buf+1, &delay_buf);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        
+        *delay_buf = '\0'; 
+        TUBE_ASSIGN(t2, tube_find_or_make(name));
+        if (!t2) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        r = tube_bind(t, t2) && migrate_jobs(c, t, t2);
+        
+        TUBE_ASSIGN(t, NULL);
+        TUBE_ASSIGN(t2, NULL);
+        if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        reply_line(c, STATE_SENDWORD, "BINDED\r\n");
+        break;
+    case OP_UNBIND:
+        r = read_tube_name(&name, c->cmd + CMD_UNBIND_LEN, &delay_buf);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        
+        *delay_buf = '\0'; 
+        TUBE_ASSIGN(t, tube_find_or_make(name));
+        if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        r = read_tube_name(&name, delay_buf+1, &delay_buf);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+
+        *delay_buf = '\0'; 
+        TUBE_ASSIGN(t2, tube_find_or_make(name));
+        if (!t2) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        r = tube_unbind(t, t2);
+        TUBE_ASSIGN(t, NULL);
+        TUBE_ASSIGN(t2, NULL);
+        if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        reply_line(c, STATE_SENDWORD, "UNBINDED\r\n");
         break;
     default:
         return reply_msg(c, MSG_UNKNOWN_COMMAND);

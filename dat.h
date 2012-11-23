@@ -155,6 +155,7 @@ struct tube {
     Heap ready;
     Heap delay;
     struct ms waiting; /* set of conns */
+    struct ms fanout;
     struct stats stat;
     uint using_ct;
     uint watching_ct;
@@ -205,6 +206,7 @@ void job_setheappos(void*, int);
 int job_pri_less(void*, void*);
 int job_delay_less(void*, void*);
 
+job job_clone(job j, tube t);
 job job_copy(job j);
 
 const char * job_state(job j);
@@ -226,6 +228,8 @@ void tube_dref(tube t);
 void tube_iref(tube t);
 tube tube_find(const char *name);
 tube tube_find_or_make(const char *name);
+int  tube_bind(tube s, tube t);
+int  tube_unbind(tube s, tube t);
 #define TUBE_ASSIGN(a,b) (tube_dref(a), (a) = (b), tube_iref(a))
 
 
