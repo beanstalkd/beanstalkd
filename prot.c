@@ -1939,6 +1939,11 @@ prot_init()
     if (!default_tube) twarnx("Out of memory during startup!");
 }
 
+void
+prot_destroy() {
+    tube_dref(default_tube);
+}
+
 // For each job in list, inserts the job into the appropriate data
 // structures and adds it to the log.
 //

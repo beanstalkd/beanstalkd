@@ -44,6 +44,8 @@ set_sig_handlers()
     sa.sa_handler = enter_drain_mode;
     r = sigaction(SIGUSR1, &sa, 0);
     if (r == -1) twarn("sigaction(SIGUSR1)"), exit(111);
+
+    prot_destroy();
 }
 
 int

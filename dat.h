@@ -243,6 +243,7 @@ extern size_t primes[];
 extern size_t job_data_size_limit;
 
 void prot_init(void);
+void prot_destroy(void);
 void prottick(Server *s);
 void protrmdirty(Conn*);
 
