@@ -201,6 +201,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-jobs-reserved: %u\n" \
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
+    "current-jobs-discarded: %u\n" \
     "total-jobs: %" PRIu64 "\n" \
     "current-using: %u\n" \
     "current-watching: %u\n" \
@@ -830,6 +831,11 @@ dispatch_fanout_job(Conn *c, job j)
 
     for (i=0; i<j->tube->fanout.used; i++) {
         t = j->tube->fanout.items[i];
+        
+        if (t->ready.len > MAX_NUMBER_OF_FANOUT_MESSAGES) {
+            t->discard_ct ++;
+            continue;
+        }
 
         n = job_clone(j, t);
         if (!n) return 0;
@@ -847,7 +853,6 @@ dispatch_fanout_job(Conn *c, job j)
         if (r==0) { 
             /* out of memory trying to grow the queue, so it gets buried */
             bury_job(c->srv, n, 0);
-            printf("bury job\n");
         }
     }
     return 1;
@@ -1185,6 +1190,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.reserved_ct,
             t->delay.len,
             t->stat.buried_ct,
+            t->discard_ct,
             t->stat.total_jobs_ct,
             t->using_ct,
             t->watching_ct,

@@ -52,6 +52,7 @@ typedef int(FAlloc)(int, int);
 
 #define URGENT_THRESHOLD 1024
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
+#define MAX_NUMBER_OF_FANOUT_MESSAGES (10 << 20)
 
 extern const char version[];
 extern int verbose;
@@ -157,6 +158,7 @@ struct tube {
     struct ms waiting; /* set of conns */
     struct ms fanout;
     struct stats stat;
+    uint discard_ct;
     uint using_ct;
     uint watching_ct;
     int64 pause;
