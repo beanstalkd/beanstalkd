@@ -97,8 +97,13 @@ tube_find_or_make(const char *name)
 int
 tube_bind(tube s, tube t)
 {
+    if (!s || !t) return 0;
+
     if (ms_contains(&s->fanout, t))
-        return 1;
+        return 2;
+
+    if (t->fanout.used)
+        return 0; // cycle
 
     if (!ms_append(&s->fanout, t))
         return 0;
@@ -114,6 +119,7 @@ tube_unbind(tube s, tube t)
     if (ms_remove(&s->fanout, t)) {
         tube_dref(s);
         tube_dref(t);
+        return 1;
     }
-    return 1;
+    return 0;
 }

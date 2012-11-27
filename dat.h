@@ -258,6 +258,7 @@ void enter_drain_mode(int sig);
 void h_accept(const int fd, const short which, Server* srv);
 void prot_remove_tube(tube t);
 int  prot_replay(Server *s, job list);
+int  prot_load_fanout(char *path);
 
 
 int make_server_socket(char *host_addr, char *port);

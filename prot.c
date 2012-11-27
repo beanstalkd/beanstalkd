@@ -245,6 +245,8 @@ static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
 static Conn *dirty;
 
+static FILE *fanout_log = NULL;
+
 static const char * op_names[] = {
     "<unknown>",
     CMD_PUT,
@@ -1186,8 +1188,8 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.total_jobs_ct,
             t->using_ct,
             t->watching_ct,
-            (int)(t->fanout.used),
             t->stat.waiting_ct,
+            (int)(t->fanout.used),
             t->stat.total_delete_ct,
             t->stat.pause_ct,
             t->pause / 1000000000,
@@ -1248,7 +1250,7 @@ dispatch_cmd(Conn *c)
     uint count;
     job j = 0;
     byte type;
-    char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
+    char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name, *name2;
     uint pri, body_size;
     int64 delay, ttr;
     uint64 id;
@@ -1660,22 +1662,26 @@ dispatch_cmd(Conn *c)
     case OP_BIND:
         r = read_tube_name(&name, c->cmd + CMD_BIND_LEN, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
-        
         *delay_buf = '\0'; 
-        TUBE_ASSIGN(t, tube_find_or_make(name));
-        if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
-        
-        r = read_tube_name(&name, delay_buf+1, &delay_buf);
+        r = read_tube_name(&name2, delay_buf+1, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
-        
         *delay_buf = '\0'; 
-        TUBE_ASSIGN(t2, tube_find_or_make(name));
-        if (!t2) return reply_serr(c, MSG_OUT_OF_MEMORY);
+        if (strcmp(name, name2) == 0) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = tube_bind(t, t2) && migrate_jobs(c, t, t2);
+        t = tube_find_or_make(name);
+        t2 = tube_find_or_make(name2);
+        if (!t || !t2) return reply_serr(c, MSG_OUT_OF_MEMORY);
+
+        r = tube_bind(t, t2);
         
-        TUBE_ASSIGN(t, NULL);
-        TUBE_ASSIGN(t2, NULL);
+        if (r==1) {
+            r = migrate_jobs(c, t, t2);
+            if (fanout_log) {
+                fprintf(fanout_log, "bind %s %s\n", t->name, t2->name);
+                fflush(fanout_log);
+            }
+        }
+        
         if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
         reply_line(c, STATE_SENDWORD, "BINDED\r\n");
@@ -1683,22 +1689,28 @@ dispatch_cmd(Conn *c)
     case OP_UNBIND:
         r = read_tube_name(&name, c->cmd + CMD_UNBIND_LEN, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
-        
         *delay_buf = '\0'; 
-        TUBE_ASSIGN(t, tube_find_or_make(name));
-        if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
-
-        r = read_tube_name(&name, delay_buf+1, &delay_buf);
+        r = read_tube_name(&name2, delay_buf+1, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
-
         *delay_buf = '\0'; 
-        TUBE_ASSIGN(t2, tube_find_or_make(name));
-        if (!t2) return reply_serr(c, MSG_OUT_OF_MEMORY);
+        if (strcmp(name, name2) == 0) return reply_msg(c, MSG_BAD_FORMAT);
+
+        if (!(t=tube_find(name))) return reply_msg(c, MSG_NOTFOUND);
+        if (!(t2=tube_find(name2))) return reply_msg(c, MSG_NOTFOUND);
+
+        tube_iref(t);
+        tube_iref(t2);
 
         r = tube_unbind(t, t2);
-        TUBE_ASSIGN(t, NULL);
-        TUBE_ASSIGN(t2, NULL);
-        if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
+        if (r && fanout_log) {
+            fprintf(fanout_log, "unbind %s %s\n", t->name, t2->name);
+            fflush(fanout_log);
+        }
+        
+        tube_dref(t);
+        tube_dref(t2);
+
+        if (!r) return reply_msg(c, MSG_NOTFOUND); 
 
         reply_line(c, STATE_SENDWORD, "UNBINDED\r\n");
         break;
@@ -2095,4 +2107,48 @@ prot_replay(Server *s, job list)
         }
     }
     return 1;
+}
+
+int
+prot_load_fanout(char* dir)
+{
+    int i,j;
+    char path[255], cmd[20], src[255], dst[255];
+    tube st, dt;
+
+    sprintf(path, "%s/fanout.log", dir); 
+    fanout_log = fopen(path, "a+");
+    if (!fanout_log) {
+        twarnx("failed to open %s", path);
+        return -1;
+    }
+
+    fseek(fanout_log, 0, 0);
+    while(fscanf(fanout_log, "%s %s %s", cmd, src, dst)==3) {
+        st = tube_find_or_make(src);
+        dt = tube_find_or_make(dst);
+        if (!st || !dt) return -1;
+        if (strcmp(cmd, "bind") == 0) {
+            tube_bind(st, dt);
+        } else if (strcmp(cmd, "unbind") == 0) {
+            tube_unbind(st, dt);
+        } else {
+            twarnx("unknown command: %s", cmd);
+            return -1;
+        }
+    }
+    
+    if (ftruncate(fileno(fanout_log), 0)) {
+        twarnx("ftruncate failed"); 
+        return -1;
+    }
+    for (i=0; i<tubes.used; i++) {
+        tube t = tubes.items[i];
+        for (j=0; j < t->fanout.used; j++) {
+            fprintf(fanout_log, "bind %s %s\n", t->name, 
+                ((tube)t->fanout.items[j])->name); 
+        }
+    }
+    fflush(fanout_log);
+    return 0;
 }
