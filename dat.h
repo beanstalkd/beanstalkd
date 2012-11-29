@@ -1,3 +1,7 @@
+// Requirements:
+// #include <stdint.h>
+// #include <stdlib.h>
+
 typedef unsigned char uchar;
 typedef uchar         byte;
 typedef unsigned int  uint;
