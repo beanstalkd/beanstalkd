@@ -637,6 +637,11 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
  - "binlog-records-migrated" is the cumulative number of records written
    as part of compaction
 
+ - "id" a unique id for this server process. The id is generated on each startup and
+    is always a random series of 8 bytes base16 encoded
+
+ - "hostname" the hostname of the machine as determined by uname
+
 The list-tubes command returns a list of all existing tubes. Its form is:
 
 list-tubes\r\n
