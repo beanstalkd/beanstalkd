@@ -24,11 +24,11 @@ gen() {
     done
     printf '\n'
 
-    printf 'T ctmain[] = {\n'
+    printf 'Test ctmain[] = {\n'
     for t in "$@"
-    do printf '    {%s, "%s", 0, 0},\n' $t $t
+    do printf '    {%s, "%s", 0, 0, 0, {}},\n' $t $t
     done
-    printf '    {0, 0, 0, 0},\n'
+    printf '    {0, 0, 0, 0, 0, {}},\n'
     printf '};\n'
 }
 
