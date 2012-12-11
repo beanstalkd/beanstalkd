@@ -8,6 +8,7 @@
 #include <sys/resource.h>
 #include <sys/uio.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <inttypes.h>
@@ -183,6 +184,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "binlog-records-migrated: %" PRId64 "\n" \
     "binlog-records-written: %" PRId64 "\n" \
     "binlog-max-size: %d\n" \
+    "id: %s\n" \
+    "hostname: %s\n" \
     "\r\n"
 
 #define STATS_TUBE_FMT "---\n" \
@@ -231,6 +234,14 @@ static tube default_tube;
 
 static int drain_mode = 0;
 static int64 started_at;
+
+enum {
+  NumIdBytes = 8
+};
+
+static char id[NumIdBytes * 2 + 1]; // hex-encoded len of NumIdBytes
+
+static struct utsname node_info;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
 static Conn *dirty;
@@ -917,7 +928,9 @@ fmt_stats(char *buf, size_t size, void *x)
             wcur,
             srv->wal.nmig,
             srv->wal.nrec,
-            srv->wal.filesize);
+            srv->wal.filesize,
+            id,
+            node_info.nodename);
 
 }
 
@@ -1932,6 +1945,26 @@ prot_init()
 {
     started_at = nanoseconds();
     memset(op_ct, 0, sizeof(op_ct));
+
+    int dev_random = open("/dev/urandom", O_RDONLY);
+    if (dev_random < 0) {
+      twarn("Error could not open '/dev/urandom' to generate server id.");
+      exit(50);
+    }
+
+    int i, r;
+    byte rand_data[NumIdBytes];
+    r = read(dev_random, &rand_data, NumIdBytes);
+    if (r != NumIdBytes) {
+      twarn("Error could not read '/dev/urandom' to generate server id.");
+      exit(50);
+    }
+    for (i = 0; i < NumIdBytes; i++) {
+        sprintf(id + (i * 2), "%02x", rand_data[i]);
+    }
+    close(dev_random);
+
+    uname(&node_info);
 
     ms_init(&tubes, NULL, NULL);
 

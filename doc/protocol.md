@@ -504,6 +504,8 @@ The stats data for the system is a YAML file representing a single dictionary of
 * `binlog-max-size` is the maximum size in bytes a binlog file is allowed to get before a new binlog file is opened
 * `binlog-records-written` is the cumulative number of records written to the binlog
 * `binlog-records-migrated` is the cumulative number of records written as part of compaction
+* `id` a unique id for this server process. The id is generated on each startup and is always a random series of 8 bytes base16 encoded
+* `hostname` the hostname of the machine as determined by uname
 
 #### `list-tubes` command
 
