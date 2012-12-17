@@ -88,10 +88,13 @@ Just type:
 
     sudo emerge beanstalkd
 
-## Automated instalation
+## Automated installation
 
 ### Chef
-A cookbook can be found here at [digitalpioneers/public-cookbooks](https://github.com/digitalpioneers/public-cookbooks)
+The [beanstalkd community cookbook](http://community.opscode.com/cookbooks/beanstalkd) can be found here at [escapestudios/chef-beanstalkd](https://github.com/escapestudios/chef-beanstalkd)
+
+Other available cookbooks:
+* [digitalpioneers/public-cookbooks](https://github.com/digitalpioneers/public-cookbooks)
 
 ## Client Libraries
 
