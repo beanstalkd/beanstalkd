@@ -91,9 +91,11 @@ Just type:
 ## Automated installation
 
 ### Chef
+
 The [beanstalkd community cookbook](http://community.opscode.com/cookbooks/beanstalkd) can be found here at [escapestudios/chef-beanstalkd](https://github.com/escapestudios/chef-beanstalkd)
 
 Other available cookbooks:
+
 * [digitalpioneers/public-cookbooks](https://github.com/digitalpioneers/public-cookbooks)
 
 ## Client Libraries
