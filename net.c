@@ -28,7 +28,6 @@ make_server_socket(char *host, char *port)
         if (r > 1) {
             twarnx("inherited more than one listen socket;"
                    " ignoring all but the first");
-            r = 1;
         }
         fd = SD_LISTEN_FDS_START;
         r = sd_is_socket_inet(fd, 0, SOCK_STREAM, 1, 0);
