@@ -187,7 +187,7 @@ readrec(File *f, job l, int *err)
     if (!(j || namelen)) {
         // We read a short record without having seen a
         // full record for this job, so the full record
-        // was in an eariler file that has been deleted.
+        // was in an earlier file that has been deleted.
         // Therefore the job itself has either been
         // deleted or migrated; either way, this record
         // should be ignored.
