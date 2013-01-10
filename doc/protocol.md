@@ -364,7 +364,7 @@ The response is one of:
 * `NOT_FOUND\r\n` if the job does not exist or is not in a kickable state. This can also happen upon internal errors.
 * `KICKED\r\n` when the operation succeeded.
 
-#### `stats-jobs` command
+#### `stats-job` command
 
 The stats-job command gives statistical information about the specified job if it exists. Its form is:
 
@@ -372,11 +372,11 @@ The stats-job command gives statistical information about the specified job if i
 stats-job <id>\r\n
 ```
 
-##### `stats-jobs` options
+##### `stats-job` options
 
 * `<id>` is a job id.
 
-##### `stats-jobs` responses
+##### `stats-job` responses
 
 The response is one of:
 
