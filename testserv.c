@@ -203,6 +203,21 @@ readline(int fd)
     return buf;
 }
 
+static int
+cktimeout(int fd, int64 timeout)
+{
+    int r = 0; 
+    fd_set rfd;
+    struct timeval tv;
+
+    FD_ZERO(&rfd);
+    FD_SET(fd, &rfd);
+    tv.tv_sec = timeout / 1000000000;
+    tv.tv_usec = (timeout/1000) % 1000000;
+    r = select(fd+1, &rfd, NULL, NULL, &tv);
+
+    return (r == 0);
+}
 
 static void
 ckresp(int fd, char *exp)
@@ -597,6 +612,94 @@ cttestreservewithtimeout2conn()
     ckresp(fd0, "TIMED_OUT\r\n");
 }
 
+void
+cttestreservewithfractionaltimeout2conn()
+{
+    int fd0, fd1;
+    int64 s; 
+
+    job_data_size_limit = 10;
+
+    port = SERVER();
+    fd0 = mustdiallocal(port);
+    fd1 = mustdiallocal(port);
+    mustsend(fd0, "watch foo\r\n");
+    ckresp(fd0, "WATCHING 2\r\n");
+    s = nanoseconds();
+    mustsend(fd0, "reserve-with-timeout 0.001\r\n");
+    mustsend(fd1, "watch foo\r\n");
+    ckresp(fd1, "WATCHING 2\r\n");
+    timeout = 40000000; // Larger than the measured (once!) 0.011568 seconds
+    ckresp(fd0, "TIMED_OUT\r\n");
+}
+
+void
+cttestreservewithfractionaltimeouttimesout()
+{
+    int fd0;
+    int64 s; 
+
+    job_data_size_limit = 10;
+
+    port = SERVER();
+    fd0 = mustdiallocal(port);
+    mustsend(fd0, "watch foo\r\n");
+    ckresp(fd0, "WATCHING 2\r\n");
+    s = nanoseconds();
+    mustsend(fd0, "reserve-with-timeout 0.01\r\n");
+
+    cktimeout(fd0, 1000000);
+    
+    timeout = 10000000;    // 10ms
+    ckresp(fd0, "TIMED_OUT\r\n");
+}
+
+void
+cttestreservewithfractionaltimeoutdoesreserve()
+{
+    int64 s;
+
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 0 0 0 1\r\n");
+    mustsend(fd, "x\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+    s = nanoseconds();
+    // 10ms
+    mustsend(fd, "reserve-with-timeout 0.01\r\n");
+    ckresp(fd, "RESERVED 1 1\r\n");
+    ckresp(fd, "x\r\n");
+    assert(nanoseconds() - s < 10000000); // 10ms
+}
+
+void
+cttestreservewithfractionaltimeoutparser()
+{
+    int fd0;
+
+    port = SERVER();
+    fd0 = mustdiallocal(port);
+    mustsend(fd0, "watch foo\r\n");
+    ckresp(fd0, "WATCHING 2\r\n");
+
+    mustsend(fd0, "reserve-with-timeout 0.\r\n");
+    ckresp(fd0, "TIMED_OUT\r\n");
+    mustsend(fd0, "reserve-with-timeout 0.123456789\r\n");
+    ckresp(fd0, "TIMED_OUT\r\n");
+    
+    mustsend(fd0, "reserve-with-timeout 0+\r\n");
+    ckresp(fd0, "BAD_FORMAT\r\n");
+    mustsend(fd0, "reserve-with-timeout 0.+1\r\n");
+    ckresp(fd0, "BAD_FORMAT\r\n");
+    mustsend(fd0, "reserve-with-timeout 0.1a\r\n");
+    ckresp(fd0, "BAD_FORMAT\r\n");
+    mustsend(fd0, "reserve-with-timeout 0.a1\r\n");
+    ckresp(fd0, "BAD_FORMAT\r\n");
+    mustsend(fd0, "reserve-with-timeout 0.1234567891\r\n");
+    ckresp(fd0, "BAD_FORMAT\r\n");
+    mustsend(fd0, "reserve-with-timeout 0.1234567  \r\n");
+    ckresp(fd0, "BAD_FORMAT\r\n");
+}
 
 void
 cttestunpausetube()
