@@ -1181,6 +1181,20 @@ prot_remove_tube(tube t)
 }
 
 static void
+wait_and_process_job(Conn *c, int timeout)
+{
+    connsetworker(c);
+
+    if (conndeadlinesoon(c) && !conn_ready(c)) {
+        return reply_msg(c, MSG_DEADLINE_SOON);
+    }
+
+    /* try to get a new job for this guy */
+    wait_for_job(c, timeout);
+    process_queue();
+}
+
+static void
 dispatch_cmd(Conn *c)
 {
     int r, i, timeout = -1;
@@ -1315,22 +1329,20 @@ dispatch_cmd(Conn *c)
         errno = 0;
         timeout = strtol(c->cmd + CMD_RESERVE_TIMEOUT_LEN, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
-    case OP_RESERVE: /* FALLTHROUGH */
+
+        op_ct[type]++;
+        wait_and_process_job(c, timeout);
+        
+        break;
+    case OP_RESERVE:
         /* don't allow trailing garbage */
-        if (type == OP_RESERVE && c->cmd_len != CMD_RESERVE_LEN + 2) {
+        if (c->cmd_len != CMD_RESERVE_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
         op_ct[type]++;
-        connsetworker(c);
-
-        if (conndeadlinesoon(c) && !conn_ready(c)) {
-            return reply_msg(c, MSG_DEADLINE_SOON);
-        }
-
-        /* try to get a new job for this guy */
-        wait_for_job(c, timeout);
-        process_queue();
+        wait_and_process_job(c, -1);
+        
         break;
     case OP_DELETE:
         errno = 0;
