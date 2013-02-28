@@ -384,6 +384,7 @@ reserve_job(Conn *c, job j)
     j->r.state = Reserved;
     job_insert(&c->reserved_jobs, j);
     j->reserver = c;
+    c->pending_timeout = -1;
     if (c->soonest_job && j->r.deadline_at < c->soonest_job->r.deadline_at) {
         c->soonest_job = j;
     }
