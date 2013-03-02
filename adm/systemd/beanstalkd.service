@@ -1,5 +1,6 @@
 [Unit]
 Description=Beanstalkd is a simple, fast work queue
+After=network.target
 
 [Service]
 User=nobody
