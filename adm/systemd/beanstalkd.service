@@ -3,4 +3,4 @@ Description=Beanstalkd is a simple, fast work queue
 
 [Service]
 User=nobody
-ExecStart=/usr/bin/beanstalkd
+ExecStart=/usr/local/bin/beanstalkd
