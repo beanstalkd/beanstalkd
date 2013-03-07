@@ -18,7 +18,7 @@ srvserve(Server *s)
 {
     int r;
     Socket *sock;
-    int64 period = 10*1000000; // 10ms
+    int64 period;
 
     if (sockinit() == -1) {
         twarnx("sockinit");
@@ -43,18 +43,13 @@ srvserve(Server *s)
     }
 
 
-    int64 t = nanoseconds();
     for (;;) {
+        period = prottick(s);
+
         int rw = socknext(&sock, period);
         if (rw == -1) {
             twarnx("socknext");
             exit(1);
-        }
-
-        int64 t1 = nanoseconds();
-        if (t1-t > period) {
-            prottick(s);
-            t = t1;
         }
 
         if (rw) {
