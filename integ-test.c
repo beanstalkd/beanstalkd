@@ -341,6 +341,19 @@ cttestunderscore()
 
 
 void
+cttest2cmdpacket()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "use a\r\nuse b\r\n");
+    ckresp(fd, "USING a\r\n");
+    ckresp(fd, "USING b\r\n");
+
+    killsrv();
+}
+
+
+void
 cttesttoobig()
 {
     job_data_size_limit = 10;
