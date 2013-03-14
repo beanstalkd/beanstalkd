@@ -1832,7 +1832,7 @@ prothandle(Conn *c, int ev)
     h_conn(c->sock.fd, ev, c);
 }
 
-void
+int64
 prottick(Server *s)
 {
     int r;
@@ -1840,10 +1840,16 @@ prottick(Server *s)
     int64 now;
     int i;
     tube t;
+    int64 period = 0x34630B8A000LL; /* 1 hour in nanoseconds */
+    int64 d;
 
     now = nanoseconds();
     while ((j = delay_q_peek())) {
-        if (j->r.deadline_at > now) break;
+        d = j->r.deadline_at - now;
+        if (d > 0) {
+            period = min(period, d);
+            break;
+        }
         j = delay_q_take();
         r = enqueue_job(s, j, 0, 0);
         if (r < 1) bury_job(s, j, 0); /* out of memory, so bury it */
@@ -1851,16 +1857,21 @@ prottick(Server *s)
 
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
-
-        if (t->pause && t->deadline_at <= now) {
+        d = t->deadline_at - now;
+        if (t->pause && d <= 0) {
             t->pause = 0;
             process_queue();
+        }
+        else if (d > 0) {
+            period = min(period, d);
         }
     }
 
     while (s->conns.len) {
         Conn *c = s->conns.data[0];
-        if (c->tickat > now) {
+        d = c->tickat - now;
+        if (d > 0) {
+            period = min(period, d);
             break;
         }
 
@@ -1869,6 +1880,8 @@ prottick(Server *s)
     }
 
     update_conns();
+
+    return period;
 }
 
 void
