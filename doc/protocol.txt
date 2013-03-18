@@ -587,7 +587,7 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
  - "cmd-list-tubes-watched" is the cumulative number of list-tubes-watched
    commands.
 
- - "cmd-pause-tube" is the cumulative number of pause-tube commands
+ - "cmd-pause-tube" is the cumulative number of pause-tube commands.
 
  - "job-timeouts" is the cumulative count of times a job has timed out.
 
@@ -623,24 +623,24 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
  - "uptime" is the number of seconds since this server process started running.
 
  - "binlog-oldest-index" is the index of the oldest binlog file needed to
-   store the current jobs
+   store the current jobs.
 
  - "binlog-current-index" is the index of the current binlog file being
-   written to. If binlog is not active this value will be 0
+   written to. If binlog is not active this value will be 0.
 
  - "binlog-max-size" is the maximum size in bytes a binlog file is allowed
-   to get before a new binlog file is opened
+   to get before a new binlog file is opened.
 
  - "binlog-records-written" is the cumulative number of records written
-   to the binlog
+   to the binlog.
 
  - "binlog-records-migrated" is the cumulative number of records written
-   as part of compaction
+   as part of compaction.
 
- - "id" a unique id for this server process. The id is generated on each startup and
-    is always a random series of 8 bytes base16 encoded
+ - "id" is a random id string for this server process, generated when each
+   beanstalkd process starts.
 
- - "hostname" the hostname of the machine as determined by uname
+ - "hostname" the hostname of the machine as determined by uname.
 
 The list-tubes command returns a list of all existing tubes. Its form is:
 

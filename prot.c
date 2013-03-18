@@ -1982,23 +1982,26 @@ prot_init()
 
     int dev_random = open("/dev/urandom", O_RDONLY);
     if (dev_random < 0) {
-      twarn("Error could not open '/dev/urandom' to generate server id.");
-      exit(50);
+        twarn("open /dev/urandom");
+        exit(50);
     }
 
     int i, r;
     byte rand_data[NumIdBytes];
     r = read(dev_random, &rand_data, NumIdBytes);
     if (r != NumIdBytes) {
-      twarn("Error could not read '/dev/urandom' to generate server id.");
-      exit(50);
+        twarn("read /dev/urandom");
+        exit(50);
     }
     for (i = 0; i < NumIdBytes; i++) {
         sprintf(id + (i * 2), "%02x", rand_data[i]);
     }
     close(dev_random);
 
-    uname(&node_info);
+    if (uname(&node_info) == -1) {
+        warn("uname");
+        exit(50);
+    }
 
     ms_init(&tubes, NULL, NULL);
 

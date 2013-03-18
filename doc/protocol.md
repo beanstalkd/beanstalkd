@@ -484,7 +484,7 @@ The stats data for the system is a YAML file representing a single dictionary of
 * `cmd-list-tubes` is the cumulative number of list-tubes commands.
 * `cmd-list-tube-used` is the cumulative number of list-tube-used commands.
 * `cmd-list-tubes-watched` is the cumulative number of list-tubes-watched commands.
-* `cmd-pause-tube` is the cumulative number of pause-tube commands
+* `cmd-pause-tube` is the cumulative number of pause-tube commands.
 * `job-timeouts` is the cumulative count of times a job has timed out.
 * `total-jobs` is the cumulative count of jobs created.
 * `max-job-size` is the maximum number of bytes in a job.
@@ -499,13 +499,13 @@ The stats data for the system is a YAML file representing a single dictionary of
 * `rusage-utime` is the cumulative user CPU time of this process in seconds and microseconds.
 * `rusage-stime` is the cumulative system CPU time of this process in seconds and microseconds.
 * `uptime` is the number of seconds since this server process started running.
-* `binlog-oldest-index` is the index of the oldest binlog file needed to store the current jobs
-* `binlog-current-index` is the index of the current binlog file being written to. If binlog is not active this value will be 0
-* `binlog-max-size` is the maximum size in bytes a binlog file is allowed to get before a new binlog file is opened
-* `binlog-records-written` is the cumulative number of records written to the binlog
-* `binlog-records-migrated` is the cumulative number of records written as part of compaction
-* `id` a unique id for this server process. The id is generated on each startup and is always a random series of 8 bytes base16 encoded
-* `hostname` the hostname of the machine as determined by uname
+* `binlog-oldest-index` is the index of the oldest binlog file needed to store the current jobs.
+* `binlog-current-index` is the index of the current binlog file being written to. If binlog is not active this value will be 0.
+* `binlog-max-size` is the maximum size in bytes a binlog file is allowed to get before a new binlog file is opened.
+* `binlog-records-written` is the cumulative number of records written to the binlog.
+* `binlog-records-migrated` is the cumulative number of records written as part of compaction.
+* `id` is a random id string for this server process, generated when each beanstalkd process starts.
+* `hostname` is the hostname of the machine as determined by uname.
 
 #### `list-tubes` command
 
