@@ -61,7 +61,7 @@ Here is a picture with more possibilities:
    put with delay               release with delay
   ----------------> [DELAYED] <------------.
                         |                   |
-                        | (time passes)     |
+                 kick   | (time passes)     |
                         |                   |
    put                  v     reserve       |       delete
   -----------------> [READY] ---------> [RESERVED] --------> *poof*
