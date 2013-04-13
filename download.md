@@ -14,7 +14,7 @@ Beanstalk is distributed under the [MIT license][mit].
 
 ### Release {{ post.version }}
 
-[`beanstalkd-{{ post.version }}.tar.gz`]({{ post.dist }})
+[`{{ post.file }}`]({{ post.dist }})
 released on {{ post.date | date_to_long_string }}.  
 Read [{{ post.version }} release notes](/beanstalkd{{ post.url }}).
 
