@@ -6,7 +6,6 @@ CFLAGS=-Wall -Werror\
 LDFLAGS=
 OS=$(shell uname|tr A-Z a-z)
 INSTALL=install
-TAR=tar
 
 VERS=$(shell ./vers.sh)
 TARG=beanstalkd
@@ -41,7 +40,6 @@ HFILES=\
 
 CLEANFILES=\
 	vers.c\
-	$(TARG)-*.tar.gz\
 
 .PHONY: all
 all: $(TARG)
@@ -87,24 +85,6 @@ ifneq ($(shell ./verc.sh),$(shell cat vers.c 2>/dev/null))
 endif
 vers.c:
 	./verc.sh >vers.c
-
-.PHONY: dist
-dist: $(TARG)-$(VERS).tar.gz
-
-$(TARG)-$(VERS).tar:
-	git archive -o $@ --prefix=$(TARG)-$(VERS)/ v$(VERS)
-	mkdir -p $(TARG)-$(VERS)/mk
-	echo 'printf "$(VERS)"' >$(TARG)-$(VERS)/vers.sh
-	chmod +x $(TARG)-$(VERS)/vers.sh
-	$(TAR) --append -f $@ $(TARG)-$(VERS)/vers.sh
-	sed 's/@VERSION@/$(VERS)/' <pkg/beanstalkd.spec.in >$(TARG)-$(VERS)/beanstalkd.spec
-	$(TAR) --append -f $@ $(TARG)-$(VERS)/beanstalkd.spec
-	cp NEWS.md $(TARG)-$(VERS)/NEWS.md
-	$(TAR) --append -f $@ $(TARG)-$(VERS)/NEWS.md
-	rm -r $(TARG)-$(VERS)
-
-$(TARG)-$(VERS).tar.gz: $(TARG)-$(VERS).tar
-	gzip -f $<
 
 doc/beanstalkd.1 doc/beanstalkd.1.html: doc/beanstalkd.ronn
 	ronn $<
