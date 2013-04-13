@@ -1691,7 +1691,6 @@ conn_data(Conn *c)
         }
 
         c->cmd_read += r; /* we got some bytes */
-        fprintf(stderr, "r %d\n", r);
 
         c->cmd_len = cmd_len(c); /* find the EOL */
 
