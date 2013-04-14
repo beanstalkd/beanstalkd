@@ -160,8 +160,8 @@ reserve-with-timeout <seconds>\r\n
 This will return a newly-reserved job. If no job is available to be reserved, beanstalkd will wait to send a response until one becomes available. Once a job is reserved for the client, the client has limited time to run (TTR) the job before the job times out. When the job times out, the server will put the job back into the ready queue. Both the TTR and the actual time left can be found in response to the `stats-job` command.
 
 If more than one job is ready, beanstalkd will choose the one with the
-smallest priority value. If more than one job in the smallest priority is
-ready, the choice between them is unspecified.
+smallest priority value. Within each priority, it will choose the one that
+was received first.
 
 A timeout value of `0` will cause the server to immediately return either a response or `TIMED_OUT`.  A positive value of timeout will limit the amount of time the client will block on the reserve request until a job becomes available.
 
