@@ -12,7 +12,7 @@ also try,
 
     $ ./beanstalkd -h
     $ ./beanstalkd -VVV
-    $ make CFLAGS=-g
+    $ make CFLAGS=-O2
     $ make CC=clang
     $ make check
     $ make install
