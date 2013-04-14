@@ -1,0 +1,37 @@
+This is beanstalkd version 1.9.
+
+As always, there will be no incompatible protocol changes until
+version 2.0. A client written for version 1.9 will work
+unmodified with any later 1.x release of beanstalkd.
+
+News
+----
+
+- compile with debugging symbols by default
+- fix case where a job would not time out properly (#174)
+- fix build on hurd (#177)
+- document the delayed->ready transition via 'kick' (#176)
+- fix crash from Conn use after free and double-free (#159)
+- fix high CPU use during heavy system load (#169)
+- add a unique id and hostname to stats output (#156)
+
+Full list of changes (includes authorship information):  
+<http://github.com/kr/beanstalkd/compare/v1.8...v1.9>
+
+Our Urls
+--------
+
+Download the 1.9 tarball directly:  
+<https://github.com/kr/beanstalkd/archive/v1.9.tar.gz>
+
+Learn all about beanstalk:  
+<http://kr.github.com/beanstalkd/>
+
+Talk about beanstalk development or use at:  
+<http://groups.google.com/group/beanstalk-talk>
+
+Bugs
+----
+
+Please report any bugs to:  
+<http://github.com/kr/beanstalkd/issues>
