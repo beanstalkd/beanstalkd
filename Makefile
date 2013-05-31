@@ -1,5 +1,6 @@
+DESTDIR=
 PREFIX=/usr/local
-BINDIR=$(PREFIX)/bin
+BINDIR=$(DESTDIR)$(PREFIX)/bin
 CFLAGS=-Wall -Werror\
 	-Wformat=2\
 	-g\
