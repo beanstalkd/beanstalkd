@@ -12,13 +12,42 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
+#include <sys/time.h>
+#include <stdint.h>
 #include "internal.h"
 #include "ct.h"
 
 
-static Test *curtest;
+static char *curdir;
 static int rjobfd = -1, wjobfd = -1;
+static int64 bstart, bdur;
+static int btiming; // bool
+static const int64 Second = 1000 * 1000 * 1000;
+static const int64 BenchTime = Second;
+static const int MaxN = 1000 * 1000 * 1000;
 
+
+
+#ifdef __MACH__
+#	include <mach/mach_time.h>
+
+static int64
+nstime()
+{
+    return (int64)mach_absolute_time();
+}
+
+#else
+
+static int64
+nstime()
+{
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (int64)(t.tv_sec)*Second + t.tv_nsec;
+}
+
+#endif
 
 void
 ctlogpn(char *p, int n, char *fmt, ...)
@@ -45,8 +74,36 @@ ctfail(void)
 char *
 ctdir(void)
 {
-    mkdir(curtest->dir, 0700);
-    return curtest->dir;
+    mkdir(curdir, 0700);
+    return curdir;
+}
+
+
+void
+ctresettimer(void)
+{
+    bdur = 0;
+    bstart = nstime();
+}
+
+
+void
+ctstarttimer(void)
+{
+    if (!btiming) {
+        bstart = nstime();
+        btiming = 1;
+    }
+}
+
+
+void
+ctstoptimer(void)
+{
+    if (btiming) {
+        bdur += nstime() - bstart;
+        btiming = 0;
+    }
 }
 
 
@@ -67,6 +124,17 @@ die(int code, int err, char *msg)
 
 
 static int
+tmpfd(void)
+{
+    FILE *f = tmpfile();
+    if (!f) {
+        die(1, errno, "tmpfile");
+    }
+    return fileno(f);
+}
+
+
+static int
 failed(int s)
 {
     return WIFSIGNALED(s) && (WTERMSIG(s) == SIGABRT);
@@ -74,7 +142,7 @@ failed(int s)
 
 
 static void
-waittest(void)
+waittest(Test *ts)
 {
     Test *t;
     int pid, stat;
@@ -85,7 +153,7 @@ waittest(void)
     }
     killpg(pid, 9);
 
-    for (t=ctmain; t->f; t++) {
+    for (t=ts; t->f; t++) {
         if (t->pid == pid) {
             t->status = stat;
             if (!t->status) {
@@ -104,12 +172,7 @@ waittest(void)
 static void
 start(Test *t)
 {
-    FILE *out;
-    out = tmpfile();
-    if (!out) {
-        die(1, errno, "tmpfile");
-    }
-    t->fd = fileno(out);
+    t->fd = tmpfd();
     strcpy(t->dir, TmpDirPat);
     mktemp(t->dir);
     t->pid = fork();
@@ -126,7 +189,7 @@ start(Test *t)
         if (dup2(1, 2) == -1) {
             die(3, errno, "dup2");
         }
-        curtest = t;
+        curdir = t->dir;
         t->f();
         _exit(0);
     }
@@ -135,19 +198,20 @@ start(Test *t)
 
 
 static void
-runall(Test t[], int limit)
+runalltest(Test *ts, int limit)
 {
     int nrun = 0;
-    for (; t->f; t++) {
+    Test *t;
+    for (t=ts; t->f; t++) {
         if (nrun >= limit) {
-            waittest();
+            waittest(ts);
             nrun--;
         }
         start(t);
         nrun++;
     }
     for (; nrun; nrun--) {
-        waittest();
+        waittest(ts);
     }
 }
 
@@ -207,8 +271,169 @@ rmtree(char *path)
 }
 
 
+static void
+runbenchn(Benchmark *b, int n)
+{
+    int outfd = tmpfd();
+    int durfd = tmpfd();
+    strcpy(b->dir, TmpDirPat);
+    mktemp(b->dir);
+    int pid = fork();
+    if (pid < 0) {
+        die(1, errno, "fork");
+    } else if (!pid) {
+        setpgid(0, 0);
+        if (dup2(outfd, 1) == -1) {
+            die(3, errno, "dup2");
+        }
+        if (close(outfd) == -1) {
+            die(3, errno, "fclose");
+        }
+        if (dup2(1, 2) == -1) {
+            die(3, errno, "dup2");
+        }
+        curdir = b->dir;
+        ctstarttimer();
+        b->f(n);
+        ctstoptimer();
+        write(durfd, &bdur, sizeof bdur);
+        _exit(0);
+    }
+    setpgid(pid, pid);
+
+    pid = waitpid(pid, &b->status, 0);
+    if (pid == -1) {
+        die(3, errno, "wait");
+    }
+    killpg(pid, 9);
+    rmtree(b->dir);
+
+    if (b->status != 0) {
+        putchar('\n');
+        lseek(outfd, 0, SEEK_SET);
+        copyfd(stdout, outfd);
+        return;
+    }
+
+    lseek(durfd, 0, SEEK_SET);
+    int r = read(durfd, &b->dur, sizeof b->dur);
+    if (r != sizeof b->dur) {
+        perror("read");
+        if (b->status == 0) {
+            b->status = 1;
+        }
+    }
+}
+
+
+// rounddown10 rounds a number down to the nearest power of 10.
 static int
-report(Test t[])
+rounddown10(int n)
+{
+    int tens = 0;
+    // tens = floor(log_10(n))
+    while (n >= 10) {
+        n = n / 10;
+        tens++;
+    }
+    // result = 10**tens
+    int i, result = 1;
+    for (i = 0; i < tens; i++) {
+        result *= 10;
+    }
+    return result;
+}
+
+
+// roundup rounds n up to a number of the form [1eX, 2eX, 5eX].
+static int
+roundup(int n)
+{
+    int base = rounddown10(n);
+    if (n == base)
+        return n;
+    if (n <= 2*base)
+        return 2 * base;
+    if (n <= 5*base)
+        return 5 * base;
+    return 10 * base;
+}
+
+
+static int
+min(int a, int b)
+{
+    if (a < b) {
+        return a;
+    }
+    return b;
+}
+
+
+static int
+max(int a, int b)
+{
+    if (a > b) {
+        return a;
+    }
+    return b;
+}
+
+
+static void
+runbench(Benchmark *b)
+{
+    printf("%s\t", b->name);
+    fflush(stdout);
+    int n = 1;
+    runbenchn(b, n);
+    while (b->status == 0 && b->dur < BenchTime && n < MaxN) {
+        int last = n;
+        // Predict iterations/sec.
+        int nsop = b->dur / n;
+        if (nsop == 0) {
+            n = MaxN;
+        } else {
+            n = BenchTime / nsop;
+        }
+        // Run more iterations than we think we'll need for a second (1.5x).
+        // Don't grow too fast in case we had timing errors previously.
+        // Be sure to run at least one more than last time.
+        n = max(min(n+n/2, 100*last), last+1);
+        // Round up to something easy to read.
+        n = roundup(n);
+        runbenchn(b, n);
+    }
+    if (b->status == 0) {
+        printf("%8d\t%10lld ns/op\n", n, b->dur/n);
+    } else {
+        if (failed(b->status)) {
+            printf("failure");
+        } else {
+            printf("error");
+            if (WIFEXITED(b->status)) {
+                printf(" (exit status %d)", WEXITSTATUS(b->status));
+            }
+            if (WIFSIGNALED(b->status)) {
+                printf(" (signal %d)", WTERMSIG(b->status));
+            }
+        }
+        putchar('\n');
+    }
+}
+
+
+static void
+runallbench(Benchmark *b)
+{
+    for (; b->f; b++) {
+        runbench(b);
+    }
+}
+
+
+static int
+report(Test *t)
 {
     int nfail = 0, nerr = 0;
 
@@ -281,10 +506,17 @@ writetokens(int n)
 
 
 int
-main()
+main(int argc, char **argv)
 {
     int n = readtokens();
-    runall(ctmain, n);
+    runalltest(ctmaintest, n);
     writetokens(n);
-    return report(ctmain);
+    int code = report(ctmaintest);
+    if (code != 0) {
+        return code;
+    }
+    if (argc == 2 && strcmp(argv[1], "-b") == 0) {
+        runallbench(ctmainbench);
+    }
+    return 0;
 }
