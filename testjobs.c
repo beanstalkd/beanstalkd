@@ -127,3 +127,13 @@ cttestjob_100_000_jobs()
     fprintf(stderr, "get_all_jobs_used() => %zu\n", get_all_jobs_used());
     assertf(get_all_jobs_used() == 0, "should match");
 }
+
+void
+ctbenchmakejob(int n)
+{
+    int i;
+    TUBE_ASSIGN(default_tube, make_tube("default"));
+    for (i = 0; i < n; i++) {
+        make_job(0, 0, 1, 0, default_tube);
+    }
+}

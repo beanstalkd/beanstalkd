@@ -70,6 +70,10 @@ clean:
 check: ct/_ctcheck
 	ct/_ctcheck
 
+.PHONY: bench
+bench: ct/_ctcheck
+	ct/_ctcheck -b
+
 ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES)
 
 ct/_ctcheck.c: $(TOFILES) ct/gen

@@ -1096,3 +1096,21 @@ cttestbinlogv5()
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\nkicks: 0\n");
 }
+
+
+void
+ctbenchputdelete(int n)
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    char buf[50];
+    int i;
+    for (i = 0; i < n; i++) {
+        mustsend(fd, "put 0 0 0 0\r\n");
+        mustsend(fd, "\r\n");
+        ckrespsub(fd, "INSERTED ");
+        sprintf(buf, "delete %d\r\n", i+1);
+        mustsend(fd, buf);
+        ckresp(fd, "DELETED\r\n");
+    }
+}
