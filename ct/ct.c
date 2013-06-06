@@ -22,6 +22,7 @@ static char *curdir;
 static int rjobfd = -1, wjobfd = -1;
 static int64 bstart, bdur;
 static int btiming; // bool
+static int64 bbytes;
 static const int64 Second = 1000 * 1000 * 1000;
 static const int64 BenchTime = Second;
 static const int MaxN = 1000 * 1000 * 1000;
@@ -104,6 +105,13 @@ ctstoptimer(void)
         bdur += nstime() - bstart;
         btiming = 0;
     }
+}
+
+
+void
+ctsetbytes(int n)
+{
+    bbytes = (int64)n;
 }
 
 
@@ -297,6 +305,7 @@ runbenchn(Benchmark *b, int n)
         b->f(n);
         ctstoptimer();
         write(durfd, &bdur, sizeof bdur);
+        write(durfd, &bbytes, sizeof bbytes);
         _exit(0);
     }
     setpgid(pid, pid);
@@ -307,7 +316,6 @@ runbenchn(Benchmark *b, int n)
     }
     killpg(pid, 9);
     rmtree(b->dir);
-
     if (b->status != 0) {
         putchar('\n');
         lseek(outfd, 0, SEEK_SET);
@@ -319,9 +327,12 @@ runbenchn(Benchmark *b, int n)
     int r = read(durfd, &b->dur, sizeof b->dur);
     if (r != sizeof b->dur) {
         perror("read");
-        if (b->status == 0) {
-            b->status = 1;
-        }
+        b->status = 1;
+    }
+    r = read(durfd, &b->bytes, sizeof b->bytes);
+    if (r != sizeof b->bytes) {
+        perror("read");
+        b->status = 1;
     }
 }
 
@@ -405,7 +416,18 @@ runbench(Benchmark *b)
         runbenchn(b, n);
     }
     if (b->status == 0) {
-        printf("%8d\t%10lld ns/op\n", n, b->dur/n);
+        printf("%8d\t%10lld ns/op", n, b->dur/n);
+        if (b->bytes > 0) {
+            double mbs = 0;
+            if (b->dur > 0) {
+                int64 sec = b->dur / 1000L / 1000L / 1000L;
+                int64 nsec = b->dur % 1000000000L;
+                double dur = (double)sec + (double)nsec*.0000000001;
+                mbs = ((double)b->bytes * (double)n / 1000000) / dur;
+            }
+            printf("\t%7.2f MB/s", mbs);
+        }
+        putchar('\n');
     } else {
         if (failed(b->status)) {
             printf("failure");

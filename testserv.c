@@ -1098,19 +1098,46 @@ cttestbinlogv5()
 }
 
 
-void
-ctbenchputdelete(int n)
+static void
+benchputdeletesize(int n, int size)
 {
     port = SERVER();
     fd = mustdiallocal(port);
-    char buf[50];
+    char buf[50], put[50];
+    char body[size+1];
+    memset(body, 'a', size);
+    body[size] = 0;
+    ctsetbytes(size);
+    sprintf(put, "put 0 0 0 %d\r\n", size);
     int i;
     for (i = 0; i < n; i++) {
-        mustsend(fd, "put 0 0 0 0\r\n");
+        mustsend(fd, put);
+        mustsend(fd, body);
         mustsend(fd, "\r\n");
         ckrespsub(fd, "INSERTED ");
         sprintf(buf, "delete %d\r\n", i+1);
         mustsend(fd, buf);
         ckresp(fd, "DELETED\r\n");
     }
+}
+
+
+void
+ctbenchputdelete8byte(int n)
+{
+    benchputdeletesize(n, 8);
+}
+
+
+void
+ctbenchputdelete1k(int n)
+{
+    benchputdeletesize(n, 1024);
+}
+
+
+void
+ctbenchputdelete8k(int n)
+{
+    benchputdeletesize(n, 8192);
 }

@@ -20,6 +20,7 @@ struct Benchmark {
     char  *name;
     int   status;
     int64 dur;
+    int64 bytes;
     char  dir[sizeof TmpDirPat];
 };
 
