@@ -462,7 +462,7 @@ kick-job <id>\r\n
 
 ##### `kick-job` options
 
-* <id> is the job id to kick.
+* `<id>` is the job id to kick.
 
 ##### `kick-job` responses
 
