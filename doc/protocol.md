@@ -233,7 +233,7 @@ until a job becomes available.
 Otherwise, the only other response to this command is a successful
 reservation in the form of a text line followed by the job body:
 
-####### Succesful response
+###### Succesful response
 
 
 ```
