@@ -1,11 +1,10 @@
 DESTDIR=
-PREFIX=/usr/local
+PREFIX?=/usr/local
 BINDIR=$(DESTDIR)$(PREFIX)/bin
-CFLAGS=-Wall -Werror\
+CFLAGS?=-Wall -Werror\
 	-Wformat=2\
 	-g\
 
-LDFLAGS=
 OS=$(shell uname|tr A-Z a-z)
 INSTALL=install
 
