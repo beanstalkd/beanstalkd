@@ -59,15 +59,15 @@ Here is a picture with more possibilities:
 
 ```
    put with delay              release with delay
-  ----------------> [DELAYED] <-----------.   .
-                        |                  | | | touch
-                 kick   | (time passes)    | | | (postpones release))
-                        |                  | | |
-   put                  v     reserve      | | v    delete
+  ----------------> [DELAYED] <---------.     .
+                        |                |   | | touch
+                 kick   | (time passes)  |   | | (postpones release))
+                        |                |   | |
+   put                  v     reserve    |   | v    delete
   -----------------> [READY] ---------> [RESERVED] --------> *poof*
-                       ^  ^                |  |
-                       |   \  release      |  |
-                       |    `-------------'   |
+                       ^  ^              |    |
+                       |   \  release    |    |
+                       |    `-----------'     |
                        |                      |
                        | kick                 |
                        |                      |
