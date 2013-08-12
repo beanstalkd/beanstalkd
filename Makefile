@@ -9,6 +9,10 @@ LDLIBS?=
 OS?=$(shell uname | tr 'A-Z' 'a-z')
 INSTALL?=install
 
+ifeq ($(OS),sunos)
+LDFLAGS += -lxnet -lsocket -lnsl
+endif
+
 VERS=$(shell ./vers.sh)
 TARG=beanstalkd
 MOFILE=main.o

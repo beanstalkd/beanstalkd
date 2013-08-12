@@ -59,7 +59,7 @@ muststart(char *a0, char *a1, char *a2, char *a3, char *a4)
 
     /* now in child */
 
-    execlp(a0, a0, a1, a2, a3, a4, NULL);
+    execlp(a0, a0, a1, a2, a3, a4, (char*)NULL);
 }
 
 static int
