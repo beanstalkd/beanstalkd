@@ -82,6 +82,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_DEADLINE_SOON "DEADLINE_SOON\r\n"
 #define MSG_TIMED_OUT "TIMED_OUT\r\n"
 #define MSG_DELETED "DELETED\r\n"
+#define MSG_DELETED_FMT "DELETED %"PRIu64"\r\n"
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
 #define MSG_KICKED "KICKED\r\n"
@@ -387,9 +388,9 @@ void notify_waiting_conns(job j) {
    Conn *prev_c;
    while (c) {
       if (j->r.state == Invalid) {
-         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
+         reply_line(c, STATE_SENDWORD, MSG_DELETED_FMT, j->r.id);
       } else if(j->r.state == Buried) {
-         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
+         reply_line(c, STATE_SENDWORD, MSG_BURIED_FMT, j->r.id);
       }
 
       prev_c = c;
@@ -1046,7 +1047,7 @@ wait_for_job(Conn *c, int timeout)
 }
 
 static void
-wait_for_job_deleted(Conn *c, job j)
+wait_for_job_state_change(Conn *c, job j)
 {
     c->state = STATE_WAIT;
     c->next_waitjob = j->waitjob_conn;
@@ -1306,8 +1307,11 @@ dispatch_cmd(Conn *c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        wait_for_job_deleted(c, j);
-        /* process_queue(); */
+        wait_for_job_state_change(c, j);
+
+        if (j->r.state == Buried) {
+           notify_waiting_conns(j);
+        }
         break;
     case OP_PEEK_READY:
         /* don't allow trailing garbage */

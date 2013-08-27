@@ -342,7 +342,30 @@ cttestdeleteready()
     ckresp(fd, "DELETED\r\n");
 }
 
-void cttestcmdwaitjob()
+void cttestcmdwaitjobdeleted()
+{
+    port = SERVER();
+    if (fork() > 0) {
+       fd = mustdiallocal(port);
+       mustsend(fd, "put 0 0 0 0\r\n");
+       mustsend(fd, "\r\n");
+       ckresp(fd, "INSERTED 1\r\n");
+       mustsend(fd, "wait 1\r\n");
+       int64 start = nanoseconds();
+       ckresp(fd, "DELETED 1\r\n");
+       assert(nanoseconds() - start > 100000000); // 0.1s
+    } else {
+       fd = mustdiallocal(port);
+       usleep(100000);
+       mustsend(fd, "reserve\r\n");
+       ckresp(fd, "RESERVED 1 0\r\n");
+       ckresp(fd, "\r\n");
+       mustsend(fd, "delete 1\r\n");
+       ckresp(fd, "DELETED\r\n");
+    }
+}
+
+void cttestcmdwaitjobparallel()
 {
     port = SERVER();
     if (fork() > 0) {
@@ -354,16 +377,19 @@ void cttestcmdwaitjob()
        mustsend(fd, "\r\n");
        ckresp(fd, "INSERTED 2\r\n");
        mustsend(fd, "wait 1\r\n");
-       int64 start = nanoseconds();
-       ckresp(fd, "DELETED\r\n");
-       assert(nanoseconds() - start > 100000000); // 0.1s
        mustsend(fd, "wait 2\r\n");
+       int64 start = nanoseconds();
+       ckresp(fd, "DELETED 1\r\n");
+       assert(nanoseconds() - start > 100000000); // 0.1s
        start = nanoseconds();
-       ckresp(fd, "BURIED\r\n");
+       ckresp(fd, "BURIED 2\r\n");
        assert(nanoseconds() - start > 100000000); // 0.1s
     } else {
        fd = mustdiallocal(port);
        usleep(100000);
+       mustsend(fd, "reserve\r\n");
+       ckresp(fd, "RESERVED 1 0\r\n");
+       ckresp(fd, "\r\n");
        mustsend(fd, "delete 1\r\n");
        ckresp(fd, "DELETED\r\n");
        mustsend(fd, "reserve\r\n");
@@ -372,7 +398,49 @@ void cttestcmdwaitjob()
        usleep(100000);
        mustsend(fd, "bury 2 0\r\n");
        ckresp(fd, "BURIED\r\n");
-       exit(0);
+    }
+}
+
+void cttestcmdwaitjobburied()
+{
+    port = SERVER();
+    if (fork() > 0) {
+       fd = mustdiallocal(port);
+       mustsend(fd, "put 0 0 0 0\r\n");
+       mustsend(fd, "\r\n");
+       ckresp(fd, "INSERTED 1\r\n");
+       mustsend(fd, "wait 1\r\n");
+       int64 start = nanoseconds();
+       ckresp(fd, "BURIED 1\r\n");
+       assert(nanoseconds() - start > 100000000); // 0.1s
+    } else {
+       fd = mustdiallocal(port);
+       mustsend(fd, "reserve\r\n");
+       ckresp(fd, "RESERVED 1 0\r\n");
+       ckresp(fd, "\r\n");
+       usleep(100000);
+       mustsend(fd, "bury 1 0\r\n");
+       ckresp(fd, "BURIED\r\n");
+    }
+}
+
+void cttestcmdwaitjobalreadyburied()
+{
+    port = SERVER();
+    if (fork() > 0) {
+       fd = mustdiallocal(port);
+       mustsend(fd, "put 0 0 0 0\r\n");
+       mustsend(fd, "\r\n");
+       ckresp(fd, "INSERTED 1\r\n");
+       mustsend(fd, "reserve\r\n");
+       ckresp(fd, "RESERVED 1 0\r\n");
+       ckresp(fd, "\r\n");
+       mustsend(fd, "bury 1 0\r\n");
+       ckresp(fd, "BURIED\r\n");
+       mustsend(fd, "wait 1\r\n");
+       int64 start = nanoseconds();
+       ckresp(fd, "BURIED 1\r\n");
+       assert(nanoseconds() - start < 1000000); // 0.001s
     }
 }
 
