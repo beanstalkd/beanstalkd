@@ -342,6 +342,25 @@ cttestdeleteready()
     ckresp(fd, "DELETED\r\n");
 }
 
+void cttestcmdwaitjob()
+{
+    port = SERVER();
+    if (fork() > 0) {
+       fd = mustdiallocal(port);
+       mustsend(fd, "put 0 0 0 0\r\n");
+       mustsend(fd, "\r\n");
+       ckresp(fd, "INSERTED 1\r\n");
+       mustsend(fd, "wait 1\r\n");
+       int64 start = nanoseconds();
+       ckresp(fd, "WAITED 1\r\n");
+       assert(nanoseconds() - start > 100000000); // 0.1s
+    } else {
+       fd = mustdiallocal(port);
+       usleep(100000);
+       mustsend(fd, "delete 1\r\n");
+       ckresp(fd, "DELETED\r\n");
+    }
+}
 
 void
 cttestmultitube()

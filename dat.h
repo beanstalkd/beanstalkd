@@ -149,6 +149,7 @@ struct job {
     void *reserver;
     int walresv;
     int walused;
+    Conn *waitjob_conn;
 
     char body[]; // written separately to the wal
 };
@@ -268,6 +269,7 @@ struct Conn {
     char   state;
     char   type;
     Conn   *next;
+    Conn   *next_waitjob;
     tube   use;
     int64  tickat;      // time at which to do more work
     int    tickpos;     // position in srv->conns

@@ -51,6 +51,8 @@ make_conn(int fd, char start_state, tube use, tube watch)
     c->tickpos = -1;
     j = &c->reserved_jobs;
     j->prev = j->next = j;
+    c->next_waitjob = NULL;
+
 
     /* stats */
     cur_conn_ct++;
