@@ -89,7 +89,6 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_BURIED_FMT "BURIED %"PRIu64"\r\n"
 #define MSG_INSERTED_FMT "INSERTED %"PRIu64"\r\n"
 #define MSG_NOT_IGNORED "NOT_IGNORED\r\n"
-#define MSG_WAITED_FMT "WAITED %"PRIu64"\r\n"
 
 #define MSG_NOTFOUND_LEN CONSTSTRLEN(MSG_NOTFOUND)
 #define MSG_DELETED_LEN CONSTSTRLEN(MSG_DELETED)
@@ -381,6 +380,27 @@ remove_waiting_conn(Conn *c)
     return c;
 }
 
+static
+void notify_waiting_conns(job j) {
+
+   Conn *c = j->waitjob_conn;
+   Conn *prev_c;
+   while (c) {
+      if (j->r.state == Invalid) {
+         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
+      } else if(j->r.state == Buried) {
+         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
+      }
+
+      prev_c = c;
+      c = c->next_waitjob;
+      prev_c->next_waitjob = NULL;
+   }
+
+   j->waitjob_conn = NULL;
+}
+
+
 static void
 reserve_job(Conn *c, job j)
 {
@@ -516,6 +536,8 @@ bury_job(Server *s, job j, char update_store)
         walmaint(&s->wal);
     }
 
+    notify_waiting_conns(j);
+
     return 1;
 }
 
@@ -533,21 +555,6 @@ enqueue_reserved_jobs(Conn *c)
         j->tube->stat.reserved_ct--;
         c->soonest_job = NULL;
     }
-}
-
-void notify_waiting_conns(job j) {
-
-   Conn *c = j->waitjob_conn;
-   Conn *prev_c;
-   while (c) {
-      reply_line(c, STATE_SENDWORD, MSG_WAITED_FMT, j->r.id);
-
-      prev_c = c;
-      c = c->next_waitjob;
-      prev_c->next_waitjob = NULL;
-   }
-
-   j->waitjob_conn = NULL;
 }
 
 static job
@@ -1395,12 +1402,12 @@ dispatch_cmd(Conn *c)
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        if (j->waitjob_conn) {
-           notify_waiting_conns(j);
-        }
         j->tube->stat.total_delete_ct++;
 
         j->r.state = Invalid;
+        if (j->waitjob_conn) {
+           notify_waiting_conns(j);
+        }
         r = walwrite(&c->srv->wal, j);
         walmaint(&c->srv->wal);
         job_free(j);

@@ -350,15 +350,29 @@ void cttestcmdwaitjob()
        mustsend(fd, "put 0 0 0 0\r\n");
        mustsend(fd, "\r\n");
        ckresp(fd, "INSERTED 1\r\n");
+       mustsend(fd, "put 0 0 0 0\r\n");
+       mustsend(fd, "\r\n");
+       ckresp(fd, "INSERTED 2\r\n");
        mustsend(fd, "wait 1\r\n");
        int64 start = nanoseconds();
-       ckresp(fd, "WAITED 1\r\n");
+       ckresp(fd, "DELETED\r\n");
+       assert(nanoseconds() - start > 100000000); // 0.1s
+       mustsend(fd, "wait 2\r\n");
+       start = nanoseconds();
+       ckresp(fd, "BURIED\r\n");
        assert(nanoseconds() - start > 100000000); // 0.1s
     } else {
        fd = mustdiallocal(port);
        usleep(100000);
        mustsend(fd, "delete 1\r\n");
        ckresp(fd, "DELETED\r\n");
+       mustsend(fd, "reserve\r\n");
+       ckresp(fd, "RESERVED 2 0\r\n");
+       ckresp(fd, "\r\n");
+       usleep(100000);
+       mustsend(fd, "bury 2 0\r\n");
+       ckresp(fd, "BURIED\r\n");
+       exit(0);
     }
 }
 
