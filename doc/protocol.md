@@ -229,6 +229,28 @@ The client expects one line of response, which may be:
 * `BURIED\r\n` if the server ran out of memory trying to grow the priority queue data structure.
 * `NOT_FOUND\r\n` if the job does not exist or is not reserved by the client.
 
+#### `wait` command
+
+The wait command waits until a particular job is out of the system before responding. It can be used to block a client until a job is completed. It looks like this:
+
+```
+wait <id>\r\n
+```
+
+##### `wait` options
+
+* `<id>` is the job id to wait for.
+
+##### `wait` responses
+
+The client expects one line of response once the state of the job has changed, which may be:
+
+* `DELETED <id>\r\n` to indicate the job was deleted via the `delete` command (normal success).
+* `BURIED <id>\r\n` to indicate the job was buried via the `bury` command.
+* `NOT_FOUND\r\n` if the job id does not exist.
+
+A response won't be sent by the server until the specified job is deleted or buried. The wait command can be issued multiple times before a response is received in order to wait on a collection of jobs.
+
 #### `bury` command
 The bury command puts a job into the "buried" state. Buried jobs are put into a FIFO linked list and will not be touched by the server again until a client kicks them with the `kick`" command.
 
