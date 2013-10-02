@@ -74,7 +74,7 @@ check: ct/_ctcheck
 bench: ct/_ctcheck
 	ct/_ctcheck -b
 
-ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES)
+ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES) -lrt
 
 ct/_ctcheck.c: $(TOFILES) ct/gen
 	ct/gen $(TOFILES) >$@.part

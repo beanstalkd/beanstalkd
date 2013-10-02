@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
+#include <time.h>
 #include <sys/time.h>
 #include <stdint.h>
 #include "internal.h"
@@ -24,7 +25,7 @@ static int64 bstart, bdur;
 static int btiming; // bool
 static int64 bbytes;
 static const int64 Second = 1000 * 1000 * 1000;
-static const int64 BenchTime = Second;
+static const int64 BenchTime = 1000 * 1000 * 1000;
 static const int MaxN = 1000 * 1000 * 1000;
 
 
@@ -416,7 +417,7 @@ runbench(Benchmark *b)
         runbenchn(b, n);
     }
     if (b->status == 0) {
-        printf("%8d\t%10lld ns/op", n, b->dur/n);
+        printf("%8d\t%10lld ns/op", n, (long long)b->dur/n);
         if (b->bytes > 0) {
             double mbs = 0;
             if (b->dur > 0) {
