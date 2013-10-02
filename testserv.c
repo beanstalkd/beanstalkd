@@ -373,29 +373,31 @@ void cttestcmdwaitjobparallel()
        mustsend(fd, "put 0 0 0 0\r\n");
        mustsend(fd, "\r\n");
        ckresp(fd, "INSERTED 1\r\n");
+       int64 start = nanoseconds();
        mustsend(fd, "put 0 0 0 0\r\n");
        mustsend(fd, "\r\n");
        ckresp(fd, "INSERTED 2\r\n");
        mustsend(fd, "wait 1\r\n");
        mustsend(fd, "wait 2\r\n");
-       int64 start = nanoseconds();
        ckresp(fd, "DELETED 1\r\n");
-       assert(nanoseconds() - start > 100000000); // 0.1s
+       int64 time = nanoseconds() - start;
+       assertf(time > 100000000, "%ld > 100000000", time); // 0.1s
        start = nanoseconds();
        ckresp(fd, "BURIED 2\r\n");
-       assert(nanoseconds() - start > 100000000); // 0.1s
+       time = nanoseconds() - start;
+       assertf(time > 100000000, "%ld > 100000000", time); // 0.1s
     } else {
        fd = mustdiallocal(port);
-       usleep(100000);
        mustsend(fd, "reserve\r\n");
        ckresp(fd, "RESERVED 1 0\r\n");
        ckresp(fd, "\r\n");
+       usleep(100000); // pretend to spend time processing the job
        mustsend(fd, "delete 1\r\n");
        ckresp(fd, "DELETED\r\n");
        mustsend(fd, "reserve\r\n");
        ckresp(fd, "RESERVED 2 0\r\n");
        ckresp(fd, "\r\n");
-       usleep(100000);
+       usleep(100000); // pretend to spend time processing the job
        mustsend(fd, "bury 2 0\r\n");
        ckresp(fd, "BURIED\r\n");
     }
