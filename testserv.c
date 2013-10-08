@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <inttypes.h>
 #include "ct/ct.h"
 #include "dat.h"
 
@@ -381,11 +382,11 @@ void cttestcmdwaitjobparallel()
        mustsend(fd, "wait 2\r\n");
        ckresp(fd, "DELETED 1\r\n");
        int64 time = nanoseconds() - start;
-       assertf(time > 100000000, "%ld > 100000000", time); // 0.1s
+       assertf(time > 100000000, "%" PRId64 " > 100000000", time); // 0.1s
        start = nanoseconds();
        ckresp(fd, "BURIED 2\r\n");
        time = nanoseconds() - start;
-       assertf(time > 100000000, "%ld > 100000000", time); // 0.1s
+       assertf(time > 100000000, "%" PRId64 " > 100000000", time); // 0.1s
     } else {
        fd = mustdiallocal(port);
        mustsend(fd, "reserve\r\n");
