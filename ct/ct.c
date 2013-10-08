@@ -15,6 +15,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include "internal.h"
 #include "ct.h"
 
@@ -417,7 +418,7 @@ runbench(Benchmark *b)
         runbenchn(b, n);
     }
     if (b->status == 0) {
-        printf("%8d\t%10lld ns/op", n, (long long)b->dur/n);
+        printf("%8d\t%10" PRId64 " ns/op", n, b->dur/n);
         if (b->bytes > 0) {
             double mbs = 0;
             if (b->dur > 0) {
