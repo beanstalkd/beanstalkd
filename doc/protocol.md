@@ -17,6 +17,7 @@ Names only supports ASCII strings.
 * **hyphen** ("-")
 * **plus** ("+")
 * **slash** ("/")
+* **colon** (":")
 * **semicolon** (";")
 * **dot** (".")
 * **dollar-sign** ("$")
