@@ -21,7 +21,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define NAME_CHARS \
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
     "abcdefghijklmnopqrstuvwxyz" \
-    "0123456789-+/;.$_()"
+    "0123456789-+/;:.$_()"
 
 #define CMD_PUT "put "
 #define CMD_PEEKJOB "peek "
