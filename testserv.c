@@ -357,7 +357,7 @@ void cttestcmdwaitjobdeleted()
        assert(nanoseconds() - start > 100000000); // 0.1s
     } else {
        fd = mustdiallocal(port);
-       usleep(100000);
+       usleep(110000); // 0.11s - pretend to spend time processing the job
        mustsend(fd, "reserve\r\n");
        ckresp(fd, "RESERVED 1 0\r\n");
        ckresp(fd, "\r\n");
@@ -392,13 +392,13 @@ void cttestcmdwaitjobparallel()
        mustsend(fd, "reserve\r\n");
        ckresp(fd, "RESERVED 1 0\r\n");
        ckresp(fd, "\r\n");
-       usleep(100000); // pretend to spend time processing the job
+       usleep(110000); // pretend to spend time processing the job
        mustsend(fd, "delete 1\r\n");
        ckresp(fd, "DELETED\r\n");
        mustsend(fd, "reserve\r\n");
        ckresp(fd, "RESERVED 2 0\r\n");
        ckresp(fd, "\r\n");
-       usleep(100000); // pretend to spend time processing the job
+       usleep(110000); // pretend to spend time processing the job
        mustsend(fd, "bury 2 0\r\n");
        ckresp(fd, "BURIED\r\n");
     }
@@ -421,7 +421,7 @@ void cttestcmdwaitjobburied()
        mustsend(fd, "reserve\r\n");
        ckresp(fd, "RESERVED 1 0\r\n");
        ckresp(fd, "\r\n");
-       usleep(100000);
+       usleep(110000); // pretend to spend time processing the job
        mustsend(fd, "bury 1 0\r\n");
        ckresp(fd, "BURIED\r\n");
     }
