@@ -98,6 +98,12 @@ Other available cookbooks:
 
 * [digitalpioneers/public-cookbooks](https://github.com/digitalpioneers/public-cookbooks)
 
+### Puppet
+
+There are also some open source puppet modules available:
+
+* [Jimdo/puppet-beanstalkd](https://github.com/Jimdo/puppet-beanstalkd)
+
 ## Client Libraries
 
 See the [client library][] page to find a library for your favorite
