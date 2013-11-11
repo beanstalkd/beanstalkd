@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include "internal.h"
 #include "ct.h"
 
@@ -23,9 +24,9 @@ static int rjobfd = -1, wjobfd = -1;
 static int64 bstart, bdur;
 static int btiming; // bool
 static int64 bbytes;
-static const int64 Second = 1000 * 1000 * 1000;
-static const int64 BenchTime = Second;
-static const int MaxN = 1000 * 1000 * 1000;
+enum { Second = 1000 * 1000 * 1000 };
+enum { BenchTime = Second };
+enum { MaxN = 1000 * 1000 * 1000 };
 
 
 
@@ -39,6 +40,7 @@ nstime()
 }
 
 #else
+#	include <time.h>
 
 static int64
 nstime()
@@ -416,7 +418,7 @@ runbench(Benchmark *b)
         runbenchn(b, n);
     }
     if (b->status == 0) {
-        printf("%8d\t%10lld ns/op", n, b->dur/n);
+        printf("%8d\t%10" PRId64 " ns/op", n, b->dur/n);
         if (b->bytes > 0) {
             double mbs = 0;
             if (b->dur > 0) {
