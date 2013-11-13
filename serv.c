@@ -43,8 +43,15 @@ srvserve(Server *s)
     }
 
 
+    period = prottick(s);
+
+    int64 t = nanoseconds();
     for (;;) {
-        period = prottick(s);
+        int64 t1 = nanoseconds();
+        if (t1-t > 10*1000000) {  // 10ms
+            period = prottick(s);
+            t = t1;
+        }
 
         int rw = socknext(&sock, period);
         if (rw == -1) {
