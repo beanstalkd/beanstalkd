@@ -372,11 +372,15 @@ int  filewrjobfull(File*, job);
 
 
 #define Portdef "11300"
+#define Addrdef NULL
+#define Userdef NULL
+#define Statusdef "OK"
 
 struct Server {
     char *port;
     char *addr;
     char *user;
+    char *status;
 
     Wal    wal;
     Socket sock;
