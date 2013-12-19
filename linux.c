@@ -79,7 +79,7 @@ socknext(Socket **s, int64 timeout)
         exit(1);
     }
 
-    if (r) {
+    if (r > 0) {
         *s = ev.data.ptr;
         if (ev.events & (EPOLLHUP|EPOLLRDHUP)) {
             return 'h';
