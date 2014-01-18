@@ -5,7 +5,7 @@ CFLAGS=-Wall -Werror\
 	-Wformat=2\
 	-g\
 
-LDFLAGS=
+LDFLAGS= -lrt
 OS=$(shell uname|tr A-Z a-z)
 INSTALL=install
 
@@ -46,7 +46,7 @@ CLEANFILES=\
 .PHONY: all
 all: $(TARG)
 
-$(TARG): $(OFILES) $(MOFILE)
+$(TARG): $(OFILES) $(MOFILE) 
 	$(LINK.o) -o $@ $^ $(LDLIBS)
 
 .PHONY: install
