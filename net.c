@@ -98,6 +98,16 @@ make_server_socket(char *host, char *port)
         continue;
       }
 
+      if (NULL == host) {
+        flags = 0;
+        r = setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &flags, sizeof(flags));
+        if (r == -1) {
+          twarn("setting IPV6_V6ONLY off on fd %d", fd);
+          close(fd);
+          continue;
+        }
+      }
+
       if (verbose) {
           char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV], *h = host, *p = port;
           r = getnameinfo(ai->ai_addr, ai->ai_addrlen,
