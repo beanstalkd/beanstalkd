@@ -92,7 +92,7 @@ Just type:
 
 ### Chef
 
-The [beanstalkd community cookbook](http://community.opscode.com/cookbooks/beanstalkd) can be found here at [escapestudios/chef-beanstalkd](https://github.com/escapestudios/chef-beanstalkd)
+The [beanstalkd community cookbook](http://community.opscode.com/cookbooks/beanstalkd) can be found here at [escapestudios-cookbooks/beanstalkd](https://github.com/escapestudios-cookbooks/beanstalkd)
 
 Other available cookbooks:
 
