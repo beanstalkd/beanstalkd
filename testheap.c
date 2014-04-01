@@ -199,3 +199,44 @@ cttestheap_remove_k()
         }
     }
 }
+
+void
+ctbenchheapinsert(int n)
+{
+    job *j;
+    int i;
+    j = calloc(n, sizeof *j);
+    assert(j);
+    for (i = 0; i < n; i++) {
+        j[i] = make_job(1, 0, 1, 0, 0);
+        assert(j[i]);
+        j[i]->r.pri = -j[i]->r.id;
+    }
+    Heap h = {0};
+    h.less = job_pri_less;
+    h.rec = job_setheappos;
+    ctresettimer();
+    for (i = 0; i < n; i++) {
+        heapinsert(&h, j[i]);
+    }
+}
+
+void
+ctbenchheapremove(int n)
+{
+    Heap h = {0};
+    job j;
+    int i;
+
+    h.less = job_pri_less;
+    h.rec = job_setheappos;
+    for (i = 0; i < n; i++) {
+        j = make_job(1, 0, 1, 0, 0);
+        assertf(j, "allocate job");
+        heapinsert(&h, j);
+    }
+    ctresettimer();
+    for (i = 0; i < n; i++) {
+        heapremove(&h, 0);
+    }
+}

@@ -1,5 +1,5 @@
 This is beanstalkd, a fast, general-purpose work queue.
-See http://kr.github.com/beanstalkd/ for general info.
+See http://kr.github.io/beanstalkd/ for general info.
 
 
 QUICK START
@@ -12,7 +12,7 @@ also try,
 
     $ ./beanstalkd -h
     $ ./beanstalkd -VVV
-    $ make CFLAGS=-g
+    $ make CFLAGS=-O2
     $ make CC=clang
     $ make check
     $ make install
@@ -35,7 +35,7 @@ pkg	miscelaneous files for packagers
 
 TESTS
 
-Unit tests are in *-test.c. See https://github.com/kr/ct for
+Unit tests are in test*.c. See https://github.com/kr/ct for
 information on how to write them.
 
 

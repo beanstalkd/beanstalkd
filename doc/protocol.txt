@@ -206,6 +206,10 @@ job before the job times out. When the job times out, the server will put the
 job back into the ready queue. Both the TTR and the actual time left can be
 found in response to the stats-job command.
 
+If more than one job is ready, beanstalkd will choose the one with the
+smallest priority value. Within each priority, it will choose the one that
+was received first.
+
 A timeout value of 0 will cause the server to immediately return either a
 response or TIMED_OUT.  A positive value of timeout will limit the amount of
 time the client will block on the reserve request until a job becomes
@@ -305,7 +309,8 @@ The "touch" command allows a worker to request more time to work on a job.
 This is useful for jobs that potentially take a long time, but you still want
 the benefits of a TTR pulling a job away from an unresponsive worker.  A worker
 may periodically tell the server that it's still alive and processing a job
-(e.g. it may do this on DEADLINE_SOON).
+(e.g. it may do this on DEADLINE_SOON). The command postpones the auto
+release of a reserved job until TTR seconds from when the command is issued.
 
 The touch command looks like this:
 
@@ -587,7 +592,7 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
  - "cmd-list-tubes-watched" is the cumulative number of list-tubes-watched
    commands.
 
- - "cmd-pause-tube" is the cumulative number of pause-tube commands
+ - "cmd-pause-tube" is the cumulative number of pause-tube commands.
 
  - "job-timeouts" is the cumulative count of times a job has timed out.
 
@@ -623,24 +628,24 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
  - "uptime" is the number of seconds since this server process started running.
 
  - "binlog-oldest-index" is the index of the oldest binlog file needed to
-   store the current jobs
+   store the current jobs.
 
  - "binlog-current-index" is the index of the current binlog file being
-   written to. If binlog is not active this value will be 0
+   written to. If binlog is not active this value will be 0.
 
  - "binlog-max-size" is the maximum size in bytes a binlog file is allowed
-   to get before a new binlog file is opened
+   to get before a new binlog file is opened.
 
  - "binlog-records-written" is the cumulative number of records written
-   to the binlog
+   to the binlog.
 
  - "binlog-records-migrated" is the cumulative number of records written
-   as part of compaction
+   as part of compaction.
 
- - "id" a unique id for this server process. The id is generated on each startup and
-    is always a random series of 8 bytes base16 encoded
+ - "id" is a random id string for this server process, generated when each
+   beanstalkd process starts.
 
- - "hostname" the hostname of the machine as determined by uname
+ - "hostname" the hostname of the machine as determined by uname.
 
 The list-tubes command returns a list of all existing tubes. Its form is:
 

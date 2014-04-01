@@ -9,27 +9,38 @@ fixsyms() {
     fi
 }
 
-tests() {
+syms() {
+    prefix=$1
+    shift
     for f in "$@"
     do nm $f
-    done | cut -d ' ' -f 3 | fixsyms | egrep ^cttest
+    done | cut -d ' ' -f 3 | fixsyms | egrep ^$prefix
 }
 
-gen() {
-    printf '#include "internal.h"\n'
-    printf '\n'
+ts=`syms cttest "$@" || true`
+bs=`syms ctbench "$@" || true`
 
-    for t in "$@"
-    do printf 'void %s(void);\n' $t
-    done
-    printf '\n'
+printf '#include <stdint.h>\n'
+printf '#include "internal.h"\n'
 
-    printf 'T ctmain[] = {\n'
-    for t in "$@"
-    do printf '    {%s, "%s", 0, 0},\n' $t $t
-    done
-    printf '    {0, 0, 0, 0},\n'
-    printf '};\n'
-}
+for t in $ts
+do printf 'void %s(void);\n' $t
+done
 
-gen `tests "$@" || (echo >&2 no tests found; exit 1)`
+for b in $bs
+do printf 'void %s(int);\n' $b
+done
+
+printf 'Test ctmaintest[] = {\n'
+for t in $ts
+do printf '    {%s, "%s"},\n' $t $t
+done
+printf '    {0},\n'
+printf '};\n'
+
+printf 'Benchmark ctmainbench[] = {\n'
+for b in $bs
+do printf '    {%s, "%s"},\n' $b $b
+done
+printf '    {0},\n'
+printf '};\n'

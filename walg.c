@@ -405,15 +405,18 @@ waldirlock(Wal *w)
     int r;
     int fd;
     struct flock lk;
-    char path[PATH_MAX];
+    char *path;
+    size_t path_length;
 
-    r = snprintf(path, PATH_MAX, "%s/lock", w->dir);
-    if (r > PATH_MAX) {
-        twarnx("path too long: %s/lock", w->dir);
+    path_length = strlen(w->dir) + strlen("/lock") + 1;
+    if ((path = malloc(path_length)) == NULL) {
+        twarn("malloc");
         return 0;
     }
+    r = snprintf(path, path_length, "%s/lock", w->dir);
 
     fd = open(path, O_WRONLY|O_CREAT, 0600);
+    free(path);
     if (fd == -1) {
         twarn("open");
         return 0;

@@ -1,0 +1,8 @@
+---
+layout: post
+title: Beanstalkd @VERSION@ Release Notes
+version: @VERSION@
+dist: https://github.com/kr/beanstalkd/archive/v@VERSION@.tar.gz
+file: beanstalkd-@VERSION@.tar.gz
+---
+

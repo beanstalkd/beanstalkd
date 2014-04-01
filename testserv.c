@@ -20,7 +20,6 @@
 
 static int srvpid, port, fd, size;
 static int64 timeout = 5000000000LL; // 5s
-static char dir[] = "/tmp/beanstalkd.test.XXXXXX";
 
 static byte fallocpat[3];
 
@@ -249,37 +248,6 @@ mustsend(int fd, char *s)
 }
 
 
-static void
-killsrv(void)
-{
-    if (srvpid > 1) {
-        kill(srvpid, 9);
-    }
-}
-
-
-static void
-sigabrt(int sig)
-{
-    killsrv();
-}
-
-
-static void
-installabrt()
-{
-    int r;
-    struct sigaction sa = {};
-
-    sa.sa_handler = sigabrt;
-    r = sigaction(SIGABRT, &sa, 0);
-    if (r == -1) {
-        twarn("sigaction SIGABRT");
-        exit(1);
-    }
-}
-
-
 static int
 filesize(char *path)
 {
@@ -323,8 +291,6 @@ cttestpause()
     ckresp(fd, "RESERVED 1 1\r\n");
     ckresp(fd, "x\r\n");
     assert(nanoseconds() - s >= 1000000000); // 1s
-
-    killsrv();
 }
 
 
@@ -335,8 +301,17 @@ cttestunderscore()
     fd = mustdiallocal(port);
     mustsend(fd, "use x_y\r\n");
     ckresp(fd, "USING x_y\r\n");
+}
 
-    killsrv();
+
+void
+cttest2cmdpacket()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "use a\r\nuse b\r\n");
+    ckresp(fd, "USING a\r\n");
+    ckresp(fd, "USING b\r\n");
 }
 
 
@@ -352,8 +327,6 @@ cttesttoobig()
     mustsend(fd, "x\r\n");
     ckresp(fd, "JOB_TOO_BIG\r\n");
     ckresp(fd, "INSERTED 1\r\n");
-
-    killsrv();
 }
 
 
@@ -367,8 +340,6 @@ cttestdeleteready()
     ckresp(fd, "INSERTED 1\r\n");
     mustsend(fd, "delete 1\r\n");
     ckresp(fd, "DELETED\r\n");
-
-    killsrv();
 }
 
 
@@ -393,8 +364,6 @@ cttestmultitube()
     ckresp(fd, "WATCHING 3\r\n");
     mustsend(fd, "reserve\r\n");
     ckresp(fd, "RESERVED 2 0\r\n");
-
-    killsrv();
 }
 
 
@@ -405,8 +374,6 @@ cttestnonegativedelay()
     fd = mustdiallocal(port);
     mustsend(fd, "put 512 -1 100 0\r\n");
     ckresp(fd, "BAD_FORMAT\r\n");
-
-    killsrv();
 }
 
 
@@ -421,8 +388,6 @@ cttestomittimeleft()
     mustsend(fd, "stats-job 1\r\n");
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\ntime-left: 0\n");
-
-    killsrv();
 }
 
 
@@ -434,8 +399,6 @@ cttestsmalldelay()
     mustsend(fd, "put 0 1 1 0\r\n");
     mustsend(fd, "\r\n");
     ckresp(fd, "INSERTED 1\r\n");
-
-    killsrv();
 }
 
 
@@ -537,8 +500,6 @@ ctteststatstube()
     mustsend(fd, "stats-tube default\r\n");
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\npause-time-left: 0\n");
-
-    killsrv();
 }
 
 
@@ -589,8 +550,6 @@ cttestttrlarge()
     mustsend(fd, "stats-job 7\r\n");
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\nttr: 21600\n");
-
-    killsrv();
 }
 
 
@@ -605,8 +564,6 @@ cttestttrsmall()
     mustsend(fd, "stats-job 1\r\n");
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\nttr: 1\n");
-
-    killsrv();
 }
 
 
@@ -618,8 +575,6 @@ cttestzerodelay()
     mustsend(fd, "put 0 0 1 0\r\n");
     mustsend(fd, "\r\n");
     ckresp(fd, "INSERTED 1\r\n");
-
-    killsrv();
 }
 
 
@@ -640,8 +595,6 @@ cttestreservewithtimeout2conn()
     ckresp(fd1, "WATCHING 2\r\n");
     timeout = 1100000000; // 1.1s
     ckresp(fd0, "TIMED_OUT\r\n");
-
-    killsrv();
 }
 
 
@@ -670,39 +623,33 @@ cttestunpausetube()
     // test will not pass.
     ckresp(fd1, "RESERVED 1 0\r\n");
     ckresp(fd1, "\r\n");
-
-    killsrv();
 }
 
 
 void
 cttestbinlogemptyexit()
 {
-    mkdtemp(dir);
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     job_data_size_limit = 10;
 
     port = SERVER();
 
-    killsrv();
+    kill(srvpid, 9);
+    waitpid(srvpid, NULL, 0);
 
     port = SERVER();
     fd = mustdiallocal(port);
     mustsend(fd, "put 0 0 0 0\r\n");
     mustsend(fd, "\r\n");
     ckresp(fd, "INSERTED 1\r\n");
-
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
 }
 
 
 void
 cttestbinlogbury()
 {
-    mkdtemp(dir);
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     job_data_size_limit = 10;
 
@@ -716,17 +663,13 @@ cttestbinlogbury()
     ckresp(fd, "\r\n");
     mustsend(fd, "bury 1 0\r\n");
     ckresp(fd, "BURIED\r\n");
-
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
 }
 
 
 void
 cttestbinlogbasic()
 {
-    mkdtemp(dir);
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     job_data_size_limit = 10;
 
@@ -736,16 +679,13 @@ cttestbinlogbasic()
     mustsend(fd, "\r\n");
     ckresp(fd, "INSERTED 1\r\n");
 
-    killsrv();
+    kill(srvpid, 9);
     waitpid(srvpid, NULL, 0);
 
     port = SERVER();
     fd = mustdiallocal(port);
     mustsend(fd, "delete 1\r\n");
     ckresp(fd, "DELETED\r\n");
-
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
 }
 
 
@@ -757,8 +697,7 @@ cttestbinlogsizelimit()
     int gotsize;
 
     size = 1024;
-    mkdtemp(dir);
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     srv.wal.filesize = size;
     srv.wal.syncrate = 0;
@@ -766,20 +705,17 @@ cttestbinlogsizelimit()
 
     port = SERVER();
     fd = mustdiallocal(port);
-    b2 = fmtalloc("%s/binlog.2", dir);
+    b2 = fmtalloc("%s/binlog.2", ctdir());
     while (!exist(b2)) {
         mustsend(fd, "put 0 0 100 50\r\n");
         mustsend(fd, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
         ckresp(fd, fmtalloc("INSERTED %d\r\n", ++i));
     }
 
-    gotsize = filesize(fmtalloc("%s/binlog.1", dir));
+    gotsize = filesize(fmtalloc("%s/binlog.1", ctdir()));
     assertf(gotsize == size, "binlog.1 %d != %d", gotsize, size);
     gotsize = filesize(b2);
     assertf(gotsize == size, "binlog.2 %d != %d", gotsize, size);
-
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
 }
 
 
@@ -789,8 +725,7 @@ cttestbinlogallocation()
     int i = 0;
 
     size = 601;
-    mkdtemp(dir);
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     srv.wal.filesize = size;
     srv.wal.syncrate = 0;
@@ -807,17 +742,13 @@ cttestbinlogallocation()
         mustsend(fd, fmtalloc("delete %d\r\n", i));
         ckresp(fd, "DELETED\r\n");
     }
-
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
 }
 
 
 void
 cttestbinlogread()
 {
-    mkdtemp(dir);
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     srv.wal.syncrate = 0;
     srv.wal.wantsync = 1;
@@ -845,7 +776,7 @@ cttestbinlogread()
     mustsend(fd, "delete 2\r\n");
     ckresp(fd, "DELETED\r\n");
 
-    killsrv();
+    kill(srvpid, 9);
     waitpid(srvpid, NULL, 0);
 
     port = SERVER();
@@ -859,9 +790,6 @@ cttestbinlogread()
     ckresp(fd, "DELETED\r\n");
     mustsend(fd, "delete 2\r\n");
     ckresp(fd, "NOT_FOUND\r\n");
-
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
 }
 
 
@@ -873,8 +801,7 @@ cttestbinlogdiskfull()
     fallocpat[0] = 1;
     fallocpat[2] = 1;
 
-    mkdtemp(dir);
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     srv.wal.filesize = size;
     srv.wal.syncrate = 0;
@@ -928,9 +855,6 @@ cttestbinlogdiskfull()
     ckresp(fd, "DELETED\r\n");
     mustsend(fd, "delete 9\r\n");
     ckresp(fd, "DELETED\r\n");
-
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
 }
 
 
@@ -942,8 +866,7 @@ cttestbinlogdiskfulldelete()
     fallocpat[0] = 1;
     fallocpat[1] = 1;
 
-    mkdtemp(dir);
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     srv.wal.filesize = size;
     srv.wal.syncrate = 0;
@@ -981,7 +904,7 @@ cttestbinlogdiskfulldelete()
     mustsend(fd, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
     ckresp(fd, "OUT_OF_MEMORY\r\n");
 
-    assert(exist(fmtalloc("%s/binlog.1", dir)));
+    assert(exist(fmtalloc("%s/binlog.1", ctdir())));
 
     mustsend(fd, "delete 1\r\n");
     ckresp(fd, "DELETED\r\n");
@@ -999,9 +922,6 @@ cttestbinlogdiskfulldelete()
     ckresp(fd, "DELETED\r\n");
     mustsend(fd, "delete 8\r\n");
     ckresp(fd, "DELETED\r\n");
-
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
 }
 
 
@@ -1015,13 +935,10 @@ cttestbinlogv5()
         exit(0);
     }
 
-    installabrt();
-    mkdtemp(dir);
-
     progname=__func__;
     port = (rand()&0xfbff) + 1024;
     sprintf(portstr, "%d", port);
-    muststart("beanstalkd-1.4.6", "-b", dir, "-p", portstr);
+    muststart("beanstalkd-1.4.6", "-b", ctdir(), "-p", portstr);
     fd = mustdiallocal(port);
     mustsend(fd, "use test\r\n");
     ckresp(fd, "USING test\r\n");
@@ -1100,9 +1017,10 @@ cttestbinlogv5()
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\nkicks: 0\n");
 
-    killsrv();
+    kill(srvpid, 9);
+    waitpid(srvpid, NULL, 0);
 
-    srv.wal.dir = dir;
+    srv.wal.dir = ctdir();
     srv.wal.use = 1;
     srv.wal.syncrate = 0;
     srv.wal.wantsync = 1;
@@ -1177,7 +1095,49 @@ cttestbinlogv5()
     mustsend(fd, "stats-job 2\r\n");
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\nkicks: 0\n");
+}
 
-    killsrv();
-    execlp("rm", "rm", "-rf", dir, NULL);
+
+static void
+benchputdeletesize(int n, int size)
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    char buf[50], put[50];
+    char body[size+1];
+    memset(body, 'a', size);
+    body[size] = 0;
+    ctsetbytes(size);
+    sprintf(put, "put 0 0 0 %d\r\n", size);
+    int i;
+    for (i = 0; i < n; i++) {
+        mustsend(fd, put);
+        mustsend(fd, body);
+        mustsend(fd, "\r\n");
+        ckrespsub(fd, "INSERTED ");
+        sprintf(buf, "delete %d\r\n", i+1);
+        mustsend(fd, buf);
+        ckresp(fd, "DELETED\r\n");
+    }
+}
+
+
+void
+ctbenchputdelete8byte(int n)
+{
+    benchputdeletesize(n, 8);
+}
+
+
+void
+ctbenchputdelete1k(int n)
+{
+    benchputdeletesize(n, 1024);
+}
+
+
+void
+ctbenchputdelete8k(int n)
+{
+    benchputdeletesize(n, 8192);
 }

@@ -1,12 +1,13 @@
+DESTDIR=
 PREFIX=/usr/local
-BINDIR=$(PREFIX)/bin
+BINDIR=$(DESTDIR)$(PREFIX)/bin
 CFLAGS=-Wall -Werror\
 	-Wformat=2\
+	-g\
 
 LDFLAGS=
 OS=$(shell uname|tr A-Z a-z)
 INSTALL=install
-TAR=tar
 
 VERS=$(shell ./vers.sh)
 TARG=beanstalkd
@@ -30,10 +31,10 @@ OFILES=\
 	walg.o\
 
 TOFILES=\
-	heap-test.o\
-	integ-test.o\
-	job-test.o\
-	util-test.o\
+	testheap.o\
+	testjobs.o\
+	testserv.o\
+	testutil.o\
 
 HFILES=\
 	dat.h\
@@ -41,7 +42,6 @@ HFILES=\
 
 CLEANFILES=\
 	vers.c\
-	$(TARG)-*.tar.gz\
 
 .PHONY: all
 all: $(TARG)
@@ -70,6 +70,10 @@ clean:
 check: ct/_ctcheck
 	ct/_ctcheck
 
+.PHONY: bench
+bench: ct/_ctcheck
+	ct/_ctcheck -b
+
 ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES)
 
 ct/_ctcheck.c: $(TOFILES) ct/gen
@@ -87,24 +91,6 @@ ifneq ($(shell ./verc.sh),$(shell cat vers.c 2>/dev/null))
 endif
 vers.c:
 	./verc.sh >vers.c
-
-.PHONY: dist
-dist: $(TARG)-$(VERS).tar.gz
-
-$(TARG)-$(VERS).tar:
-	git archive -o $@ --prefix=$(TARG)-$(VERS)/ v$(VERS)
-	mkdir -p $(TARG)-$(VERS)/mk
-	echo 'printf "$(VERS)"' >$(TARG)-$(VERS)/vers.sh
-	chmod +x $(TARG)-$(VERS)/vers.sh
-	$(TAR) --append -f $@ $(TARG)-$(VERS)/vers.sh
-	sed 's/@VERSION@/$(VERS)/' <pkg/beanstalkd.spec.in >$(TARG)-$(VERS)/beanstalkd.spec
-	$(TAR) --append -f $@ $(TARG)-$(VERS)/beanstalkd.spec
-	cp NEWS.md $(TARG)-$(VERS)/NEWS.md
-	$(TAR) --append -f $@ $(TARG)-$(VERS)/NEWS.md
-	rm -r $(TARG)-$(VERS)
-
-$(TARG)-$(VERS).tar.gz: $(TARG)-$(VERS).tar
-	gzip -f $<
 
 doc/beanstalkd.1 doc/beanstalkd.1.html: doc/beanstalkd.ronn
 	ronn $<

@@ -1,0 +1,21 @@
+
+Full list of changes (includes authorship information):  
+<http://github.com/kr/beanstalkd/compare/v@PARENT@...v@VERSION@>
+
+Our Urls
+--------
+
+Download the @VERSION@ tarball directly:  
+<https://github.com/kr/beanstalkd/archive/v@VERSION@.tar.gz>
+
+Learn all about beanstalk:  
+<http://kr.github.com/beanstalkd/>
+
+Talk about beanstalk development or use at:  
+<http://groups.google.com/group/beanstalk-talk>
+
+Bugs
+----
+
+Please report any bugs to:  
+<http://github.com/kr/beanstalkd/issues>
