@@ -303,7 +303,7 @@ ignore <tube>\r\n
 
 * `<tube>` is a name at most 200 bytes. It specifies a tube to add to the watch list. If the tube doesn't exist, it will be created.
 
-##### `ignore` command
+##### `ignore` responses
 
 The reply is one of:
 
