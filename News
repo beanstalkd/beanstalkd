@@ -1,0 +1,34 @@
+This is beanstalkd version 1.10, containing bug fixes.
+
+As always, there will be no incompatible protocol changes until
+version 2.0. A client written for version 1.10 will work
+unmodified with any later 1.x release of beanstalkd.
+
+News
+----
+
+- fix crash on suspend or other EINTR (#220)
+- document touch command's TTR reset (#188)
+- add some basic benchmark tests
+- add DESTDIR support to Makefile
+
+Full list of changes (includes authorship information):  
+<http://github.com/kr/beanstalkd/compare/v1.9...v1.10>
+
+Our Urls
+--------
+
+Download the 1.10 tarball directly:  
+<https://github.com/kr/beanstalkd/archive/v1.10.tar.gz>
+
+Learn all about beanstalk:  
+<http://kr.github.com/beanstalkd/>
+
+Talk about beanstalk development or use at:  
+<http://groups.google.com/group/beanstalk-talk>
+
+Bugs
+----
+
+Please report any bugs to:  
+<http://github.com/kr/beanstalkd/issues>
