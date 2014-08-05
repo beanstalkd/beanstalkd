@@ -165,6 +165,8 @@ was received first.
 
 A timeout value of `0` will cause the server to immediately return either a response or `TIMED_OUT`.  A positive value of timeout will limit the amount of time the client will block on the reserve request until a job becomes available.
 
+Note that you can specify a fractional amount of seconds, like '0.01' for 10 ms. While in theory, you could specify timeouts with a precision of one nanosecond this way, in practice you're limited to minimum values of around 0.015 seconds.
+
 ##### `reserve` responses
 
 ###### Non-succesful responses

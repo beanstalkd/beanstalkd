@@ -1001,7 +1001,7 @@ read_tube_name(char **tubename, char *buf, char **end)
 }
 
 static void
-wait_for_job(Conn *c, int timeout)
+wait_for_job(Conn *c, int64 timeout)
 {
     c->state = STATE_WAIT;
     enqueue_waiting_conn(c);
@@ -1181,9 +1181,74 @@ prot_remove_tube(tube t)
 }
 
 static void
+wait_and_process_job(Conn *c, int64 timeout)
+{
+    connsetworker(c);
+
+    if (conndeadlinesoon(c) && !conn_ready(c)) {
+        return reply_msg(c, MSG_DEADLINE_SOON);
+    }
+
+    /* try to get a new job for this guy */
+    wait_for_job(c, timeout);
+    process_queue();
+}
+
+int64
+parse_fractional_seconds(char* buffer)
+{
+    /* Assumes that buffer is 0 terminated correctly. Returns -1 if parser
+     * fails. */
+
+    int64 timeout = -1;
+    char *frac_buf, *end_buf; 
+    uint fractional_part_size;
+
+    // Interpret the seconds part of the timeout argument
+    timeout = strtol(buffer, &end_buf, 10);
+    timeout *= 1000000000;      // convert to nanoseconds
+    if (errno) return -1;
+
+    /* If we haven't hit EOS yet, let's try to read a fractional part of the 
+     * seconds argument: */
+    if (*end_buf != '\0') {
+        // Anything else but a '.' is an error here.
+        if (*end_buf != '.') return -1;
+
+        frac_buf = end_buf + 1;
+        fractional_part_size = strlen(frac_buf);   
+        
+        if (fractional_part_size > 9) return -1;
+        if (fractional_part_size > 0) {
+            if (*frac_buf < '0' || *frac_buf > '9') return -1;
+            // assert: frac_buf begins with at least one digit.
+
+            /* Parses the fractional part. If frac_buf is not completely 
+             * consumed (advanced to point to the '\0'), there were chars
+             * other than digits here, we consider that an error. */
+            int64 fract = strtol(frac_buf, &end_buf, 10);
+            if (errno) return -1;
+            if (*end_buf != '\0') return -1;
+
+            /* We know now that frac_buf contained only numbers and that
+             * it contained fractional_part_size numbers. Also, there
+             * were less than 10 digits. Performs a fixed point addition.
+             */
+            for (uint i=fractional_part_size; i<9; i++) {
+                fract *= 10;
+            }
+            timeout += fract; 
+        }
+    }
+
+    return timeout; 
+}
+
+static void
 dispatch_cmd(Conn *c)
 {
-    int r, i, timeout = -1;
+    int r, i;
+    int64 timeout = -1;
     int z;
     uint count;
     job j = 0;
@@ -1313,24 +1378,23 @@ dispatch_cmd(Conn *c)
         break;
     case OP_RESERVE_TIMEOUT:
         errno = 0;
-        timeout = strtol(c->cmd + CMD_RESERVE_TIMEOUT_LEN, &end_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
-    case OP_RESERVE: /* FALLTHROUGH */
+
+        timeout = parse_fractional_seconds(c->cmd + CMD_RESERVE_TIMEOUT_LEN);
+        if (timeout < 0) return reply_msg(c, MSG_BAD_FORMAT);
+
+        op_ct[type]++;
+        wait_and_process_job(c, timeout);
+        
+        break;
+    case OP_RESERVE:
         /* don't allow trailing garbage */
-        if (type == OP_RESERVE && c->cmd_len != CMD_RESERVE_LEN + 2) {
+        if (c->cmd_len != CMD_RESERVE_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
         }
 
         op_ct[type]++;
-        connsetworker(c);
-
-        if (conndeadlinesoon(c) && !conn_ready(c)) {
-            return reply_msg(c, MSG_DEADLINE_SOON);
-        }
-
-        /* try to get a new job for this guy */
-        wait_for_job(c, timeout);
-        process_queue();
+        wait_and_process_job(c, -1);
+        
         break;
     case OP_DELETE:
         errno = 0;

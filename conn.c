@@ -121,7 +121,7 @@ conntickat(Conn *c)
         should_timeout = 1;
     }
     if (c->pending_timeout >= 0) {
-        t = min(t, ((int64)c->pending_timeout) * 1000000000);
+        t = min(t, c->pending_timeout);
         should_timeout = 1;
     }
 
