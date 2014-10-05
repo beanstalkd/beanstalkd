@@ -1,0 +1,3 @@
+[submodule "ct"]
+	path = ct
+	url = https://github.com/kr/ct.git
