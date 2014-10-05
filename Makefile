@@ -67,24 +67,24 @@ clean:
 	rm -f *.o $(CLEANFILES)
 
 .PHONY: check
-check: ct/_ctcheck
-	ct/_ctcheck
+check: ct/ct/_ctcheck
+	ct/ct/_ctcheck
 
 .PHONY: bench
-bench: ct/_ctcheck
-	ct/_ctcheck -b
+bench: ct/ct/_ctcheck
+	ct/ct/_ctcheck -b
 
-ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES)
+ct/ct/_ctcheck: ct/ct/_ctcheck.o ct/ct/ct.o $(OFILES) $(TOFILES)
 
-ct/_ctcheck.c: $(TOFILES) ct/gen
-	ct/gen $(TOFILES) >$@.part
+ct/ct/_ctcheck.c: $(TOFILES) ct/ct/gen
+	ct/ct/gen $(TOFILES) >$@.part
 	mv $@.part $@
 
-ct/ct.o ct/_ctcheck.o: ct/ct.h ct/internal.h
+ct/ct/ct.o ct/_ctcheck.o: ct/ct/ct.h ct/ct/internal.h
 
-$(TOFILES): $(HFILES) ct/ct.h
+$(TOFILES): $(HFILES) ct/ct/ct.h
 
-CLEANFILES:=$(CLEANFILES) ct/_* ct/*.o
+CLEANFILES:=$(CLEANFILES) ct/ct/_* ct/ct/*.o
 
 ifneq ($(shell ./verc.sh),$(shell cat vers.c 2>/dev/null))
 .PHONY: vers.c

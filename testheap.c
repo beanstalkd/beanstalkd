@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-#include "ct/ct.h"
+#include "ct/ct/ct.h"
 #include "dat.h"
 
 
