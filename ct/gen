@@ -1,0 +1,46 @@
+#!/bin/sh
+
+set -e
+
+fixsyms() {
+    if test "`uname -s|tr A-Z a-z`" = darwin
+    then egrep -v [.] | egrep ^_ | sed s/^_//
+    else cat
+    fi
+}
+
+syms() {
+    prefix=$1
+    shift
+    for f in "$@"
+    do nm $f
+    done | cut -d ' ' -f 3 | fixsyms | egrep ^$prefix
+}
+
+ts=`syms cttest "$@" || true`
+bs=`syms ctbench "$@" || true`
+
+printf '#include <stdint.h>\n'
+printf '#include "internal.h"\n'
+
+for t in $ts
+do printf 'void %s(void);\n' $t
+done
+
+for b in $bs
+do printf 'void %s(int);\n' $b
+done
+
+printf 'Test ctmaintest[] = {\n'
+for t in $ts
+do printf '    {%s, "%s"},\n' $t $t
+done
+printf '    {0},\n'
+printf '};\n'
+
+printf 'Benchmark ctmainbench[] = {\n'
+for b in $bs
+do printf '    {%s, "%s"},\n' $b $b
+done
+printf '    {0},\n'
+printf '};\n'
