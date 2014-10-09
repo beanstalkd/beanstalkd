@@ -14,6 +14,7 @@ also try,
     $ ./beanstalkd -VVV
     $ make CFLAGS=-O2
     $ make CC=clang
+    $ git subtree pull --prefix=ct https://github.com/kr/ct.git master --squash
     $ make check
     $ make install
     $ make install PREFIX=/usr
