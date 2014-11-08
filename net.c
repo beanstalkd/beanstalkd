@@ -48,8 +48,10 @@ make_server_socket(char *host, char *port)
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
     r = getaddrinfo(host, port, &hints, &airoot);
-    if (r == -1)
-      return twarn("getaddrinfo()"), -1;
+    if (r != 0) {
+      twarnx("getaddrinfo(): %s", gai_strerror(r));
+      return -1;
+    }
 
     for(ai = airoot; ai; ai = ai->ai_next) {
       fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
