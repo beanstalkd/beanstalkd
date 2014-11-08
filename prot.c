@@ -11,7 +11,6 @@
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <inttypes.h>
 #include <stdarg.h>
 #include <signal.h>
@@ -2112,7 +2111,7 @@ void
 h_accept(const int fd, const short which, Server *s)
 {
     UNUSED_PARAMETER(which);
-    struct sockaddr_in6 addr;
+    struct sockaddr_storage addr;
 
     socklen_t addrlen = sizeof addr;
     int cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
