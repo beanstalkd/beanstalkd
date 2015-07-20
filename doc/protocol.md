@@ -169,11 +169,8 @@ A timeout value of `0` will cause the server to immediately return either a resp
 
 ###### Non-succesful responses
 
-* `DEADLINE_SOON\r\n` During the TTR of a reserved job, the last second is kept by the server as a safety margin, during which the client will not be made to wait for another job. If the client issues a reserve command during the safety margin, or if the safety margin arrives while the client is waiting on a reserve command.
-* `TIMED_OUT\r\n` If a non-negative timeout was specified and the timeout exceeded before a job became available, or if the client's connection is half-closed, the server will respond with TIMED_OUT.
-
-Otherwise, the only other response to this command is a successful reservation
-in the form of a text line followed by the job body:
+* `DEADLINE_SOON\r\n` During the TTR of a reserved job, the last second is kept by the server as a safety margin, during which the client will not be made to wait for another job. If the client issues a reserve command during the safety margin, or if the safety margin arrives while the client is waiting on a reserve command, the server will respond with `DEADLINE_SOON`.
+* `TIMED_OUT\r\n` If a non-negative timeout was specified and the timeout exceeded before a job became available, or if the client's connection is half-closed, the server will respond with `TIMED_OUT`.
 
 ####### Succesful response
 
@@ -240,7 +237,7 @@ bury <id> <pri>\r\n
 
 ##### `bury` options
 
-* `<id>` is the job id to release.
+* `<id>` is the job id to bury.
 * `<pri>` is a new priority to assign to the job.
 
 ##### `bury` responses
@@ -291,7 +288,7 @@ The reply is:
 
 * `WATCHING <count>\r\n` `<count>` is the integer number of tubes currently in the watch list.
 
-##### `ignore` command
+#### `ignore` command
 
 The `ignore` command is for consumers. It removes the named tube from the watch list for the current connection.
 
@@ -388,9 +385,9 @@ The response is one of:
 * `NOT_FOUND\r\n` if the job does not exist.
 * `OK <bytes>\r\n<data>\r\n`
     * `<bytes>` is the size of the following data section in bytes.
-    * `<data>` is a sequence of bytes of length `<bytes>` from the previous line. It is a YAML file with statistical information represented a dictionary.
+    * `<data>` is a sequence of bytes of length `<bytes>` from the previous line. It is a YAML file with statistical information represented by a dictionary.
 
-The `stats-job` data is a YAML file representing a single dictionary of strings to scalars. It contains these keys:
+The `stats-job` data is a YAML file representing a single dictionary of string keys to scalar values. It contains these keys:
 
 * `id` is the job id
 * `tube` is the name of the tube that contains this job
@@ -424,9 +421,9 @@ The response is one of:
 * `NOT_FOUND\r\n` if the tube does not exist.
 * `OK <bytes>\r\n<data>\r\n`
   * `<bytes>` is the size of the following data section in bytes.
-  * `<data>` is a sequence of bytes of length `<bytes>` from the previous line. It is a YAML file with statistical information represented a dictionary.
+  * `<data>` is a sequence of bytes of length `<bytes>` from the previous line. It is a YAML file with statistical information represented by a dictionary.
 
-The stats-tube data is a YAML file representing a single dictionary of strings to scalars. It contains these keys:
+The stats-tube data is a YAML file representing a single dictionary of string keys to scalar values. It contains these keys:
 
 * `name` is the tube's name.
 * `current-jobs-urgent` is the number of ready jobs with priority < 1024 in this tube.
@@ -461,9 +458,9 @@ OK <bytes>\r\n
 ```
 
 * `<bytes>` is the size of the following data section in bytes.
-* `<data>` is a sequence of bytes of length <bytes> from the previous line. It is a YAML file with statistical information represented a dictionary.
+* `<data>` is a sequence of bytes of length <bytes> from the previous line. It is a YAML file with statistical information represented by a dictionary.
 
-The stats data for the system is a YAML file representing a single dictionary of strings to scalars. Entries described as "cumulative" are reset when the beanstalkd process starts; they are not stored on disk with the -b flag.
+The stats data for the system is a YAML file representing a single dictionary of string keys to scalars values. Entries described as "cumulative" are reset when the beanstalkd process starts; they are not stored on disk with the -b flag.
 
 * `current-jobs-urgent` is the number of ready jobs with priority < 1024.
 * `current-jobs-ready` is the number of jobs in the ready queue.
