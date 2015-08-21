@@ -1,8 +1,4 @@
-
-##Beanstalkd中文协议解读
-
-
-最近有需求做全平台的定时器，业务复杂，性能要求高，`linux crontab`的方式不适用，调研一些支持定时执行的内存队列系统，其中`beanstalkd`较适合。先将其协议研究一遍，使用就不是问题了。
+##Beanstalkd中文协议
 
 ###总括
 
@@ -469,3 +465,6 @@ pause-tube <tube-name> <delay>\r\n
 PAUSED\r\n 表示成功
 NOT_FOUND\r\n tube不存在
 ```
+
+
+>Translated by PHPBoy :http://www.phpboy.net/ and fzb.me
