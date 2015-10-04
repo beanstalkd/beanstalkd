@@ -327,8 +327,8 @@ struct Wal {
     File   *tail;
     int    nfile;
     int    next;
-    int    resv;  // bytes reserved
-    int    alive; // bytes in use
+    int64  resv;  // bytes reserved
+    int64  alive; // bytes in use
     int64  nmig;  // migrations
     int64  nrec;  // records written ever
     int    wantsync;

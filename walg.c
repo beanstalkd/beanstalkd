@@ -91,7 +91,7 @@ usenext(Wal *w)
 static int
 ratio(Wal *w)
 {
-    int n, d;
+    int64 n, d;
 
     d = w->alive + w->resv;
     n = w->nfile*w->filesize - d;
