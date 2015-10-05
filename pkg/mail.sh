@@ -9,7 +9,7 @@ die() {
 }
 
 addr=beanstalk-talk@googlegroups.com
-ver=`./vers.sh`
+ver=`./src/vers.sh`
 case $ver in *+*) die bad ver $ver ;; esac
 
 (cat <<end; git cat-file -p v$ver:News)|msmtp -t $addr
