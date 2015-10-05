@@ -94,7 +94,7 @@ ratio(Wal *w)
     int64 n, d;
 
     d = w->alive + w->resv;
-    n = w->nfile*w->filesize - d;
+    n = (int64)w->nfile * (int64)w->filesize - d;
     if (!d) return 0;
     return n / d;
 }
