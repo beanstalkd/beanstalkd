@@ -4,8 +4,8 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include "ct/ct.h"
-#include "dat.h"
+#include "../ct/ct.h"
+#include "../dat.h"
 
 void
 cttestallocf()

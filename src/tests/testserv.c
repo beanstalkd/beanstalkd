@@ -15,8 +15,8 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <errno.h>
-#include "ct/ct.h"
-#include "dat.h"
+#include "../ct/ct.h"
+#include "../dat.h"
 
 static int srvpid, port, fd, size;
 static int64 timeout = 5000000000LL; // 5s
