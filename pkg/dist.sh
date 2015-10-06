@@ -20,7 +20,7 @@ die() {
 	exit 2
 }
 
-ver=`./vers.sh`
+ver=`./src/vers.sh`
 case $ver in *+*) die bad ver $ver ;; esac
 prev=`git describe --abbrev=0 --match=dev* --tags dev$ver^|sed s/^dev//`
 test -n "$prev" || die no prev ver
@@ -35,7 +35,7 @@ newsobj=`cat News pkg/newstail.in|exp|mkobj`
 versobj=`echo "printf '$ver'"|mkobj`
 specobj=`exp <pkg/beanstalkd.spec.in|mkobj`
 git update-index --add --cacheinfo 100644 $newsobj News
-git update-index --cacheinfo 100755 $versobj vers.sh
+git update-index --cacheinfo 100755 $versobj src/vers.sh
 git update-index --add --cacheinfo 100644 $specobj beanstalkd.spec
 tree=`git write-tree`
 commit=`git commit-tree $tree -p dev$ver -m "release $ver"`

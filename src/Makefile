@@ -31,10 +31,10 @@ OFILES=\
 	walg.o\
 
 TOFILES=\
-	testheap.o\
-	testjobs.o\
-	testserv.o\
-	testutil.o\
+	tests/testheap.o\
+	tests/testjobs.o\
+	tests/testserv.o\
+	tests/testutil.o\
 
 HFILES=\
 	dat.h\
