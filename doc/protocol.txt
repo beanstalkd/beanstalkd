@@ -447,6 +447,8 @@ to scalars. It contains these keys:
  - "pri" is the priority value set by the put, release, or bury commands.
 
  - "age" is the time in seconds since the put command that created this job.
+ 
+ - "ttr" is the TTR time in seconds of this job
 
  - "time-left" is the number of seconds left until the server puts this job
    into the ready queue. This number is only meaningful if the job is
