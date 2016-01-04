@@ -100,6 +100,7 @@ usage(int code)
             "\n"
             "Options:\n"
             " -b DIR   wal directory\n"
+            " -D       put server into the background (daemonize)\n"
             " -f MS    fsync at most once every MS milliseconds"
                        " (use -f0 for \"always fsync\")\n"
             " -F       never fsync (default)\n"
@@ -183,6 +184,9 @@ optparse(Server *s, char **argv)
                     break;
                 case 'u':
                     s->user = EARGF(flagusage("-u"));
+                    break;
+                case 'D':
+                    s->bg = 1;
                     break;
                 case 'b':
                     s->wal.dir = EARGF(flagusage("-b"));

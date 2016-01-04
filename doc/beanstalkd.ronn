@@ -35,6 +35,10 @@ and format of the `beanstalkd` protocol.
   (Do not use this option, except to negate `-n`. Both `-c` and `-n`
   will likely be removed in a future `beanstalkd` release.)
 
+* `-D`:
+  Daemonize: fork off a background process and print its process ID to
+  stdout.
+
 * `-f` <ms>:
   Call fsync(2) at most once every <ms> milliseconds. Larger values
   for <ms> reduce disk activity and improve speed at the cost of

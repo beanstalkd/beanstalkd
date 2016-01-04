@@ -378,6 +378,8 @@ struct Server {
     char *addr;
     char *user;
 
+    int   bg;
+
     Wal    wal;
     Socket sock;
     Heap   conns;

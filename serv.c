@@ -1,12 +1,15 @@
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include "dat.h"
 
 struct Server srv = {
     Portdef,
     NULL,
     NULL,
+    0,
     {
         Filesizedef,
     },
@@ -63,4 +66,20 @@ void
 srvaccept(Server *s, int ev)
 {
     h_accept(s->sock.fd, ev, s);
+}
+
+void
+srvbg(Server *s)
+{
+    pid_t pid;
+
+    if (s->bg) {
+        pid = fork();
+        if (pid) {
+           printf("%d\n", (int)pid);
+           fflush(stdout);
+           _exit(0);
+        }
+        setsid();
+    }
 }

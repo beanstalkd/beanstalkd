@@ -56,6 +56,8 @@ main(int argc, char **argv)
     setlinebuf(stdout);
     optparse(&srv, argv+1);
 
+    srvbg(&srv);
+
     if (verbose) {
         printf("pid %d\n", getpid());
     }
