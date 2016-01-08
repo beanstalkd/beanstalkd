@@ -24,7 +24,7 @@ static int64 bstart, bdur;
 static int btiming; // bool
 static int64 bbytes;
 static const int64 Second = 1000 * 1000 * 1000;
-static const int64 BenchTime = Second;
+static const int64 BenchTime = 1000 * 1000 * 1000;
 static const int MaxN = 1000 * 1000 * 1000;
 
 
