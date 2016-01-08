@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <time.h>
 #include <stdint.h>
 #include "internal.h"
 #include "ct.h"
