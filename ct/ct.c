@@ -182,7 +182,7 @@ start(Test *t)
 {
     t->fd = tmpfd();
     strcpy(t->dir, TmpDirPat);
-    mktemp(t->dir);
+    mkdtemp(t->dir);
     t->pid = fork();
     if (t->pid < 0) {
         die(1, errno, "fork");
@@ -285,7 +285,7 @@ runbenchn(Benchmark *b, int n)
     int outfd = tmpfd();
     int durfd = tmpfd();
     strcpy(b->dir, TmpDirPat);
-    mktemp(b->dir);
+    mkdtemp(b->dir);
     int pid = fork();
     if (pid < 0) {
         die(1, errno, "fork");
