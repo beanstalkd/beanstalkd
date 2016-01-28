@@ -72,6 +72,40 @@ rehash()
     }
 }
 
+static void
+rehash_down()
+{
+    job *old = all_jobs;
+    size_t old_cap = all_jobs_cap, old_used = all_jobs_used, i;
+
+    if (cur_prime <= 0) return;
+
+    all_jobs_cap = primes[--cur_prime];
+    all_jobs = calloc(all_jobs_cap, sizeof(job));
+    if (!all_jobs) {
+        twarnx("Failed to allocate %zu new hash buckets", all_jobs_cap);
+        hash_table_max_prime = cur_prime;
+        ++cur_prime;
+        all_jobs = old;
+        all_jobs_cap = old_cap;
+        all_jobs_used = old_used;
+        return;
+    }
+    all_jobs_used = 0;
+
+    for (i = 0; i < old_cap; i++) {
+        while (old[i]) {
+            job j = old[i];
+            old[i] = j->ht_next;
+            j->ht_next = NULL;
+            store_job(j);
+        }
+    }
+    if (old != all_jobs_init) {
+        free(old);
+    }
+}
+
 job
 job_find(uint64 job_id)
 {
