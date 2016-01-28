@@ -34,7 +34,7 @@ store_job(job j)
     all_jobs_used++;
 
     /* accept a load factor of 4 */
-    if (all_jobs_used > (all_jobs_cap << 2)) rehash();
+    if (all_jobs_used > (all_jobs_cap >> 2)) rehash();
 }
 
 static void
