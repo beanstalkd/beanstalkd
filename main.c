@@ -70,7 +70,7 @@ main(int argc, char **argv)
     if (r == -1) twarnx("make_server_socket()"), exit(111);
     srv.sock.fd = r;
 
-    syslog(LOG_DEBUG, "Starting up on %s:%d", srv.addr, srv.port);
+    syslog(LOG_DEBUG, "Starting up on [%s]:%s", srv.addr, srv.port);
 
     prot_init();
 
