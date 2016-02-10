@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <syslog.h>
 #include "sd-daemon.h"
 #include "dat.h"
 
@@ -18,8 +19,14 @@ vwarnx(const char *err, const char *fmt, va_list args)
 {
     fprintf(stderr, "%s: ", progname);
     if (fmt) {
+        va_list copy_args;
+        va_copy(copy_args, args);
         vfprintf(stderr, fmt, args);
-        if (err) fprintf(stderr, ": %s", err);
+        vsyslog(LOG_WARNING, fmt, copy_args);
+        if (err) {
+            syslog(LOG_ERR, "%s", err);
+            fprintf(stderr, ": %s", err);
+        }
     }
     fputc('\n', stderr);
 }
