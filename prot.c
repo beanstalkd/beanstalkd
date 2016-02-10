@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <inttypes.h>
 #include <stdarg.h>
+#include <syslog.h>
 #include "dat.h"
 
 /* job body cannot be greater than this many bytes long */
@@ -1921,6 +1922,7 @@ h_accept(const int fd, const short which, Server *s)
         return;
     }
     if (verbose) {
+        syslog(LOG_DEBUG, "accept %d", cfd);
         printf("accept %d\n", cfd);
     }
 
@@ -1929,6 +1931,7 @@ h_accept(const int fd, const short which, Server *s)
         twarn("getting flags");
         close(cfd);
         if (verbose) {
+            syslog(LOG_DEBUG, "close %d", cfd);
             printf("close %d\n", cfd);
         }
         update_conns();
@@ -1940,6 +1943,7 @@ h_accept(const int fd, const short which, Server *s)
         twarn("setting O_NONBLOCK");
         close(cfd);
         if (verbose) {
+            syslog(LOG_DEBUG, "close %d", cfd);
             printf("close %d\n", cfd);
         }
         update_conns();
@@ -1951,6 +1955,7 @@ h_accept(const int fd, const short which, Server *s)
         twarnx("make_conn() failed");
         close(cfd);
         if (verbose) {
+            syslog(LOG_DEBUG, "close %d", cfd);
             printf("close %d\n", cfd);
         }
         update_conns();
@@ -1966,6 +1971,7 @@ h_accept(const int fd, const short which, Server *s)
         twarn("sockwant");
         close(cfd);
         if (verbose) {
+            syslog(LOG_DEBUG, "close %d", cfd);
             printf("close %d\n", cfd);
         }
         update_conns();
