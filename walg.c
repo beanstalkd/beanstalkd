@@ -445,7 +445,7 @@ walread(Wal *w, job list, int min, int max)
     int i, fd;
     int err = 0;
 
-    for (i = min; i < w->next; i++) {
+    for (i = min; i < max; i++) {
         f = new(File);
         if (!f) {
             twarnx("OOM");
