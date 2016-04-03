@@ -90,19 +90,7 @@ Just type:
 
 ## Automated installation
 
-### Chef
-
-The [beanstalkd community cookbook](http://community.opscode.com/cookbooks/beanstalkd) can be found here at [escapestudios-cookbooks/beanstalkd](https://github.com/escapestudios-cookbooks/beanstalkd)
-
-Other available cookbooks:
-
-* [digitalpioneers/public-cookbooks](https://github.com/digitalpioneers/public-cookbooks)
-
-### Puppet
-
-There are also some open source puppet modules available:
-
-* [Jimdo/puppet-beanstalkd](https://github.com/Jimdo/puppet-beanstalkd)
+See the "Deployment and automated installation" section on the [Tools][] page.
 
 ## Client Libraries
 
