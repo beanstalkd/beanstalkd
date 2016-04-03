@@ -40,6 +40,13 @@ HFILES=\
 	dat.h\
 	sd-daemon.h\
 
+ifeq ($(OS),linux)
+
+LDLIBS=\
+	-lrt\
+
+endif
+
 CLEANFILES=\
 	vers.c\
 
