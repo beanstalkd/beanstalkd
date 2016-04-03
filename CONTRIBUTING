@@ -1,5 +1,6 @@
 Contribution guidelines
 
- * Before submitting a giant pull request you are advised to first discuss it
-   in an issue.
+ * Before submitting a giant pull request, you are advised to first discuss it
+   in an issue. You can open up a new issue here:
+   https://github.com/kr/beanstalkd/issues/new
  * Adding a unit test for a change gives you super hero points.
