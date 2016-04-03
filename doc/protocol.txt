@@ -653,6 +653,9 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
 
  - "hostname" the hostname of the machine as determined by uname.
 
+ - "draining" is "true" if the server has entered drain mode, "false"
+   otherwise.
+
 The list-tubes command returns a list of all existing tubes. Its form is:
 
 list-tubes\r\n
