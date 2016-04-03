@@ -185,7 +185,9 @@ Parameters:
 
 The only reply is:
 
-USING <tube>\r\n
+    USING <tube>\r\n
+
+Parameters:
 
  - <tube> is the name of the tube now being used.
 
@@ -223,22 +225,24 @@ job. If the client issues a reserve command during the safety margin, or if
 the safety margin arrives while the client is waiting on a reserve command,
 the server will respond with:
 
-DEADLINE_SOON\r\n
+    DEADLINE_SOON\r\n
 
 This gives the client a chance to delete or release its reserved job before
 the server automatically releases it.
 
-TIMED_OUT\r\n
+    TIMED_OUT\r\n
 
 If a non-negative timeout was specified and the timeout exceeded before a job
 became available, or if the client's connection is half-closed, the server
 will respond with TIMED_OUT.
 
 Otherwise, the only other response to this command is a successful reservation
-in the form of a text line followed by the job body:
+in the form of a text line followed by the job body
 
-RESERVED <id> <bytes>\r\n
-<data>\r\n
+    RESERVED <id> <bytes>\r\n
+    <data>\r\n
+
+where
 
  - <id> is the job id -- an integer unique to this job in this instance of
    beanstalkd.
@@ -348,7 +352,9 @@ Parameters:
 
 The reply is:
 
-WATCHING <count>\r\n
+    WATCHING <count>\r\n
+
+where
 
  - <count> is the integer number of tubes currently in the watch list.
 
@@ -370,7 +376,7 @@ Other Commands
 --------------
 
 The peek commands let the client inspect a job in the system. There are four
-variations. All but the first operate only on the currently used tube.
+variations:
 
  - "peek <id>\r\n" - return job <id>.
 
@@ -380,15 +386,16 @@ variations. All but the first operate only on the currently used tube.
 
  - "peek-buried\r\n" - return the next job in the list of buried jobs.
 
-There are two possible responses, either a single line:
+All but the first operate only on the currently used tube. There are two
+possible responses, either a single line:
 
  - "NOT_FOUND\r\n" if the requested job doesn't exist or there are no jobs in
    the requested state.
 
 Or a line followed by a chunk of data, if the command was successful:
 
-FOUND <id> <bytes>\r\n
-<data>\r\n
+    FOUND <id> <bytes>\r\n
+    <data>\r\n
 
  - <id> is the job id.
 
@@ -402,14 +409,18 @@ The kick command applies only to the currently used tube. It moves jobs into
 the ready queue. If there are any buried jobs, it will only kick buried jobs.
 Otherwise it will kick delayed jobs. It looks like:
 
-kick <bound>\r\n
+    kick <bound>\r\n
+
+Parameters:
 
  - <bound> is an integer upper bound on the number of jobs to kick. The server
    will kick no more than <bound> jobs.
 
 The response is of the form:
 
-KICKED <count>\r\n
+    KICKED <count>\r\n
+
+Parameters:
 
  - <count> is an integer indicating the number of jobs actually kicked.
 
@@ -555,8 +566,10 @@ Its form is:
 
 The server will respond:
 
-OK <bytes>\r\n
-<data>\r\n
+    OK <bytes>\r\n
+    <data>\r\n
+
+where
 
  - <bytes> is the size of the following data section in bytes.
 
@@ -677,8 +690,10 @@ The list-tubes command returns a list of all existing tubes. Its form is:
 
 The response is:
 
-OK <bytes>\r\n
-<data>\r\n
+    OK <bytes>\r\n
+    <data>\r\n
+
+where
 
  - <bytes> is the size of the following data section in bytes.
 
@@ -692,7 +707,7 @@ client. Its form is:
 
 The response is:
 
-USING <tube>\r\n
+    USING <tube>\r\n
 
  - <tube> is the name of the tube being used.
 
@@ -703,8 +718,10 @@ the client. Its form is:
 
 The response is:
 
-OK <bytes>\r\n
-<data>\r\n
+    OK <bytes>\r\n
+    <data>\r\n
+
+where
 
  - <bytes> is the size of the following data section in bytes.
 
