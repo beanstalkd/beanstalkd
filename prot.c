@@ -1582,6 +1582,7 @@ dispatch_cmd(Conn *c)
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         *delay_buf = '\0';
+        if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
         t = tube_find(name);
         if (!t) return reply_msg(c, MSG_NOTFOUND);
 
