@@ -3,7 +3,9 @@ Contribution guidelines
  * Before submitting a giant pull request, you are advised to first discuss it
    in an issue. You can open up a new issue here:
    https://github.com/kr/beanstalkd/issues/new
+
  * Adding a unit test for a change gives you super hero points.
+
  * If making changes to the protocol, don't forget to update the protocol
    document that can be found here:
    https://github.com/kr/beanstalkd/blob/master/doc/protocol.txt
