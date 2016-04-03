@@ -5,8 +5,8 @@
 
 struct Server srv = {
     Portdef,
-    NULL,
-    NULL,
+    Addrdef,
+    Userdef,
     {
         Filesizedef,
     },
