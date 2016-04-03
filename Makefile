@@ -1,4 +1,3 @@
-DESTDIR=
 PREFIX=/usr/local
 BINDIR=$(DESTDIR)$(PREFIX)/bin
 CFLAGS=-Wall -Werror\
