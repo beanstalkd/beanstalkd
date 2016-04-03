@@ -7,6 +7,7 @@ struct Server srv = {
     Portdef,
     Addrdef,
     Userdef,
+    Drainingdef,
     {
         Filesizedef,
     },
