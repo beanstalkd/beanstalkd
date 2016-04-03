@@ -439,13 +439,13 @@ waldirlock(Wal *w)
 
 
 void
-walread(Wal *w, job list, int min, int max)
+walread(Wal *w, job list, int min)
 {
     File *f;
     int i, fd;
     int err = 0;
 
-    for (i = min; i < max; i++) {
+    for (i = min; i < w->next; i++) {
         f = new(File);
         if (!f) {
             twarnx("OOM");
@@ -485,7 +485,7 @@ walinit(Wal *w, job list)
     int min;
 
     min = walscandir(w);
-    walread(w, list, min, w->next);
+    walread(w, list, min);
 
     // first writable file
     if (!makenextfile(w)) {
