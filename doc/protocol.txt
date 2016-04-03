@@ -168,9 +168,10 @@ may be:
  - "JOB_TOO_BIG\r\n" The client has requested to put a job with a body larger
    than max-job-size bytes.
 
- - "DRAINING\r\n" This means that the server has been put into "drain mode"
-   and is no longer accepting new jobs. The client should try another server
-   or disconnect and try again later.
+ - "DRAINING\r\n" This means that the server has been put into "drain mode" and
+   is no longer accepting new jobs. The client should try another server or
+   disconnect and try again later. To put the server in drain mode, send the
+   SIGUSR1 signal to the process.
 
 The "use" command is for producers. Subsequent put commands will put jobs into
 the tube specified by this command. If no use command has been issued, jobs
