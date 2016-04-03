@@ -176,7 +176,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-waiting: %u\n" \
     "total-connections: %u\n" \
     "pid: %ld\n" \
-    "version: %s\n" \
+    "version: \"%s\"\n" \
     "rusage-utime: %d.%06d\n" \
     "rusage-stime: %d.%06d\n" \
     "uptime: %u\n" \
