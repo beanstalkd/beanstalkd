@@ -178,6 +178,8 @@ will be put into the tube named "default".
 
     use <tube>\r\n
 
+Parameters:
+
  - <tube> is a name at most 200 bytes. It specifies the tube to use. If the
    tube does not exist, it will be created.
 
@@ -255,6 +257,8 @@ buried. The delete command looks like this:
 
     delete <id>\r\n
 
+Parameters:
+
  - <id> is the job id to delete.
 
 The client then waits for one line of response, which may be:
@@ -270,6 +274,8 @@ its state as "ready") to be run by any client. It is normally used when the job
 fails because of a transitory error. It looks like this:
 
     release <id> <pri> <delay>\r\n
+
+Parameters:
 
  - <id> is the job id to release.
 
@@ -295,6 +301,8 @@ The bury command looks like this:
 
     bury <id> <pri>\r\n
 
+Parameters:
+
  - <id> is the job id to release.
 
  - <pri> is a new priority to assign to the job.
@@ -316,6 +324,8 @@ The touch command looks like this:
 
     touch <id>\r\n
 
+Parameters:
+
  - <id> is the ID of a job reserved by the current connection.
 
 There are two possible responses:
@@ -330,6 +340,8 @@ watch list. For each new connection, the watch list initially consists of one
 tube, named "default".
 
     watch <tube>\r\n
+
+Parameters:
 
  - <tube> is a name at most 200 bytes. It specifies a tube to add to the watch
    list. If the tube doesn't exist, it will be created.
@@ -408,6 +420,8 @@ currently belongs. The syntax is:
 
     kick-job <id>\r\n
 
+Parameters:
+
  - <id> is the job id to kick.
 
 The response is one of:
@@ -421,6 +435,8 @@ The stats-job command gives statistical information about the specified job if
 it exists. Its form is:
 
     stats-job <id>\r\n
+
+Parameters:
 
  - <id> is a job id.
 
@@ -478,6 +494,8 @@ The stats-tube command gives statistical information about the specified tube
 if it exists. Its form is:
 
     stats-tube <tube>\r\n
+
+Parameters:
 
  - <tube> is a name at most 200 bytes. Stats will be returned for this tube.
 
@@ -700,6 +718,8 @@ The quit command simply closes the connection. Its form is:
 The pause-tube command can delay any new job being reserved for a given time. Its form is:
 
     pause-tube <tube-name> <delay>\r\n
+
+Parameters:
 
  - <tube> is the tube to pause
 
