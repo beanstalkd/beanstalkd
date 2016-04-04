@@ -590,7 +590,7 @@ pause-tube <tube-name> <delay>\r\n
 ##### `pause-tube` options
 
 * `<tube>` is the tube to pause
-* `<delay>` is an integer number of seconds to wait before reserving any more jobs from the queue
+* `<delay>` is an integer number of seconds < 2**32 to wait before reserving any more jobs from the queue
 
 ##### `pause-tube` responses
 
