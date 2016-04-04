@@ -171,7 +171,7 @@ job_hash_free(job j)
     }
 
     // Downscale when the hashmap is too sparse
-    if (all_jobs_used < (all_jobs_cap >> 4) && cur_prime > 0) rehash_down();
+    if (all_jobs_used < (all_jobs_cap >> 4)) rehash_down();
 }
 
 void
