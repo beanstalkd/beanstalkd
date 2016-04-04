@@ -300,6 +300,8 @@ data 为YAML file的统计信息
 - `state` 表示job的当前状态
 - `pri` 表示job的优先级
 - `age` 表示job创建的时间单位秒
+- `delay` 是延迟job放入ready队列的整数秒数
+- `ttr` 指允许worker执行job的整数秒数
 - `time-left` 表示job的状态迁移为ready的时间，仅在job状态为reserved或者delayed时有意义，当job状态为reserved时表示剩余的超时时间。
 - `file` 表示包含此job的binlog序号，如果没有开启它将为0
 - `reserves` 表示job被reserved的次数
