@@ -37,13 +37,13 @@ make_conn(int fd, char start_state, tube use, tube watch)
     job j;
     Conn *c;
 
-    c = (Conn *)new(Conn);
-    if (!c) return twarn("OOM"), (Conn *)NULL;
+    c = new(Conn);
+    if (!c) return twarn("OOM"), NULL;
 
     ms_init(&c->watch, (ms_event_fn) on_watch, (ms_event_fn) on_ignore);
     if (!ms_append(&c->watch, watch)) {
         free(c);
-        return twarn("OOM"), (Conn *)NULL;
+        return twarn("OOM"), NULL;
     }
 
     TUBE_ASSIGN(c->use, use);
