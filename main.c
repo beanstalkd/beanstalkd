@@ -10,7 +10,8 @@
 #include "dat.h"
 
 static void
-su(const char *user) {
+su(const char *user) 
+{
     int r;
     struct passwd *pwent;
 

@@ -91,10 +91,10 @@ usenext(Wal *w)
 static int
 ratio(Wal *w)
 {
-    int n, d;
+    int64 n, d;
 
     d = w->alive + w->resv;
-    n = w->nfile*w->filesize - d;
+    n = (int64)w->nfile * (int64)w->filesize - d;
     if (!d) return 0;
     return n / d;
 }
@@ -439,7 +439,7 @@ waldirlock(Wal *w)
 
 
 void
-walread(Wal *w, job list, int min, int max)
+walread(Wal *w, job list, int min)
 {
     File *f;
     int i, fd;
@@ -485,7 +485,7 @@ walinit(Wal *w, job list)
     int min;
 
     min = walscandir(w);
-    walread(w, list, min, w->next);
+    walread(w, list, min);
 
     // first writable file
     if (!makenextfile(w)) {
