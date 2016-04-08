@@ -380,7 +380,7 @@ struct Server {
     char *port;
     char *addr;
     char *user;
-    char *draining;
+    char *drain_mode;
 
     Wal    wal;
     Socket sock;

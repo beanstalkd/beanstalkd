@@ -886,7 +886,7 @@ fmt_stats(char *buf, size_t size, void *x)
 
     if (drain_mode)
     {
-        srv->draining = "true";
+        srv->drain_mode = "true";
     }
 
     getrusage(RUSAGE_SELF, &ru); /* don't care if it fails */
@@ -939,7 +939,7 @@ fmt_stats(char *buf, size_t size, void *x)
             srv->wal.filesize,
             id,
             node_info.nodename,
-            srv->draining);
+            srv->drain_mode);
 
 }
 
