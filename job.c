@@ -43,16 +43,13 @@ rehash(int is_upscaling)
     job *old = all_jobs;
     size_t old_cap = all_jobs_cap, old_used = all_jobs_used, i;
     int old_prime = cur_prime;
+    int d = is_upscaling ? 1 : -1;
 
-    if (is_upscaling) {
-        if (cur_prime >= NUM_PRIMES) return;
-        if (hash_table_was_oom) return;
-        ++cur_prime;
-    }
-    else {
-        if (cur_prime <= 0) return;
-        --cur_prime;
-    }
+    if (cur_prime + d >= NUM_PRIMES) return;
+    if (cur_prime + d < 0) return;
+    if (is_upscaling && hash_table_was_oom) return;
+
+    cur_prime += d;
 
     all_jobs_cap = primes[cur_prime];
     all_jobs = calloc(all_jobs_cap, sizeof(job));
