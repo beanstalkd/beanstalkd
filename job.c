@@ -12,7 +12,7 @@ static job *all_jobs = all_jobs_init;
 static size_t all_jobs_cap = 12289; /* == primes[0] */
 static size_t all_jobs_used = 0;
 
-static int hash_table_max_prime = NUM_PRIMES;
+static int hash_table_was_oom = 1;
 
 static void rehash();
 
@@ -46,7 +46,7 @@ rehash(int is_upscaling)
 
     if (is_upscaling) {
         if (cur_prime >= NUM_PRIMES) return;
-        if (hash_table_max_prime <= cur_prime) return;
+        if (hash_table_was_oom) return;
         ++cur_prime;
     }
     else {
@@ -58,7 +58,7 @@ rehash(int is_upscaling)
     all_jobs = calloc(all_jobs_cap, sizeof(job));
     if (!all_jobs) {
         twarnx("Failed to allocate %zu new hash buckets", all_jobs_cap);
-        hash_table_max_prime = cur_prime;
+        hash_table_was_oom = 1;
         cur_prime = old_prime;
         all_jobs = old;
         all_jobs_cap = old_cap;
@@ -66,6 +66,7 @@ rehash(int is_upscaling)
         return;
     }
     all_jobs_used = 0;
+    hash_table_was_oom = 0;
 
     for (i = 0; i < old_cap; i++) {
         while (old[i]) {
