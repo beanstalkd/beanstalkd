@@ -249,7 +249,7 @@ in the form of a text line followed by the job body:
    previous line. This is a verbatim copy of the bytes that were originally
    sent to the server in the put command for this job.
 
-The delete command removes a job from the server entirely. It is normally used
+The "delete" command removes a job from the server entirely. It is normally used
 by the client when the job has successfully run to completion. A client can
 delete jobs that it has reserved, ready jobs, delayed jobs, and jobs that are
 buried. The delete command looks like this:
@@ -266,7 +266,7 @@ The client then waits for one line of response, which may be:
    client, ready, or buried. This could happen if the job timed out before the
    client sent the delete command.
 
-The release command puts a reserved job back into the ready queue (and marks
+The "release" command puts a reserved job back into the ready queue (and marks
 its state as "ready") to be run by any client. It is normally used when the job
 fails because of a transitory error. It looks like this:
 
@@ -288,7 +288,7 @@ The client expects one line of response, which may be:
 
  - "NOT_FOUND\r\n" if the job does not exist or is not reserved by the client.
 
-The bury command puts a job into the "buried" state. Buried jobs are put into a
+The "bury" command puts a job into the "buried" state. Buried jobs are put into a
 FIFO linked list and will not be touched by the server again until a client
 kicks them with the "kick" command.
 
@@ -358,7 +358,7 @@ The reply is one of:
 Other Commands
 --------------
 
-The peek commands let the client inspect a job in the system. There are four
+The "peek" commands let the client inspect a job in the system. There are four
 variations. All but the first operate only on the currently used tube.
 
  - "peek <id>\r\n" - return job <id>.
@@ -387,7 +387,7 @@ Or a line followed by a chunk of data, if the command was successful:
  - <data> is the job body -- a sequence of bytes of length <bytes> from the
    previous line.
 
-The kick command applies only to the currently used tube. It moves jobs into
+The "kick" command applies only to the currently used tube. It moves jobs into
 the ready queue. If there are any buried jobs, it will only kick buried jobs.
 Otherwise it will kick delayed jobs. It looks like:
 
@@ -402,7 +402,7 @@ The response is of the form:
 
  - <count> is an integer indicating the number of jobs actually kicked.
 
-The kick-job command is a variant of kick that operates with a single job
+The "kick-job" command is a variant of kick that operates with a single job
 identified by its job id. If the given job id exists and is in a buried or
 delayed state, it will be moved to the ready queue of the the same tube where it
 currently belongs. The syntax is:
@@ -418,7 +418,7 @@ The response is one of:
 
  - "KICKED\r\n" when the operation succeeded.
 
-The stats-job command gives statistical information about the specified job if
+The "stats-job" command gives statistical information about the specified job if
 it exists. Its form is:
 
     stats-job <id>\r\n
@@ -475,7 +475,7 @@ to scalars. It contains these keys:
 
  - "kicks" is the number of times this job has been kicked.
 
-The stats-tube command gives statistical information about the specified tube
+The "stats-tube" command gives statistical information about the specified tube
 if it exists. Its form is:
 
     stats-tube <tube>\r\n
@@ -531,7 +531,7 @@ to scalars. It contains these keys:
 
  - "pause-time-left" is the number of seconds until the tube is un-paused.
 
-The stats command gives statistical information about the system as a whole.
+The "stats" command gives statistical information about the system as a whole.
 Its form is:
 
     stats\r\n
@@ -654,7 +654,7 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
 
  - "hostname" the hostname of the machine as determined by uname.
 
-The list-tubes command returns a list of all existing tubes. Its form is:
+The "list-tubes" command returns a list of all existing tubes. Its form is:
 
     list-tubes\r\n
 
@@ -668,7 +668,7 @@ The response is:
  - <data> is a sequence of bytes of length <bytes> from the previous line. It
    is a YAML file containing all tube names as a list of strings.
 
-The list-tube-used command returns the tube currently being used by the
+The "list-tube-used" command returns the tube currently being used by the
 client. Its form is:
 
     list-tube-used\r\n
@@ -679,7 +679,7 @@ The response is:
 
  - <tube> is the name of the tube being used.
 
-The list-tubes-watched command returns a list tubes currently being watched by
+The "list-tubes-watched" command returns a list tubes currently being watched by
 the client. Its form is:
 
     list-tubes-watched\r\n
@@ -694,11 +694,11 @@ The response is:
  - <data> is a sequence of bytes of length <bytes> from the previous line. It
    is a YAML file containing watched tube names as a list of strings.
 
-The quit command simply closes the connection. Its form is:
+The "quit" command simply closes the connection. Its form is:
 
     quit\r\n
 
-The pause-tube command can delay any new job being reserved for a given time. Its form is:
+The "pause-tube" command can delay any new job being reserved for a given time. Its form is:
 
     pause-tube <tube-name> <delay>\r\n
 
