@@ -10,7 +10,7 @@
 #include "dat.h"
 
 static void
-su(const char *user) 
+su(const char *user)
 {
     int r;
     struct passwd *pwent;
@@ -27,6 +27,11 @@ su(const char *user)
     if (r == -1) twarn("setuid(%d \"%s\")", pwent->pw_uid, user), exit(34);
 }
 
+void
+exit_cleanly(int sig)
+{
+    exit(0);
+}
 
 static void
 set_sig_handlers()
@@ -45,6 +50,14 @@ set_sig_handlers()
     sa.sa_handler = enter_drain_mode;
     r = sigaction(SIGUSR1, &sa, 0);
     if (r == -1) twarn("sigaction(SIGUSR1)"), exit(111);
+
+     sa.sa_handler = exit_cleanly;
+     r = sigaction(SIGINT, &sa, 0);
+     if (r == -1) twarn("sigaction(SIGINT)"), exit(111);
+
+     sa.sa_handler = exit_cleanly;
+     r = sigaction(SIGTERM, &sa, 0);
+     if (r == -1) twarn("sigaction(SIGTERM)"), exit(111);
 }
 
 int
