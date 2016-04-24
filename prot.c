@@ -187,6 +187,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "binlog-max-size: %d\n" \
     "id: %s\n" \
     "hostname: %s\n" \
+    "status: %s\n" \
     "\r\n"
 
 #define STATS_TUBE_FMT "---\n" \
@@ -883,6 +884,11 @@ fmt_stats(char *buf, size_t size, void *x)
         wcur = srv->wal.cur->seq;
     }
 
+    if (drain_mode)
+    {
+        srv->status = "DRAINING";
+    }
+
     getrusage(RUSAGE_SELF, &ru); /* don't care if it fails */
     return snprintf(buf, size, STATS_FMT,
             global_stat.urgent_ct,
@@ -932,7 +938,8 @@ fmt_stats(char *buf, size_t size, void *x)
             srv->wal.nrec,
             srv->wal.filesize,
             id,
-            node_info.nodename);
+            node_info.nodename,
+            srv->status);
 
 }
 
