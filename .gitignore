@@ -1,5 +1,4 @@
 *.o
-vers.c
-ct/_*
-beanstalkd
+/vers.c
+/beanstalkd
 /News

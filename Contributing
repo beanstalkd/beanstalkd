@@ -1,0 +1,39 @@
+Greetings. Firstly, if you're thinking of contributing to
+beanstalkd, thank you! It's the hard work of people like you that
+keeps beanstalkd a high-quality codebase and running smoothly in
+the demanding, high-volume production environment of the servers
+of many organizations around the world.
+
+We don't have a lot of rules, but here are some tips to keep in
+mind that might make your life easier.
+
+General
+
+This is a mature project, so it rarely takes on new features. We
+mostly focus on stability, bug fixing, clarity, and performance,
+in that order.
+
+Issues
+
+When reporting a bug, please describe:
+
+- which version of beanstalkd you're using
+- steps to reproduce the bug
+- the behavior you saw
+- the behavior you expected
+
+If you're not using the latest version, please consider also
+testing with the latest. There's a good chance the bug you found
+has already been fixed.
+
+Pull Requests
+
+When opening a pull request, try to keep the changes focused on
+one topic and avoid unrelated changes (even small things, like
+editing punctuation or whitespace in comments).
+
+If you're making big changes, consider discussing it on the
+mailing list first. You might save yourself a lot of time if it
+turns out that the changes you want to make aren't a good fit for
+the project. This is especially true if you are adding new
+functionality.

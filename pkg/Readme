@@ -1,0 +1,8 @@
+How to make a release:
+
+1. Check out master
+2. Tag the commit to release devX.Y (e.g. dev1.9)
+3. Write a change log in file News (don't commit it)
+4. Run pkg/dist.sh
+5. Push tags and gh-pages
+6. Run pkg/mail.sh

@@ -34,30 +34,36 @@ store_job(job j)
     all_jobs_used++;
 
     /* accept a load factor of 4 */
-    if (all_jobs_used > (all_jobs_cap << 2)) rehash();
+    if (all_jobs_used > (all_jobs_cap << 2)) rehash(1);
 }
 
 static void
-rehash()
+rehash(int is_upscaling)
 {
     job *old = all_jobs;
     size_t old_cap = all_jobs_cap, old_used = all_jobs_used, i;
+    int old_prime = cur_prime;
+    int d = is_upscaling ? 1 : -1;
 
-    if (cur_prime >= NUM_PRIMES) return;
-    if (hash_table_was_oom) return;
+    if (cur_prime + d >= NUM_PRIMES) return;
+    if (cur_prime + d < 0) return;
+    if (is_upscaling && hash_table_was_oom) return;
 
-    all_jobs_cap = primes[++cur_prime];
+    cur_prime += d;
+
+    all_jobs_cap = primes[cur_prime];
     all_jobs = calloc(all_jobs_cap, sizeof(job));
     if (!all_jobs) {
         twarnx("Failed to allocate %zu new hash buckets", all_jobs_cap);
         hash_table_was_oom = 1;
-        --cur_prime;
+        cur_prime = old_prime;
         all_jobs = old;
         all_jobs_cap = old_cap;
         all_jobs_used = old_used;
         return;
     }
     all_jobs_used = 0;
+    hash_table_was_oom = 0;
 
     for (i = 0; i < old_cap; i++) {
         while (old[i]) {
@@ -156,6 +162,9 @@ job_hash_free(job j)
         *slot = (*slot)->ht_next;
         --all_jobs_used;
     }
+
+    // Downscale when the hashmap is too sparse
+    if (all_jobs_used < (all_jobs_cap >> 4)) rehash(0);
 }
 
 void

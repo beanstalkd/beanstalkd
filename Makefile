@@ -1,5 +1,5 @@
 PREFIX=/usr/local
-BINDIR=$(PREFIX)/bin
+BINDIR=$(DESTDIR)$(PREFIX)/bin
 CFLAGS=-Wall -Werror\
 	-Wformat=2\
 	-g\
@@ -39,6 +39,13 @@ HFILES=\
 	dat.h\
 	sd-daemon.h\
 
+ifeq ($(OS),linux)
+
+LDLIBS=\
+	-lrt\
+
+endif
+
 CLEANFILES=\
 	vers.c\
 
@@ -49,12 +56,10 @@ $(TARG): $(OFILES) $(MOFILE)
 	$(LINK.o) -o $@ $^ $(LDLIBS)
 
 .PHONY: install
-install: $(BINDIR) $(BINDIR)/$(TARG)
-
-$(BINDIR):
-	$(INSTALL) -d $@
+install: $(BINDIR)/$(TARG)
 
 $(BINDIR)/%: %
+	$(INSTALL) -d $(dir $@)
 	$(INSTALL) $< $@
 
 CLEANFILES:=$(CLEANFILES) $(TARG)
@@ -68,6 +73,10 @@ clean:
 .PHONY: check
 check: ct/_ctcheck
 	ct/_ctcheck
+
+.PHONY: bench
+bench: ct/_ctcheck
+	ct/_ctcheck -b
 
 ct/_ctcheck: ct/_ctcheck.o ct/ct.o $(OFILES) $(TOFILES)
 

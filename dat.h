@@ -43,9 +43,9 @@ typedef int(FAlloc)(int, int);
 #define MAX_TUBE_NAME_LEN 201
 
 /* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
- * MUST be enough to hold the longest possible command or reply line, which is
- * currently "USING a{200}\r\n". */
-#define LINE_BUF_SIZE 208
+ * MUST be enough to hold the longest possible command ("pause-tube a{200} 4294967295\r\n")
+ * or reply line ("USING a{200}\r\n"). */
+#define LINE_BUF_SIZE 224
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1
@@ -330,8 +330,8 @@ struct Wal {
     File   *tail;
     int    nfile;
     int    next;
-    int    resv;  // bytes reserved
-    int    alive; // bytes in use
+    int64  resv;  // bytes reserved
+    int64  alive; // bytes in use
     int64  nmig;  // migrations
     int64  nrec;  // records written ever
     int    wantsync;
