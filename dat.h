@@ -75,7 +75,7 @@ struct stats {
     uint64   total_jobs_ct;
     uint max_ct;                 //max job in tube
     uint64 droped_ct;            //total droped num of jobs
-    uint looped_ct;              //current cover num of jobs
+    uint64 looped_ct;              //current cover num of jobs
 };
 
 extern struct stats global_stat;
