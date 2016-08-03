@@ -102,6 +102,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_UNKNOWN_COMMAND "UNKNOWN_COMMAND\r\n"
 #define MSG_EXPECTED_CRLF "EXPECTED_CRLF\r\n"
 #define MSG_JOB_TOO_BIG "JOB_TOO_BIG\r\n"
+#define MSG_JOB_TOO_MANY "JOB_COUNT_TOO_MANY\r\n"
 
 #define STATE_WANTCOMMAND 0
 #define STATE_WANTDATA 1
@@ -144,6 +145,10 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-jobs-reserved: %u\n" \
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
+    "current-jobs-max_buried: %u\n" \
+    "current-jobs-max: %u\n" \
+    "current-jobs-droped: %" PRIu64 "\n" \
+    "current-jobs-looped: %" PRIu64 "\n" \
     "cmd-put: %" PRIu64 "\n" \
     "cmd-peek: %" PRIu64 "\n" \
     "cmd-peek-ready: %" PRIu64 "\n" \
@@ -176,7 +181,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-waiting: %u\n" \
     "total-connections: %u\n" \
     "pid: %ld\n" \
-    "version: \"%s\"\n" \
+    "version: %s\n" \
     "rusage-utime: %d.%06d\n" \
     "rusage-stime: %d.%06d\n" \
     "uptime: %u\n" \
@@ -196,6 +201,10 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-jobs-reserved: %u\n" \
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
+    "current-jobs-max_buried: %u\n" \
+    "current-jobs-max: %u\n" \
+    "current-jobs-droped: %" PRIu64 "\n" \
+    "current-jobs-looped: %" PRIu64 "\n" \
     "total-jobs: %" PRIu64 "\n" \
     "current-using: %u\n" \
     "current-watching: %u\n" \
@@ -229,7 +238,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 static char bucket[BUCKET_BUF_SIZE];
 
 static uint ready_ct = 0;
-static struct stats global_stat = {0, 0, 0, 0, 0};
+struct stats global_stat = {0,0, 0, 0, 0, 0};
 
 static tube default_tube;
 
@@ -832,7 +841,6 @@ enqueue_incoming_job(Conn *c)
         job_free(j);
         return reply_msg(c, MSG_EXPECTED_CRLF);
     }
-
     if (verbose >= 2) {
         printf("<%d job %"PRIu64"\n", c->sock.fd, j->r.id);
     }
@@ -841,6 +849,27 @@ enqueue_incoming_job(Conn *c)
         job_free(j);
         return reply_serr(c, MSG_DRAINING);
     }
+
+    /*add by zhulu, limit the number of tube*/
+    uint cur_ct = 0;
+    cur_ct = j->tube->ready.len + j->tube->stat.reserved_ct;
+
+    if(((j->tube->stat.max_ct > 0) && (cur_ct>=j->tube->stat.max_ct)) ||
+       ((global_stat.max_ct > 0) && (cur_ct >= global_stat.max_ct))) {
+        if(glob_job_action == ACTION_DROP){
+            j->tube->stat.droped_ct++;
+            global_stat.droped_ct++;
+            global_stat.total_jobs_ct++;
+            j->tube->stat.total_jobs_ct++;
+            job_free(j);
+            return reply_msg(c, MSG_JOB_TOO_MANY);
+        } else {
+    /* Reserved interface */
+            j->tube->stat.looped_ct++;
+            global_stat.looped_ct++;
+        }
+    }
+    /***************/
 
     if (j->walresv) return reply_serr(c, MSG_INTERNAL_ERROR);
     j->walresv = walresvput(&c->srv->wal, j);
@@ -890,6 +919,10 @@ fmt_stats(char *buf, size_t size, void *x)
             global_stat.reserved_ct,
             get_delayed_job_ct(),
             global_stat.buried_ct,
+            glob_max_bury_job,
+            global_stat.max_ct,
+            global_stat.droped_ct,
+            global_stat.looped_ct,
             op_ct[OP_PUT],
             op_ct[OP_PEEKJOB],
             op_ct[OP_PEEK_READY],
@@ -1124,6 +1157,10 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.reserved_ct,
             t->delay.len,
             t->stat.buried_ct,
+            glob_max_bury_job,
+            t->stat.max_ct,
+            t->stat.droped_ct,
+            t->stat.looped_ct,
             t->stat.total_jobs_ct,
             t->using_ct,
             t->watching_ct,
@@ -1402,9 +1439,29 @@ dispatch_cmd(Conn *c)
 
         r = read_pri(&pri, pri_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
+
+        /*add by zhulu, limit the num of bury job*/
+        j=job_find(id);
+        if(glob_max_bury_job > 0 && glob_max_bury_job <= j->tube->stat.buried_ct ){
+            j = remove_reserved_job(c, j) ? :
+            remove_ready_job(j) ? :
+            remove_buried_job(j) ? :
+            remove_delayed_job(j);
+
+            if (j) {
+                j->tube->stat.total_delete_ct++;
+                j->r.state = Invalid;
+                r = walwrite(&c->srv->wal, j);
+                walmaint(&c->srv->wal);
+                job_free(j);
+            }
+            return reply_msg(c, MSG_BAD_FORMAT);
+        }
+        /****************/
+
         op_ct[type]++;
 
-        j = remove_reserved_job(c, job_find(id));
+        j = remove_reserved_job(c, j);
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 

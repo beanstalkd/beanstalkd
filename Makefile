@@ -28,6 +28,7 @@ OFILES=\
 	util.o\
 	vers.o\
 	walg.o\
+	max_job.o\
 
 TOFILES=\
 	testheap.o\

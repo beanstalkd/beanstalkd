@@ -27,6 +27,7 @@ typedef struct File   File;
 typedef struct Socket Socket;
 typedef struct Server Server;
 typedef struct Wal    Wal;
+typedef struct Max_job_  Max_job;
 
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 typedef void(*Handle)(void*, int rw);
@@ -72,8 +73,12 @@ struct stats {
     uint pause_ct;
     uint64   total_delete_ct;
     uint64   total_jobs_ct;
+    uint max_ct;                 //max job in tube
+    uint64 droped_ct;            //total droped num of jobs
+    uint looped_ct;              //current cover num of jobs
 };
 
+extern struct stats global_stat;
 
 struct Heap {
     int     cap;
@@ -384,3 +389,39 @@ struct Server {
 };
 void srvserve(Server *srv);
 void srvaccept(Server *s, int ev);
+
+/*add by zhulu*/
+
+enum Max_job_action
+{
+	ACTION_DROP=0,       //discard the new job directly
+	ACTION_LOOP          /**delete the old job and put the new job.*/
+};
+
+
+struct Max_job_{
+	char name[MAX_TUBE_NAME_LEN];  //tube name
+	uint max_ct;		               //max num of jobs
+	tube pre_tube;		             //the Max_job_ bound to the corresponding tube
+	struct Max_job_ *next;
+};
+extern Max_job   glob_max_job;
+extern enum Max_job_action glob_job_action;
+extern uint  glob_max_bury_job;
+
+/**
+ *@function max_job_init: init job param
+ *@param max_arg: -m the param，format: tube1:count,tube2:count....
+ *@reurn: 0:success, -1: fail
+ */
+int max_job_init(char *max_arg);
+
+/**
+ *@function get_max_job_by_tube: get the max num of jobs from tube
+ *@param name:  tube name
+ *@reurn:
+ */
+uint get_max_job_by_tube(char *name);
+void set_max_job_to_tube();
+uint get_tube_default_max_job();
+void max_job_uninit();

@@ -111,6 +111,9 @@ usage(int code)
             "            (will be rounded up to a multiple of 512 bytes)\n"
             " -c       compact the binlog (default)\n"
             " -n       do not compact the binlog\n"
+            " -m       max count of maintain job,format: tube1:max_conut,tube2:max_count\n"
+            "          if tube is empty,set to  all the othrer tubes\n"
+            " -x       sed the max count of bury job\n"
             " -v       show version information\n"
             " -V       increase verbosity\n"
             " -h       show this help\n",
@@ -149,7 +152,6 @@ optparse(Server *s, char **argv)
     int64 ms;
     char *arg, c, *tmp;
 #   define EARGF(x) (*arg ? (tmp=arg,arg="",tmp) : *argv ? *argv++ : (x))
-
     while ((arg = *argv++) && *arg++ == '-' && *arg) {
         while ((c = *arg++)) {
             switch (c) {
@@ -184,10 +186,16 @@ optparse(Server *s, char **argv)
                 case 'u':
                     s->user = EARGF(flagusage("-u"));
                     break;
+                case 'm':
+          					max_job_init(EARGF(flagusage("-m")));
+          					break;
                 case 'b':
                     s->wal.dir = EARGF(flagusage("-b"));
                     s->wal.use = 1;
                     break;
+                case 'x':
+          					glob_max_bury_job=(uint)atoi(EARGF(flagusage("-x")));
+          					break;
                 case 'h':
                     usage(0);
                 case 'v':

@@ -10,7 +10,7 @@
 #include "dat.h"
 
 static void
-su(const char *user) 
+su(const char *user)
 {
     int r;
     struct passwd *pwent;
@@ -52,7 +52,6 @@ main(int argc, char **argv)
 {
     int r;
     struct job list = {};
-
     progname = argv[0];
     setlinebuf(stdout);
     optparse(&srv, argv+1);
@@ -88,6 +87,8 @@ main(int argc, char **argv)
         }
     }
 
-    srvserve(&srv);
+    set_max_job_to_tube();
+    srvserve(&srv);  
+    max_job_uninit();
     return 0;
 }
