@@ -850,7 +850,7 @@ enqueue_incoming_job(Conn *c)
         return reply_serr(c, MSG_DRAINING);
     }
 
-    /*add by zhulu, limit the number of tube*/
+    /*add by zhulu, limit the number of jobs of tube*/
     uint cur_ct = 0;
     cur_ct = j->tube->ready.len + j->tube->stat.reserved_ct;
 
