@@ -24,6 +24,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "0123456789-+/;.$_()"
 
 #define CMD_PUT "put "
+#define CMD_PUT_IN_TUBE "put-in-tube "
 #define CMD_PEEKJOB "peek "
 #define CMD_PEEK_READY "peek-ready"
 #define CMD_PEEK_DELAYED "peek-delayed"
@@ -136,7 +137,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_QUIT 22
 #define OP_PAUSE_TUBE 23
 #define OP_JOBKICK 24
-#define TOTAL_OPS 25
+#define OP_PUT_IN_TUBE 25
+#define TOTAL_OPS 26
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -145,6 +147,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
     "cmd-put: %" PRIu64 "\n" \
+    "cmd-put-in-tube: %" PRIu64 "\n" \
     "cmd-peek: %" PRIu64 "\n" \
     "cmd-peek-ready: %" PRIu64 "\n" \
     "cmd-peek-delayed: %" PRIu64 "\n" \
@@ -273,6 +276,7 @@ static const char * op_names[] = {
     CMD_QUIT,
     CMD_PAUSE_TUBE,
     CMD_JOBKICK,
+    CMD_PUT_IN_TUBE,
 };
 
 static job remove_buried_job(job j);
@@ -763,6 +767,7 @@ which_cmd(Conn *c)
     TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
     TEST_CMD(c->cmd, CMD_QUIT, OP_QUIT);
     TEST_CMD(c->cmd, CMD_PAUSE_TUBE, OP_PAUSE_TUBE);
+    TEST_CMD(c->cmd, CMD_PUT_IN_TUBE, OP_PUT_IN_TUBE);
     return OP_UNKNOWN;
 }
 
@@ -891,6 +896,7 @@ fmt_stats(char *buf, size_t size, void *x)
             get_delayed_job_ct(),
             global_stat.buried_ct,
             op_ct[OP_PUT],
+            op_ct[OP_PUT_IN_TUBE],
             op_ct[OP_PEEKJOB],
             op_ct[OP_PEEK_READY],
             op_ct[OP_PEEK_DELAYED],
@@ -1208,8 +1214,19 @@ dispatch_cmd(Conn *c)
     }
 
     switch (type) {
+    case OP_PUT_IN_TUBE:
     case OP_PUT:
-        r = read_pri(&pri, c->cmd + 4, &delay_buf);
+        if(type == OP_PUT)
+        {
+            pri_buf = c->cmd + 4;
+        }
+        else
+        {
+            r = read_tube_name(&name, c->cmd + 12, &pri_buf);
+            if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        }
+
+        r = read_pri(&pri, pri_buf, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         r = read_delay(&delay, delay_buf, &ttr_buf);
@@ -1238,7 +1255,20 @@ dispatch_cmd(Conn *c)
             ttr = 1000000000;
         }
 
-        c->in_job = make_job(pri, delay, ttr, body_size + 2, c->use);
+        if(type == OP_PUT)
+        {
+            TUBE_ASSIGN(t, c->use);
+        }
+        else
+        {
+            *pri_buf = '\0';
+            if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
+            TUBE_ASSIGN(t, tube_find_or_make(name));
+            if (!t) return reply_serr(c, MSG_OUT_OF_MEMORY);
+        }
+
+        c->in_job = make_job(pri, delay, ttr, body_size + 2, t);
+        TUBE_ASSIGN(t, NULL);
 
         /* OOM? */
         if (!c->in_job) {

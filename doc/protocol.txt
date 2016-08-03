@@ -188,6 +188,15 @@ The only reply is:
 
  - <tube> is the name of the tube now being used.
 
+The "put-in-tube" command is for any process that wants to insert a job into a specified tube.
+It comprises a command line followed by the job body:
+
+    put-in-tube <tube> <pri> <delay> <ttr> <bytes>\r\n
+    <data>\r\n 
+
+Works in the same way as "put" the only difference being that it inserts a job into the specified tube and not in
+the client's currently used tube (see the "use" command below).
+
 Worker Commands
 ---------------
 
