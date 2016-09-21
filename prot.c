@@ -1637,8 +1637,9 @@ conn_timeout(Conn *c)
         j->r.timeout_ct++;
         r = enqueue_job(c->srv, remove_this_reserved_job(c, j), 0, 0);
         if (r < 1) bury_job(c->srv, j, 0); /* out of memory, so bury it */
-        connsched(c);
     }
+
+    connsched(c);
 
     if (should_timeout) {
         return reply_msg(remove_waiting_conn(c), MSG_DEADLINE_SOON);
