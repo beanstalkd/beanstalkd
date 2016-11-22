@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <fcntl.h>
+#include <syslog.h>
 #include "dat.h"
 
 static void
@@ -57,13 +58,20 @@ main(int argc, char **argv)
     setlinebuf(stdout);
     optparse(&srv, argv+1);
 
+    openlog("beanstalkd", LOG_PID, LOG_DAEMON);
+
     if (verbose) {
+        setlogmask(LOG_UPTO(LOG_DEBUG));
         printf("pid %d\n", getpid());
+    } else {
+        setlogmask(LOG_UPTO(LOG_INFO));
     }
 
     r = make_server_socket(srv.addr, srv.port);
     if (r == -1) twarnx("make_server_socket()"), exit(111);
     srv.sock.fd = r;
+
+    syslog(LOG_DEBUG, "Starting up on [%s]:%s", srv.addr, srv.port);
 
     prot_init();
 

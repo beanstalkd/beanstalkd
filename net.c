@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <syslog.h>
 #include "dat.h"
 #include "sd-daemon.h"
 
@@ -110,8 +111,10 @@ make_server_socket(char *host, char *port)
           }
           if (ai->ai_family == AF_INET6) {
               printf("bind %d [%s]:%s\n", fd, h, p);
+              syslog(LOG_DEBUG, "bind %d [%s]:%s", fd, h, p);
           } else {
               printf("bind %d %s:%s\n", fd, h, p);
+              syslog(LOG_DEBUG, "bind %d %s:%s", fd, h, p);
           }
       }
       r = bind(fd, ai->ai_addr, ai->ai_addrlen);
