@@ -203,6 +203,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "cmd-delete: %" PRIu64 "\n" \
     "cmd-pause-tube: %u\n" \
     "pause: %" PRIu64 "\n" \
+    "put-total: %" PRIu64 "\n" \
+    "reserve-total: %" PRIu64 "\n" \
     "pause-time-left: %" PRId64 "\n" \
     "\r\n"
 
@@ -467,6 +469,7 @@ enqueue_job(Server *s, job j, int64 delay, char update_store)
         if (!r) return 0;
         j->r.state = Ready;
         ready_ct++;
+        j->tube->stat.total_put_ct++;
         if (j->r.pri < URGENT_THRESHOLD) {
             global_stat.urgent_ct++;
             j->tube->stat.urgent_ct++;
@@ -655,6 +658,7 @@ remove_ready_job(job j)
     if (!j || j->r.state != Ready) return NULL;
     heapremove(&j->tube->ready, j->heap_index);
     ready_ct--;
+    j->tube->stat.total_reserve_ct++;
     if (j->r.pri < URGENT_THRESHOLD) {
         global_stat.urgent_ct--;
         j->tube->stat.urgent_ct--;
@@ -1130,6 +1134,8 @@ fmt_stats_tube(char *buf, size_t size, tube t)
             t->stat.waiting_ct,
             t->stat.total_delete_ct,
             t->stat.pause_ct,
+            t->stat.total_put_ct,
+            t->stat.total_reserve_ct,
             t->pause / 1000000000,
             time_left);
 }
