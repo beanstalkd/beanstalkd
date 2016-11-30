@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
-#include <sys/time.h>
+#include <time.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include "internal.h"
