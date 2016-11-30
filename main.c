@@ -86,6 +86,12 @@ main(int argc, char **argv)
             twarnx("failed to replay log");
             return 1;
         }
+
+        r = prot_load_fanout(srv.wal.dir);
+        if (r) {
+            twarnx("failed to load fanout log");
+            return 1;
+        }
     }
 
     srvserve(&srv);

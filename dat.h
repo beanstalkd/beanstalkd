@@ -56,6 +56,7 @@ typedef int(FAlloc)(int, int);
 
 #define URGENT_THRESHOLD 1024
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
+#define MAX_NUMBER_OF_FANOUT_MESSAGES (10 << 20)
 
 extern const char version[];
 extern int verbose;
@@ -159,7 +160,9 @@ struct tube {
     Heap ready;
     Heap delay;
     struct ms waiting; /* set of conns */
+    struct ms fanout;
     struct stats stat;
+    uint discard_ct;
     uint using_ct;
     uint watching_ct;
     int64 pause;
@@ -209,6 +212,7 @@ void job_setheappos(void*, int);
 int job_pri_less(void*, void*);
 int job_delay_less(void*, void*);
 
+job job_clone(job j, tube t);
 job job_copy(job j);
 
 const char * job_state(job j);
@@ -230,6 +234,8 @@ void tube_dref(tube t);
 void tube_iref(tube t);
 tube tube_find(const char *name);
 tube tube_find_or_make(const char *name);
+int  tube_bind(tube s, tube t);
+int  tube_unbind(tube s, tube t);
 #define TUBE_ASSIGN(a,b) (tube_dref(a), (a) = (b), tube_iref(a))
 
 
@@ -257,6 +263,7 @@ void enter_drain_mode(int sig);
 void h_accept(const int fd, const short which, Server* srv);
 void prot_remove_tube(tube t);
 int  prot_replay(Server *s, job list);
+int  prot_load_fanout(char *path);
 
 
 int make_server_socket(char *host_addr, char *port);

@@ -182,6 +182,19 @@ job_delay_less(void *ax, void *bx)
 }
 
 job
+job_clone(job j, tube t)
+{
+    job n;
+
+    n = make_job_with_id(j->r.pri, j->r.delay, j->r.ttr, j->r.body_size, t, 0);
+    n->r.created_at = j->r.created_at;
+
+    if (n) memcpy(n->body, j->body, j->r.body_size); 
+
+    return n;
+}
+
+job
 job_copy(job j)
 {
     job n;
