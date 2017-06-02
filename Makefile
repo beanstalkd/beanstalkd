@@ -1,4 +1,3 @@
-DESTDIR=
 PREFIX=/usr/local
 BINDIR=$(DESTDIR)$(PREFIX)/bin
 CFLAGS=-Wall -Werror\
@@ -39,6 +38,13 @@ TOFILES=\
 HFILES=\
 	dat.h\
 	sd-daemon.h\
+
+ifeq ($(OS),linux)
+
+LDLIBS=\
+	-lrt\
+
+endif
 
 CLEANFILES=\
 	vers.c\

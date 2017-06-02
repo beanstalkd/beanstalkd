@@ -176,7 +176,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-waiting: %u\n" \
     "total-connections: %u\n" \
     "pid: %ld\n" \
-    "version: %s\n" \
+    "version: \"%s\"\n" \
     "rusage-utime: %d.%06d\n" \
     "rusage-stime: %d.%06d\n" \
     "uptime: %u\n" \
@@ -1582,6 +1582,7 @@ dispatch_cmd(Conn *c)
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         *delay_buf = '\0';
+        if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
         t = tube_find(name);
         if (!t) return reply_msg(c, MSG_NOTFOUND);
 

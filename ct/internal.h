@@ -1,4 +1,4 @@
-// include <stdint.h>
+/* include <stdint.h> */
 
 #define TmpDirPat "/tmp/ct.XXXXXX"
 
@@ -8,7 +8,7 @@ typedef struct Benchmark Benchmark;
 
 struct Test {
     void (*f)(void);
-    char *name;
+    const char *name;
     int  status;
     int  fd;
     int  pid;
@@ -17,7 +17,7 @@ struct Test {
 
 struct Benchmark {
     void  (*f)(int);
-    char  *name;
+    const char  *name;
     int   status;
     int64 dur;
     int64 bytes;
