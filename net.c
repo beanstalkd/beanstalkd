@@ -98,27 +98,34 @@ make_server_socket(char *host, char *port)
         continue;
       }
 
-      if (verbose) {
-          char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV], *h = host, *p = port;
-          r = getnameinfo(ai->ai_addr, ai->ai_addrlen,
-                  hbuf, sizeof hbuf,
-                  pbuf, sizeof pbuf,
-                  NI_NUMERICHOST|NI_NUMERICSERV);
-          if (!r) {
-              h = hbuf;
-              p = pbuf;
-          }
-          if (ai->ai_family == AF_INET6) {
-              printf("bind %d [%s]:%s\n", fd, h, p);
-          } else {
-              printf("bind %d %s:%s\n", fd, h, p);
-          }
-      }
       r = bind(fd, ai->ai_addr, ai->ai_addrlen);
       if (r == -1) {
         twarn("bind()");
         close(fd);
         continue;
+      }
+      if (verbose) {
+          char hbuf[NI_MAXHOST], pbuf[NI_MAXSERV], *h = host, *p = port;
+         struct sockaddr_in addr;
+         socklen_t addrlen;
+
+         addrlen = sizeof(addr);
+         r = getsockname(fd, (struct sockaddr *) &addr, &addrlen);
+         if (!r) {
+             r = getnameinfo((struct sockaddr *) &addr, addrlen,
+                             hbuf, sizeof(hbuf),
+                             pbuf, sizeof(pbuf),
+                             NI_NUMERICHOST|NI_NUMERICSERV);
+             if (!r) {
+                 h = hbuf;
+                 p = pbuf;
+             }
+         }
+          if (ai->ai_family == AF_INET6) {
+              printf("bind %d [%s]:%s\n", fd, h, p);
+          } else {
+              printf("bind %d %s:%s\n", fd, h, p);
+          }
       }
 
       r = listen(fd, 1024);
