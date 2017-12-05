@@ -139,7 +139,7 @@ USING <tube>\r\n tube为正在使用的tube名称
 reserve\r\n
 ```
 可选的一个相似的命令
-`reserve-with-timeout \r\n` 设置取job的超时时间，timeout设置为0时，服务器立即响应或者TIMED_OUT，积极的设置超时，将会限制客户端阻塞在取job的请求的时间。
+`reserve-with-timeout <seconds>\r\n` 设置取job的超时时间，timeout设置为0时，服务器立即响应或者TIMED_OUT，积极的设置超时，将会限制客户端阻塞在取job的请求的时间。
 ##### 失败响应
 ```
 DEADLINE_SOON\r\n
