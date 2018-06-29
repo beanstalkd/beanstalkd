@@ -1,11 +1,20 @@
 #!/bin/sh
 
+echo_n()
+{
+  if [ "`echo -n`" = "-n" ]; then
+    echo "$@""\c"
+  else
+    echo -n "$@"
+  fi
+}
+
 if git describe >/dev/null 2>&1
 then
-    git describe --tags --match=dev* | sed s/^dev// | tr - + | tr -d '\n'
+    git describe --tags --match='dev*' | sed 's/^dev//' | tr '-' '+' | tr -d '\n'
     if ! git diff --quiet HEAD
-    then printf +mod
+	then echo_n +mod
     fi
 else
-    printf unknown
+    echo_n unknown
 fi

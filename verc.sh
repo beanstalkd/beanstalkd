@@ -1,5 +1,14 @@
 #!/bin/sh
 
-printf 'const char version[] = "'
+echo_n()
+{
+  if [ "`echo -n`" = "-n" ]; then
+    echo "$@""\c"
+  else
+    echo -n "$@"
+  fi
+}
+
+echo_n 'const char version[] = "'
 ./vers.sh
-printf '";\n'
+echo '";'
