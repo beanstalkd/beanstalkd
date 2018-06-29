@@ -1,3 +1,6 @@
+git:
+    quiet: true
+
 language: c
 
 compiler:
