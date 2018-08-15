@@ -306,7 +306,7 @@ data 为YAML file的统计信息
 - `time-left` 表示job的状态迁移为ready的时间，仅在job状态为reserved或者delayed时有意义，当job状态为reserved时表示剩余的超时时间。
 - `file` 表示包含此job的binlog序号，如果没有开启它将为0
 - `reserves` 表示job被reserved的次数
-- `timeouts` 表示job处理的超时时间
+- `timeouts` 表示job出现超时的次数
 - `releases` 表示job被released的次数
 - `buries` 表示job被buried的次数
 - `kicks` 表示job被kiced的次数
