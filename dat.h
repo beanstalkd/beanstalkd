@@ -138,7 +138,8 @@ struct job {
     Jobrec r; // persistent fields; these get written to the wal
 
     /* bookeeping fields; these are in-memory only */
-    char pad[6];
+    char pad[5];
+    char unique;
     tube tube;
     job prev, next; /* linked list of jobs */
     job ht_next; /* Next job in a hash table list */
@@ -203,11 +204,13 @@ void job_free(job j);
 
 /* Lookup a job by job ID */
 job job_find(uint64 job_id);
+job job_find_by_body(job j);
 
 /* the void* parameters are really job pointers */
 void job_setheappos(void*, int);
 int job_pri_less(void*, void*);
 int job_delay_less(void*, void*);
+int job_body_cmp(job a, job b);
 
 job job_copy(job j);
 

@@ -24,6 +24,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "0123456789-+/;.$_()"
 
 #define CMD_PUT "put "
+#define CMD_PUT_UNIQUE "put-unique "
 #define CMD_PEEKJOB "peek "
 #define CMD_PEEK_READY "peek-ready"
 #define CMD_PEEK_DELAYED "peek-delayed"
@@ -136,7 +137,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_QUIT 22
 #define OP_PAUSE_TUBE 23
 #define OP_JOBKICK 24
-#define TOTAL_OPS 25
+#define OP_PUT_UNIQUE 25
+#define TOTAL_OPS 26
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -145,6 +147,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-jobs-delayed: %u\n" \
     "current-jobs-buried: %u\n" \
     "cmd-put: %" PRIu64 "\n" \
+    "cmd-put-unique: %" PRIu64 "\n" \
     "cmd-peek: %" PRIu64 "\n" \
     "cmd-peek-ready: %" PRIu64 "\n" \
     "cmd-peek-delayed: %" PRIu64 "\n" \
@@ -273,6 +276,7 @@ static const char * op_names[] = {
     CMD_QUIT,
     CMD_PAUSE_TUBE,
     CMD_JOBKICK,
+    CMD_PUT_UNIQUE,
 };
 
 static job remove_buried_job(job j);
@@ -739,6 +743,7 @@ static int
 which_cmd(Conn *c)
 {
 #define TEST_CMD(s,c,o) if (strncmp((s), (c), CONSTSTRLEN(c)) == 0) return (o);
+    TEST_CMD(c->cmd, CMD_PUT_UNIQUE, OP_PUT_UNIQUE);
     TEST_CMD(c->cmd, CMD_PUT, OP_PUT);
     TEST_CMD(c->cmd, CMD_PEEKJOB, OP_PEEKJOB);
     TEST_CMD(c->cmd, CMD_PEEK_READY, OP_PEEK_READY);
@@ -822,7 +827,7 @@ static void
 enqueue_incoming_job(Conn *c)
 {
     int r;
-    job j = c->in_job;
+    job j = c->in_job, j2=NULL;
 
     c->in_job = NULL; /* the connection no longer owns this job */
     c->in_job_read = 0;
@@ -840,6 +845,11 @@ enqueue_incoming_job(Conn *c)
     if (drain_mode) {
         job_free(j);
         return reply_serr(c, MSG_DRAINING);
+    }
+
+    if ( j->unique && (j2=job_find_by_body(j)) != NULL ) {
+        job_free(j);
+        return reply_line(c, STATE_SENDWORD, MSG_INSERTED_FMT, j2->r.id);
     }
 
     if (j->walresv) return reply_serr(c, MSG_INTERNAL_ERROR);
@@ -891,6 +901,7 @@ fmt_stats(char *buf, size_t size, void *x)
             get_delayed_job_ct(),
             global_stat.buried_ct,
             op_ct[OP_PUT],
+            op_ct[OP_PUT_UNIQUE],
             op_ct[OP_PEEKJOB],
             op_ct[OP_PEEK_READY],
             op_ct[OP_PEEK_DELAYED],
@@ -1239,6 +1250,48 @@ dispatch_cmd(Conn *c)
         }
 
         c->in_job = make_job(pri, delay, ttr, body_size + 2, c->use);
+
+        /* OOM? */
+        if (!c->in_job) {
+            /* throw away the job body and respond with OUT_OF_MEMORY */
+            twarnx("server error: " MSG_OUT_OF_MEMORY);
+            return skip(c, body_size + 2, MSG_OUT_OF_MEMORY);
+        }
+
+        fill_extra_data(c);
+
+        /* it's possible we already have a complete job */
+        maybe_enqueue_incoming_job(c);
+
+        break;
+    case OP_PUT_UNIQUE:
+        r = read_pri(&pri, c->cmd + 10, &delay_buf);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+
+        r = read_delay(&delay, delay_buf, &ttr_buf);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+
+        r = read_ttr(&ttr, ttr_buf, &size_buf);
+        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+
+        errno = 0;
+        body_size = strtoul(size_buf, &end_buf, 10);
+        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+
+        op_ct[type]++;
+
+        if (body_size > job_data_size_limit) {
+            /* throw away the job body and respond with JOB_TOO_BIG */
+            return skip(c, body_size + 2, MSG_JOB_TOO_BIG);
+        }
+
+        /* don't allow trailing garbage */
+        if (end_buf[0] != '\0') return reply_msg(c, MSG_BAD_FORMAT);
+
+        connsetproducer(c);
+
+        c->in_job = make_job(pri, delay, ttr ? : 1, body_size + 2, c->use);
+        c->in_job->unique = 1;
 
         /* OOM? */
         if (!c->in_job) {
