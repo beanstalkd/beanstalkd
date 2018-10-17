@@ -234,8 +234,10 @@ connclose(Conn *c)
     if (has_reserved_job(c)) enqueue_reserved_jobs(c);
 
     ms_clear(&c->watch);
-    c->use->using_ct--;
-    TUBE_ASSIGN(c->use, NULL);
+    if (c->use) {
+        c->use->using_ct--;
+        TUBE_ASSIGN(c->use, NULL);
+    }
 
     if (c->tickpos > -1) {
         heapremove(&c->srv->conns, c->tickpos);
