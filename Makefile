@@ -4,7 +4,6 @@ CFLAGS=-Wall -Werror\
 	-Wformat=2\
 	-g\
 
-LDFLAGS=
 OS=$(shell uname|tr A-Z a-z)
 INSTALL=install
 
@@ -43,6 +42,7 @@ ifeq ($(OS),linux)
 
 LDLIBS=\
 	-lrt\
+	-ljemalloc
 
 endif
 
