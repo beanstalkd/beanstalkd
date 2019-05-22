@@ -43,6 +43,7 @@ ifeq ($(OS),linux)
 LDLIBS=\
 	-lrt\
 	-ljemalloc
+	-lsystemd
 
 endif
 
