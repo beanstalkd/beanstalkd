@@ -4,8 +4,9 @@ keeps beanstalkd a high-quality codebase and running smoothly in
 the demanding, high-volume production environment of the servers
 of many organizations around the world.
 
-We don't have a lot of rules, but here are some tips to keep in
-mind that might make your life easier.
+Please note that this project is released with a Contributor
+Code of Conduct. By participating in this project you agree
+to abide by its terms. See CodeOfConduct.txt for details.
 
 General
 
