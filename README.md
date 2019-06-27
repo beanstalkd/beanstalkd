@@ -1,3 +1,5 @@
+# beanstalkd
+
 This is beanstalkd, a fast, general-purpose work queue.
 See https://beanstalkd.github.io/ for general info.
 
@@ -5,8 +7,9 @@ Please note that this project is released with a Contributor
 Code of Conduct. By participating in this project you agree
 to abide by its terms. See CodeOfConduct.txt for details.
 
+[![Build Status](https://travis-ci.org/beanstalkd/beanstalkd.svg?branch=master)](https://travis-ci.org/beanstalkd/beanstalkd)
 
-QUICK START
+## Quick Stat
 
     $ make
     $ ./beanstalkd
@@ -23,21 +26,21 @@ also try,
     $ make install PREFIX=/usr
 
 Requires Linux (2.6.17 or later), Mac OS X, or FreeBSD.
-See doc/protocol.txt for details of the network protocol.
+See `doc/protocol.txt` for details of the network protocol.
 
 Uses ronn to generate the manual.
 See http://github.com/rtomayko/ronn.
 
 
-SUBDIRECTORIES
+## Subdirectories
 
-adm	files useful for system administrators
-ct	testing tool; see https://github.com/kr/ct
-doc	documentation
-pkg	miscellaneous files for packagers
+- `adm`	- files useful for system administrators
+- `ct`	- testing tool; see https://github.com/kr/ct
+- `doc`	- documentation
+- `pkg`	- miscellaneous files for packagers
 
 
-TESTS
+## Tests
 
 Unit tests are in test*.c. See https://github.com/kr/ct for
 information on how to write them.
