@@ -22,10 +22,12 @@ before_install:
 
 install:
     - |
+    # Currently works only with gcc on linux
       if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
-          export LDFLAGS=" -lgcov --coverage"
-          export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
-          export CXXFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
+          if [[ "${TRAVIS_COMPILER} == "gcc" ]]; then
+              export LDFLAGS=" -lgcov --coverage"
+              export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
+          fi
       fi
 
 script:
@@ -38,6 +40,14 @@ after_script:
 
 after_success:
     - |
-      if [ ! -z "${CODECOV_TOKEN}" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-          (bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports")
+      if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+          if [[ "${TRAVIS_COMPILER} == "gcc" ]]; then
+              curl -sSl https://codecov.io/bash -o "./codecov"
+              chmod +x codecov
+              ./codecov
+          else
+              echo "Skip collecting coverage reports for clang"
+          fi
+      else
+          echo "Skip coverage reports for OSX"
       fi
