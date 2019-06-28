@@ -49,12 +49,3 @@ information on how to write them.
 [![Build Status](https://travis-ci.org/beanstalkd/beanstalkd.svg?branch=master)](https://travis-ci.org/beanstalkd/beanstalkd)
 [![codecov](https://codecov.io/gh/beanstalkd/beanstalkd/branch/master/graph/badge.svg)](https://codecov.io/gh/beanstalkd/beanstalkd)
 
-## License
-
-beanstalkd is released under the [MIT License](https://opensource.org/licenses/MIT).
-
-Copyright © 2007 The authors of beanstalkd.
-
-Copyright in contributions to beanstalkd is retained
-by the original copyright holder of each contribution.
-See file LICENSE for terms of use.
