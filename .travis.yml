@@ -32,11 +32,19 @@ script:
 
 jobs:
   include:
-    - stage: "Benchmark: Linux + GCC"
+    - stage: Benchmark
       os: linux
-      env:
-        - COVERAGE=OFF
       compiler: gcc
+      before_script:
+          - export COVERAGE=OFF
+      script:
+          - make $MAKEJOBS
+          - make $MAKEJOBS bench
+    - stage: Benchmark
+      os: osx
+      compiler: clang
+      before_script:
+          - export COVERAGE=OFF
       script:
           - make $MAKEJOBS
           - make $MAKEJOBS bench
