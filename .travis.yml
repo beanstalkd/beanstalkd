@@ -34,10 +34,12 @@ jobs:
   include:
     - stage: "Benchmark: Linux + GCC"
       os: linux
+      env:
+        - COVERAGE=OFF
       compiler: gcc
       script:
           - make $MAKEJOBS
-          - make bench
+          - make $MAKEJOBS bench
 
 after_success:
     - if [ $COVERAGE = "ON" ]; then (bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"); fi;
