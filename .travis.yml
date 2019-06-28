@@ -16,38 +16,23 @@ env:
     global:
         - MAKEJOBS="-j$(getconf _NPROCESSORS_ONLN)"
         - TRAVIS_COMMIT_LOG=`git log --format=fuller -2`
+        - COVERAGE=OFF # Currently works only with gcc on linux
 
-before_install:
-    - $CC --version
-
-install:
-    - |
-    # Currently works only with gcc on linux
-      if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
-          if [[ "${TRAVIS_COMPILER} == "gcc" ]]; then
-              export LDFLAGS=" -lgcov --coverage"
-              export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
-          fi
-      fi
+before_script:
+    - if [ "${TRAVIS_OS_NAME}-${TRAVIS_COMPILER}" = "linux-gcc" ]; then export COVERAGE="ON"; fi
 
 script:
+    - |
+      if [ $COVERAGE = "ON" ]; then
+          export LDFLAGS=" -lgcov --coverage"
+          export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
+      fi
     - make $MAKEJOBS || ( echo "Build failure. Verbose build follows." && make V=1 ; false )
     - make check $MAKEJOBS VERBOSE=1
+
+after_success:
+    - if [ $COVERAGE = "ON" ]; then (bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"); fi;
 
 after_script:
     - printf "$TRAVIS_COMMIT_RANGE\n"
     - printf "$TRAVIS_COMMIT_LOG\n"
-
-after_success:
-    - |
-      if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
-          if [[ "${TRAVIS_COMPILER} == "gcc" ]]; then
-              curl -sSl https://codecov.io/bash -o "./codecov"
-              chmod +x codecov
-              ./codecov
-          else
-              echo "Skip collecting coverage reports for clang"
-          fi
-      else
-          echo "Skip coverage reports for OSX"
-      fi
