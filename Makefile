@@ -42,7 +42,6 @@ ifeq ($(OS),linux)
 
 LDLIBS=\
 	-lrt\
-	-lsystemd\
 
 endif
 
