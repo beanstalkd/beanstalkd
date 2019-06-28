@@ -42,9 +42,14 @@ ifeq ($(OS),linux)
 
 LDLIBS=\
 	-lrt\
-	-ljemalloc
-	-lsystemd
+	-lsystemd\
 
+endif
+
+ifeq ($(OS),linux)
+ifdef JEMALLOC
+LDLIBS+=-ljemalloc
+endif
 endif
 
 CLEANFILES=\
