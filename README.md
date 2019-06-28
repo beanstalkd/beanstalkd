@@ -8,8 +8,6 @@ Please note that this project is released with a Contributor
 Code of Conduct. By participating in this project you agree
 to abide by its terms. See CodeOfConduct.txt for details.
 
-[![Build Status](https://travis-ci.org/beanstalkd/beanstalkd.svg?branch=master)](https://travis-ci.org/beanstalkd/beanstalkd)
-
 ## Quick Start
 
     $ make
@@ -47,8 +45,7 @@ See http://github.com/rtomayko/ronn.
 Unit tests are in test*.c. See https://github.com/kr/ct for
 information on how to write them.
 
+## Code Status
+[![Build Status](https://travis-ci.org/beanstalkd/beanstalkd.svg?branch=master)](https://travis-ci.org/beanstalkd/beanstalkd)
+[![codecov](https://codecov.io/gh/beanstalkd/beanstalkd/branch/master/graph/badge.svg)](https://codecov.io/gh/beanstalkd/beanstalkd)
 
-Copyright © 2007-2019 the authors of beanstalkd.
-Copyright in contributions to beanstalkd is retained
-by the original copyright holder of each contribution.
-See file LICENSE for terms of use.
