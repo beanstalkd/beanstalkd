@@ -30,6 +30,15 @@ script:
     - make $MAKEJOBS || ( echo "Build failure. Verbose build follows." && make V=1 ; false )
     - make check $MAKEJOBS VERBOSE=1
 
+jobs:
+  include:
+    - stage: "Benchmark: Linux + GCC"
+      os: linux
+      compiler: gcc
+      script:
+          - make $MAKEJOBS
+          - make bench
+
 after_success:
     - if [ $COVERAGE = "ON" ]; then (bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"); fi;
 
