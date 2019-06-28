@@ -1,16 +1,23 @@
-# SETUP
-This is beanstalkd, a fast, general-purpose work queue.
-See http://kr.github.io/beanstalkd/ for general info.
+# beanstalkd
 
+Simple and fast general purpose work queue.
 
-## QUICK START
-```bash
+https://beanstalkd.github.io/
+
+Please note that this project is released with a Contributor
+Code of Conduct. By participating in this project you agree
+to abide by its terms. See CodeOfConduct.txt for details.
+
+[![Build Status](https://travis-ci.org/beanstalkd/beanstalkd.svg?branch=master)](https://travis-ci.org/beanstalkd/beanstalkd)
+
+## Quick Start
+
     $ make
     $ ./beanstalkd
-```
 
-also try:
-```bash
+
+also try,
+
     $ ./beanstalkd -h
     $ ./beanstalkd -VVV
     $ make CFLAGS=-O2
@@ -18,34 +25,36 @@ also try:
     $ make check
     $ make install
     $ make install PREFIX=/usr
-```
 
 Requires Linux (2.6.17 or later), Mac OS X, or FreeBSD.
-See doc/protocol.txt for details of the network protocol.
+See [doc/protocol.txt](https://github.com/beanstalkd/beanstalkd/blob/master/doc/protocol.txt) 
+for details of the network protocol.
 
 Uses ronn to generate the manual.
 See http://github.com/rtomayko/ronn.
 
-## SUBDIRECTORIES
+## Using JEMALLOC as allocator
 
-adm	files useful for system administrators
-ct	testing tool; see https://github.com/kr/ct
-doc	documentation
-pkg	miscellaneous files for packagers
+In order to compile using JEMALLOC:
+
+    $ make CFLAGS=-O2 JEMALLOC=1
+    $ make install
+
+## Subdirectories
+
+- `adm`	- files useful for system administrators
+- `ct`	- testing tool; vendored from https://github.com/kr/ct
+- `doc`	- documentation
+- `pkg`	- scripts to make releases
 
 
-## TESTS
+## Tests
 
 Unit tests are in test*.c. See https://github.com/kr/ct for
 information on how to write them.
 
 
-## DOCKER
-
-```docker build -t beanstalkd_json:v1 .```
-
-## COPYRIGHT
-Copyright © 2007-2013 the authors of beanstalkd.
+Copyright © 2007-2019 the authors of beanstalkd.
 Copyright in contributions to beanstalkd is retained
 by the original copyright holder of each contribution.
 See file LICENSE for terms of use.
