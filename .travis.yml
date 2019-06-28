@@ -1,5 +1,6 @@
 git:
     quiet: true
+    depth: 5
 
 language: c
 
@@ -7,4 +8,31 @@ compiler:
     - clang
     - gcc
 
-script: make check
+os:
+    - linux
+    - osx
+
+env:
+    global:
+        - MAKEJOBS="-j$(getconf _NPROCESSORS_ONLN)"
+        - TRAVIS_COMMIT_LOG=`git log --format=fuller -2`
+        - COVERAGE=OFF # Currently works only with gcc on linux
+
+before_script:
+    - if [ "${TRAVIS_OS_NAME}-${TRAVIS_COMPILER}" = "linux-gcc" ]; then export COVERAGE="ON"; fi
+
+script:
+    - |
+      if [ $COVERAGE = "ON" ]; then
+          export LDFLAGS=" -lgcov --coverage"
+          export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
+      fi
+    - make $MAKEJOBS || ( echo "Build failure. Verbose build follows." && make V=1 ; false )
+    - make check $MAKEJOBS VERBOSE=1
+
+after_success:
+    - if [ $COVERAGE = "ON" ]; then (bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"); fi;
+
+after_script:
+    - printf "$TRAVIS_COMMIT_RANGE\n"
+    - printf "$TRAVIS_COMMIT_LOG\n"

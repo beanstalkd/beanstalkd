@@ -933,7 +933,6 @@ fmt_stats(char *buf, size_t size, void *x)
             srv->wal.filesize,
             id,
             node_info.nodename);
-
 }
 
 /* Read a priority value from the given buffer and place it in pri.

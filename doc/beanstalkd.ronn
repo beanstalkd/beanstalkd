@@ -105,7 +105,7 @@ sd-daemon(5), sd_listen_fds(5)
 Files `README` and `doc/protocol.txt` in the `beanstalkd`
 distribution.
 
-<http://kr.github.com/beanstalkd/>
+<https://beanstalkd.github.io/>
 
 ## AUTHOR
 

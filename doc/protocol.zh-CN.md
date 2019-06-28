@@ -332,7 +332,7 @@ data 为YAML file的统计信息
 - `current-jobs-ready` 此tube中状态为ready的job数量
 - `current-jobs-reserved` 此tube中状态为reserved的job数量
 - `current-jobs-delayed` 此tube中状态为delayed的job数量
-- `current-jobs-bureid` 此tube中状态为buried的job数量
+- `current-jobs-buried` 此tube中状态为buried的job数量
 - `total-jobs` 此tube中创建的所有job数量
 - `current-using` 使用此tube打开的连接数
 - `current-wating` 使用此tube打开连接并且等待响应的连接数
@@ -360,7 +360,7 @@ data 为YAML file的统计信息
 - `current-jobs-ready` 状态为ready的job数量
 - `current-jobs-reserved` 状态为reserved的job数量
 - `current-jobs-delayed` 状态为delayed的job数量
-- `current-jobs-bureid` 状态为buried的job数量
+- `current-jobs-buried` 状态为buried的job数量
 - `cmd-put` 总共执行put指令的次数
 - `cmd-peek` 总共执行peek指令的次数
 - `cmd-peek-ready` 总共执行peek-ready指令的次数
