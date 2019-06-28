@@ -246,12 +246,6 @@ job_insert(job head, job j)
     head->prev = j;
 }
 
-uint64
-total_jobs()
-{
-    return next_id - 1;
-}
-
 /* for unit tests */
 size_t
 get_all_jobs_used()

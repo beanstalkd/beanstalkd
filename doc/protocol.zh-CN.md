@@ -139,7 +139,7 @@ USING <tube>\r\n tube为正在使用的tube名称
 reserve\r\n
 ```
 可选的一个相似的命令
-`reserve-with-timeout \r\n` 设置取job的超时时间，timeout设置为0时，服务器立即响应或者TIMED_OUT，积极的设置超时，将会限制客户端阻塞在取job的请求的时间。
+`reserve-with-timeout <seconds>\r\n` 设置取job的超时时间，timeout设置为0时，服务器立即响应或者TIMED_OUT，积极的设置超时，将会限制客户端阻塞在取job的请求的时间。
 ##### 失败响应
 ```
 DEADLINE_SOON\r\n
@@ -306,7 +306,7 @@ data 为YAML file的统计信息
 - `time-left` 表示job的状态迁移为ready的时间，仅在job状态为reserved或者delayed时有意义，当job状态为reserved时表示剩余的超时时间。
 - `file` 表示包含此job的binlog序号，如果没有开启它将为0
 - `reserves` 表示job被reserved的次数
-- `timeouts` 表示job处理的超时时间
+- `timeouts` 表示job出现超时的次数
 - `releases` 表示job被released的次数
 - `buries` 表示job被buried的次数
 - `kicks` 表示job被kiced的次数
@@ -332,7 +332,7 @@ data 为YAML file的统计信息
 - `current-jobs-ready` 此tube中状态为ready的job数量
 - `current-jobs-reserved` 此tube中状态为reserved的job数量
 - `current-jobs-delayed` 此tube中状态为delayed的job数量
-- `current-jobs-bureid` 此tube中状态为buried的job数量
+- `current-jobs-buried` 此tube中状态为buried的job数量
 - `total-jobs` 此tube中创建的所有job数量
 - `current-using` 使用此tube打开的连接数
 - `current-wating` 使用此tube打开连接并且等待响应的连接数
@@ -360,7 +360,7 @@ data 为YAML file的统计信息
 - `current-jobs-ready` 状态为ready的job数量
 - `current-jobs-reserved` 状态为reserved的job数量
 - `current-jobs-delayed` 状态为delayed的job数量
-- `current-jobs-bureid` 状态为buried的job数量
+- `current-jobs-buried` 状态为buried的job数量
 - `cmd-put` 总共执行put指令的次数
 - `cmd-peek` 总共执行peek指令的次数
 - `cmd-peek-ready` 总共执行peek-ready指令的次数

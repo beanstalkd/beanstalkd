@@ -1,21 +1,20 @@
-
-Full list of changes (includes authorship information):  
-<http://github.com/kr/beanstalkd/compare/v@PARENT@...v@VERSION@>
+Full list of changes (includes authorship information):
+<http://github.com/beanstalkd/beanstalkd/compare/v@PARENT@...v@VERSION@>
 
 Our Urls
 --------
 
-Download the @VERSION@ tarball directly:  
-<https://github.com/kr/beanstalkd/archive/v@VERSION@.tar.gz>
+Download the @VERSION@ tarball directly:
+<https://github.com/beanstalkd/beanstalkd/archive/v@VERSION@.tar.gz>
 
-Learn all about beanstalk:  
-<http://kr.github.com/beanstalkd/>
+Learn all about beanstalk:
+<https://beanstalkd.github.io/>
 
-Talk about beanstalk development or use at:  
-<http://groups.google.com/group/beanstalk-talk>
+Talk about beanstalk development or use at:
+<https://groups.google.com/group/beanstalk-talk>
 
 Bugs
 ----
 
-Please report any bugs to:  
-<http://github.com/kr/beanstalkd/issues>
+Please report any bugs to:
+<http://github.com/beanstalkd/beanstalkd/issues>
