@@ -58,6 +58,7 @@ jobs:
           - export COVERAGE=OFF
       script:
           - make $MAKEJOBS LDLIBS=-ljemalloc
+          - make check $MAKEJOBS VERBOSE=1
 
 after_success:
     - if [ $COVERAGE = "ON" ]; then (bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"); fi;
