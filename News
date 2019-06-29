@@ -1,0 +1,29 @@
+News
+----
+
+This is the first release since 4th August 2014.
+
+It is a maintenance, containing various bug fixes and improvements that have been in the master branch for a long time.
+
+We hope to continue providing these releases based on updates from the community in the future.
+
+Full list of changes (includes authorship information):
+<http://github.com/beanstalkd/beanstalkd/compare/v1.10...v1.11>
+
+Our Urls
+--------
+
+Download the 1.11 tarball directly:
+<https://github.com/beanstalkd/beanstalkd/archive/v1.11.tar.gz>
+
+Learn all about beanstalk:
+<https://beanstalkd.github.io/>
+
+Talk about beanstalk development or use at:
+<https://groups.google.com/group/beanstalk-talk>
+
+Bugs
+----
+
+Please report any bugs to:
+<http://github.com/beanstalkd/beanstalkd/issues>
