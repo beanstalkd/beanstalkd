@@ -17,8 +17,6 @@ env:
         - MAKEJOBS="-j$(getconf _NPROCESSORS_ONLN)"
         - TRAVIS_COMMIT_LOG=`git log --format=fuller -2`
         - COVERAGE=OFF # Currently works only with gcc on linux
-    - LDLIBS=
-    - LDLIBS=-ljemalloc
 
 before_script:
     - if [ "${TRAVIS_OS_NAME}-${TRAVIS_COMPILER}" = "linux-gcc" ]; then export COVERAGE="ON"; fi
