@@ -50,6 +50,13 @@ jobs:
       script:
           - make $MAKEJOBS
           - make $MAKEJOBS bench
+    - stage: JEMALLOC
+      os: linux
+      compiler: gcc
+      before_script:
+          - export COVERAGE=OFF
+      script:
+          - make $MAKEJOBS LDLIBS=-ljemalloc
 
 after_success:
     - if [ $COVERAGE = "ON" ]; then (bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"); fi;
