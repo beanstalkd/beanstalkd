@@ -1,0 +1,139 @@
+#!/bin/sh
+#
+# System V init script in charge of starting/stopping beanstalkd
+#
+# chkconfig: - 57 47
+# description: beanstalkd is a simple, fast work queue
+# processname: beanstalkd
+# config: /etc/sysconfig/beanstalkd
+# pidfile: /var/run/beanstalkd/beanstalkd.pid
+
+### BEGIN INIT INFO
+# Provides: beanstalkd
+# Required-Start: $local_fs $network $remote_fs
+# Required-Stop: $local_fs $network $remote_fs
+# Default-Stop: 0 1 2 6
+# Short-Description: start and stop beanstalkd
+# Description: beanstalkd is a simple, fast work queue
+### END INIT INFO
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration
+. /etc/sysconfig/network
+
+# Check that networking is up
+[ "$NETWORKING" = "no" ] && exit
+
+exec="/usr/bin/beanstalkd"
+prog=$(basename $exec)
+
+# Default options, overruled by items in sysconfig
+BEANSTALKD_ADDR=127.0.0.1
+BEANSTALKD_PORT=11300
+BEANSTALKD_USER=beanstalkd
+
+[ -e /etc/sysconfig/${prog} ] && . /etc/sysconfig/${prog}
+
+lockfile=/var/lock/subsys/${prog}
+
+start() {
+	[ -x $exec ] || exit 5
+	echo -n $"Starting $prog: "
+
+	options="-l ${BEANSTALKD_ADDR} -p ${BEANSTALKD_PORT} -u ${BEANSTALKD_USER}"
+
+	if [ "${BEANSTALKD_MAX_JOB_SIZE}" != ""  ]; then
+		options="${options} -z ${BEANSTALKD_MAX_JOB_SIZE}"
+	fi
+
+	if [ "${BEANSTALKD_BINLOG_DIR}" != "" ]; then
+		if [ ! -d "${BEANSTALKD_BINLOG_DIR}" ]; then
+			echo "Creating binlog directory (${BEANSTALKD_BINLOG_DIR})"
+			mkdir -p ${BEANSTALKD_BINLOG_DIR}
+			chown ${BEANSTALKD_USER}:${BEANSTALKD_USER} ${BEANSTALKD_BINLOG_DIR}
+		fi
+
+		options="${options} -b ${BEANSTALKD_BINLOG_DIR}"
+
+		if [ "${BEANSTALKD_BINLOG_FSYNC_PERIOD}" != "" ]; then
+			options="${options} -f ${BEANSTALKD_BINLOG_FSYNC_PERIOD}"
+		else
+			options="${options} -F"
+		fi
+
+		if [ "${BEANSTALKD_BINLOG_SIZE}" != "" ]; then
+			options="${options} -s ${BEANSTALKD_BINLOG_SIZE}"
+		fi
+	fi
+
+	daemon "nohup ${exec} $options > /dev/null 2>&1 &"
+	retval=$?
+	echo
+	[ $retval -eq 0 ] && touch $lockfile
+	return $retval
+}
+
+stop() {
+	echo -n $"Stopping $prog: "
+	killproc $prog
+	retval=$?
+	echo
+	[ $retval -eq 0 ] && rm -f $lockfile
+	return $retval
+}
+
+restart() {
+	stop
+	start
+}
+
+reload() {
+	restart
+}
+
+force_reload() {
+	restart
+}
+
+rh_status() {
+	# Run checks to determine if the service is running or use generic status
+	status $prog
+}
+
+rh_status_q() {
+	rh_status >/dev/null 2>&1
+}
+
+case "$1" in
+	start)
+		rh_status_q && exit 0
+		$1
+		;;
+	stop)
+		rh_status_q || exit 0
+		$1
+		;;
+	restart)
+		$1
+		;;
+	reload)
+		rh_status_q || exit 7
+		$1
+		;;
+	force-reload)
+		force_reload
+		;;
+	status)
+		rh_status
+		;;
+	condrestart|try-restart)
+		rh_status_q || exit 0
+		restart
+		;;
+	*)
+		echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+		exit 2
+esac
+exit $?
