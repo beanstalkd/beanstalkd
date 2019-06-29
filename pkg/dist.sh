@@ -27,7 +27,7 @@ test -n "$prev" || die no prev ver
 test -f News || die no News
 
 export GIT_INDEX_FILE
-GIT_INDEX_FILE=`mktemp -t beanstalkd-dist-index`
+GIT_INDEX_FILE=`mktemp -t beanstalkd-dist-index-XXX`
 trap clean EXIT
 
 git read-tree dev$ver
