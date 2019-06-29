@@ -15,7 +15,6 @@ to abide by its terms. See CodeOfConduct.txt for details.
     $ make
     $ ./beanstalkd
 
-
 also try,
 
     $ ./beanstalkd -h
@@ -37,16 +36,15 @@ See http://github.com/rtomayko/ronn.
 
 In order to compile using JEMALLOC:
 
-    $ make CFLAGS=-O2 JEMALLOC=1
+    $ make CFLAGS=-O2 LDLIBS=-ljemalloc
     $ make install
 
 ## Subdirectories
 
-- `adm`	- files useful for system administrators
-- `ct`	- testing tool; vendored from https://github.com/kr/ct
-- `doc`	- documentation
-- `pkg`	- scripts to make releases
-
+- `adm` - files useful for system administrators
+- `ct`  - testing tool; vendored from https://github.com/kr/ct
+- `doc` - documentation
+- `pkg` - scripts to make releases
 
 ## Tests
 

@@ -13,6 +13,10 @@ os:
     - osx
 
 env:
+    - LDLIBS=
+    - LDLIBS=-ljemalloc
+
+env:
     global:
         - MAKEJOBS="-j$(getconf _NPROCESSORS_ONLN)"
         - TRAVIS_COMMIT_LOG=`git log --format=fuller -2`

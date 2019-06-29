@@ -39,17 +39,9 @@ HFILES=\
 	sd-daemon.h\
 
 ifeq ($(OS),linux)
-
-LDLIBS=\
-	-lrt\
-
+LDLIBS+=-lrt
 endif
 
-ifeq ($(OS),linux)
-ifdef JEMALLOC
-LDLIBS+=-ljemalloc
-endif
-endif
 
 CLEANFILES=\
 	vers.c\
