@@ -53,7 +53,7 @@ jobs:
       compiler: gcc
       before_install:
           - sudo apt-get update
-          - sudo apt-get install -y libjemalloc1
+          - sudo apt-get install -y libjemalloc-dev
       before_script:
           - export COVERAGE=OFF
       script:
