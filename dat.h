@@ -217,8 +217,6 @@ int job_list_any_p(job head);
 job job_remove(job j);
 void job_insert(job head, job j);
 
-uint64 total_jobs(void);
-
 /* for unit tests */
 size_t get_all_jobs_used(void);
 

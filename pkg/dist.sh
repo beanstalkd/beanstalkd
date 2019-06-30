@@ -27,7 +27,7 @@ test -n "$prev" || die no prev ver
 test -f News || die no News
 
 export GIT_INDEX_FILE
-GIT_INDEX_FILE=`mktemp -t beanstalkd-dist-index`
+GIT_INDEX_FILE=`mktemp -t beanstalkd-dist-index-XXX`
 trap clean EXIT
 
 git read-tree dev$ver
@@ -41,12 +41,8 @@ tree=`git write-tree`
 commit=`git commit-tree $tree -p dev$ver -m "release $ver"`
 git tag -m "beanstalkd version $ver" v$ver $commit
 
-git rev-parse --verify gh-pages >/dev/null
-parent=`git rev-parse --verify gh-pages`
-git read-tree $parent
-postobj=`(exp <pkg/bloghead.in; git cat-file blob v$ver:News)|mkobj`
-post=_posts/`date +%Y-%m-%d`-$ver-release-notes.md
-git update-index --add --cacheinfo 100644 $postobj $post
-tree=`git write-tree`
-commit=`git commit-tree $tree -p $parent -m "announce release $ver"`
-git update-ref -m "commit: announce release $ver" refs/heads/gh-pages $commit $parent
+postcont=`(exp <pkg/bloghead.in; git cat-file blob v$ver:News)`
+postfile=`date +%Y-%m-%d`-$ver-release-notes.md
+echo "$postcont" >$postfile
+echo "Now, run these commands to update the blog:"
+echo "(mv $postfile ../beanstalkd.github.io/_posts/ && cd ../beanstalkd.github.io && git add . && git commit -m \"announce release $ver\")"

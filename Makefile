@@ -1,10 +1,9 @@
 PREFIX=/usr/local
 BINDIR=$(DESTDIR)$(PREFIX)/bin
-CFLAGS=-Wall -Werror\
-	-Wformat=2\
-	-g\
 
-LDFLAGS=
+override CFLAGS+=-Wall -Werror -Wformat=2 -g
+override LDFLAGS?=
+
 OS=$(shell uname|tr A-Z a-z)
 INSTALL=install
 
@@ -48,6 +47,8 @@ endif
 
 CLEANFILES=\
 	vers.c\
+	*.gcda\
+	*.gcno\
 
 .PHONY: all
 all: $(TARG)

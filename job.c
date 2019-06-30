@@ -14,7 +14,7 @@ static size_t all_jobs_used = 0;
 
 static int hash_table_was_oom = 0;
 
-static void rehash();
+static void rehash(int);
 
 static int
 _get_job_hash_index(uint64 job_id)
@@ -244,12 +244,6 @@ job_insert(job head, job j)
     j->next = head;
     head->prev->next = j;
     head->prev = j;
-}
-
-uint64
-total_jobs()
-{
-    return next_id - 1;
 }
 
 /* for unit tests */
