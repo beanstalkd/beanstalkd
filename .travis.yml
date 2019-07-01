@@ -28,7 +28,7 @@ script:
           export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
       fi
     - make $MAKEJOBS || ( echo "Build failure. Verbose build follows." && make V=1 ; false )
-    - make check $MAKEJOBS VERBOSE=1
+    - make check -j1 VERBOSE=1
 
 jobs:
   include:
