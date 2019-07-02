@@ -34,41 +34,39 @@ BEANSTALKD_ADDR=127.0.0.1
 BEANSTALKD_PORT=11300
 BEANSTALKD_USER=beanstalkd
 
-[ -e /etc/sysconfig/${prog} ] && . /etc/sysconfig/${prog}
+[ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
-lockfile=/var/lock/subsys/${prog}
+lockfile=/var/lock/subsys/$prog
 
 start() {
 	[ -x $exec ] || exit 5
 	echo -n $"Starting $prog: "
 
-	options="-l ${BEANSTALKD_ADDR} -p ${BEANSTALKD_PORT} -u ${BEANSTALKD_USER}"
+	options="-l $BEANSTALKD_ADDR -p $BEANSTALKD_PORT -u $BEANSTALKD_USER"
 
-	if [ "${BEANSTALKD_MAX_JOB_SIZE}" != ""  ]; then
-		options="${options} -z ${BEANSTALKD_MAX_JOB_SIZE}"
-	fi
+	[ -n "$BEANSTALKD_MAX_JOB_SIZE" ] && options="$options -z $BEANSTALKD_MAX_JOB_SIZE"
 
-	if [ "${BEANSTALKD_BINLOG_DIR}" != "" ]; then
-		if [ ! -d "${BEANSTALKD_BINLOG_DIR}" ]; then
-			echo "Creating binlog directory (${BEANSTALKD_BINLOG_DIR})"
-			mkdir -p ${BEANSTALKD_BINLOG_DIR}
-			chown ${BEANSTALKD_USER}:${BEANSTALKD_USER} ${BEANSTALKD_BINLOG_DIR}
+	if [ -n "$BEANSTALKD_BINLOG_DIR" ]; then
+		if [ ! -d "$BEANSTALKD_BINLOG_DIR" ]; then
+			echo "Creating binlog directory ($BEANSTALKD_BINLOG_DIR)"
+			mkdir -p $BEANSTALKD_BINLOG_DIR
+			chown $BEANSTALKD_USER:$BEANSTALKD_USER $BEANSTALKD_BINLOG_DIR
 		fi
 
-		options="${options} -b ${BEANSTALKD_BINLOG_DIR}"
+		options="$options -b $BEANSTALKD_BINLOG_DIR"
 
-		if [ "${BEANSTALKD_BINLOG_FSYNC_PERIOD}" != "" ]; then
-			options="${options} -f ${BEANSTALKD_BINLOG_FSYNC_PERIOD}"
+		if [ -n "$BEANSTALKD_BINLOG_FSYNC_PERIOD" ]; then
+			options="$options -f $BEANSTALKD_BINLOG_FSYNC_PERIOD"
 		else
-			options="${options} -F"
+			options="$options -F"
 		fi
 
-		if [ "${BEANSTALKD_BINLOG_SIZE}" != "" ]; then
-			options="${options} -s ${BEANSTALKD_BINLOG_SIZE}"
+		if [ -n "$BEANSTALKD_BINLOG_SIZE" ]; then
+			options="$options -s $BEANSTALKD_BINLOG_SIZE"
 		fi
 	fi
 
-	daemon "nohup ${exec} $options > /dev/null 2>&1 &"
+	daemon "nohup $exec $options > /dev/null 2>&1 &"
 	retval=$?
 	echo
 	[ $retval -eq 0 ] && touch $lockfile
