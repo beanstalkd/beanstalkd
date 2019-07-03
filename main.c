@@ -17,14 +17,26 @@ su(const char *user)
 
     errno = 0;
     pwent = getpwnam(user);
-    if (errno) twarn("getpwnam(\"%s\")", user), exit(32);
-    if (!pwent) twarnx("getpwnam(\"%s\"): no such user", user), exit(33);
+    if (errno) {
+        twarn("getpwnam(\"%s\")", user);
+        exit(32);
+    }
+    if (!pwent) {
+        twarnx("getpwnam(\"%s\"): no such user", user);
+        exit(33);
+    }
 
     r = setgid(pwent->pw_gid);
-    if (r == -1) twarn("setgid(%d \"%s\")", pwent->pw_gid, user), exit(34);
+    if (r == -1) {
+        twarn("setgid(%d \"%s\")", pwent->pw_gid, user);
+        exit(34);
+    }
 
     r = setuid(pwent->pw_uid);
-    if (r == -1) twarn("setuid(%d \"%s\")", pwent->pw_uid, user), exit(34);
+    if (r == -1) {
+        twarn("setuid(%d \"%s\")", pwent->pw_uid, user);
+        exit(34);
+    }
 }
 
 
@@ -37,14 +49,23 @@ set_sig_handlers()
     sa.sa_handler = SIG_IGN;
     sa.sa_flags = 0;
     r = sigemptyset(&sa.sa_mask);
-    if (r == -1) twarn("sigemptyset()"), exit(111);
+    if (r == -1) {
+        twarn("sigemptyset()");
+        exit(111);
+    }
 
     r = sigaction(SIGPIPE, &sa, 0);
-    if (r == -1) twarn("sigaction(SIGPIPE)"), exit(111);
+    if (r == -1) {
+        twarn("sigaction(SIGPIPE)");
+        exit(111);
+    }
 
     sa.sa_handler = enter_drain_mode;
     r = sigaction(SIGUSR1, &sa, 0);
-    if (r == -1) twarn("sigaction(SIGUSR1)"), exit(111);
+    if (r == -1) {
+        twarn("sigaction(SIGUSR1)");
+        exit(111);
+    }
 }
 
 int
@@ -62,7 +83,11 @@ main(int argc, char **argv)
     }
 
     r = make_server_socket(srv.addr, srv.port);
-    if (r == -1) twarnx("make_server_socket()"), exit(111);
+    if (r == -1) {
+        twarnx("make_server_socket()");
+        exit(111);
+    }
+
     srv.sock.fd = r;
 
     prot_init();
@@ -84,10 +109,10 @@ main(int argc, char **argv)
         r = prot_replay(&srv, &list);
         if (!r) {
             twarnx("failed to replay log");
-            return 1;
+            exit(1);
         }
     }
 
     srvserve(&srv);
-    return 0;
+    exit(0);
 }
