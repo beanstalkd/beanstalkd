@@ -185,6 +185,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "binlog-records-migrated: %" PRId64 "\n" \
     "binlog-records-written: %" PRId64 "\n" \
     "binlog-max-size: %d\n" \
+    "draining: %s\n" \
     "id: %s\n" \
     "hostname: %s\n" \
     "\r\n"
@@ -931,6 +932,7 @@ fmt_stats(char *buf, size_t size, void *x)
             srv->wal.nmig,
             srv->wal.nrec,
             srv->wal.filesize,
+            drain_mode ? "true" : "false",
             id,
             node_info.nodename);
 }
