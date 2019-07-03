@@ -4,6 +4,9 @@ Simple and fast general purpose work queue.
 
 https://beanstalkd.github.io/
 
+See [doc/protocol.txt](https://github.com/beanstalkd/beanstalkd/blob/master/doc/protocol.txt)
+for details of the network protocol.
+
 Please note that this project is released with a Contributor
 Code of Conduct. By participating in this project you agree
 to abide by its terms. See CodeOfConduct.txt for details.
@@ -25,8 +28,6 @@ also try,
     $ make install PREFIX=/usr
 
 Requires Linux (2.6.17 or later), Mac OS X, or FreeBSD.
-See [doc/protocol.txt](https://github.com/beanstalkd/beanstalkd/blob/master/doc/protocol.txt) 
-for details of the network protocol.
 
 Uses ronn to generate the manual.
 See http://github.com/rtomayko/ronn.
