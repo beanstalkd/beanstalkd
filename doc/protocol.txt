@@ -649,6 +649,9 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
  - "binlog-records-migrated" is the cumulative number of records written
    as part of compaction.
 
+ - "draining" is set to "true" if the server is in drain mode,
+   "false" otherwise.
+
  - "id" is a random id string for this server process, generated when each
    beanstalkd process starts.
 
