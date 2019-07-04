@@ -33,14 +33,14 @@ done
 
 printf 'Test ctmaintest[] = {\n'
 for t in $ts
-do printf '    {%s, "%s"},\n' $t $t
+do printf '    {%s, "%s", 0, 0, 0, TmpDirPat},\n' $t $t
 done
 printf '    {0},\n'
 printf '};\n'
 
 printf 'Benchmark ctmainbench[] = {\n'
 for b in $bs
-do printf '    {%s, "%s"},\n' $b $b
+do printf '    {%s, "%s", 0, 0, 0, TmpDirPat},\n' $b $b
 done
 printf '    {0},\n'
 printf '};\n'
