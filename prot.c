@@ -935,54 +935,47 @@ fmt_stats(char *buf, size_t size, void *x)
             node_info.nodename);
 }
 
-/* Read a priority value from the given buffer and place it in pri.
+/* Read a number value from the given buffer and place it in num.
  * Update end to point to the address after the last character consumed.
- * Pri and end can be NULL. If they are both NULL, read_pri() will do the
+ * num and end can be NULL. If they are both NULL, read_num() will do the
  * conversion and return the status code but not update any values. This is an
  * easy way to check for errors.
- * If end is NULL, read_pri will also check that the entire input string was
+ * If end is NULL, read_num will also check that the entire input string was
  * consumed and return an error code otherwise.
  * Return 0 on success, or nonzero on failure.
- * If a failure occurs, pri and end are not modified. */
+ * If a failure occurs, num and end are not modified. */
 static int
-read_pri(uint *pri, const char *buf, char **end)
+read_num(uint *num, const char *buf, char **end)
 {
+    uint tnum;
     char *tend;
-    uint tpri;
 
     errno = 0;
     while (buf[0] == ' ') buf++;
     if (buf[0] < '0' || '9' < buf[0]) return -1;
-    tpri = strtoul(buf, &tend, 10);
+    tnum = strtoul(buf, &tend, 10);
     if (tend == buf) return -1;
     if (errno && errno != ERANGE) return -1;
     if (!end && tend[0] != '\0') return -1;
 
-    if (pri) *pri = tpri;
+    if (num) *num = tnum;
     if (end) *end = tend;
     return 0;
 }
 
-/* Read a delay value from the given buffer and place it in delay.
- * The interface and behavior are analogous to read_pri(). */
+/* Read a delay value in seconds from the given buffer and
+   place it in duration in nanoseconds.
+   The interface and behavior are analogous to read_num(). */
 static int
-read_delay(int64 *delay, const char *buf, char **end)
+read_duration(int64 *duration, const char *buf, char **end)
 {
     int r;
-    uint delay_sec;
+    uint dur_sec;
 
-    r = read_pri(&delay_sec, buf, end);
+    r = read_num(&dur_sec, buf, end);
     if (r) return r;
-    *delay = ((int64) delay_sec) * 1000000000;
+    *duration = ((int64) dur_sec) * 1000000000;
     return 0;
-}
-
-/* Read a timeout value from the given buffer and place it in ttr.
- * The interface and behavior are the same as in read_delay(). */
-static int
-read_ttr(int64 *ttr, const char *buf, char **end)
-{
-    return read_delay(ttr, buf, end);
 }
 
 /* Read a tube name from the given buffer moving the buffer to the name start */
@@ -1207,13 +1200,13 @@ dispatch_cmd(Conn *c)
 
     switch (type) {
     case OP_PUT:
-        r = read_pri(&pri, c->cmd + 4, &delay_buf);
+        r = read_num(&pri, c->cmd + 4, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_delay(&delay, delay_buf, &ttr_buf);
+        r = read_duration(&delay, delay_buf, &ttr_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_ttr(&ttr, ttr_buf, &size_buf);
+        r = read_duration(&ttr, ttr_buf, &size_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         errno = 0;
@@ -1360,10 +1353,10 @@ dispatch_cmd(Conn *c)
         id = strtoull(c->cmd + CMD_RELEASE_LEN, &pri_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_pri(&pri, pri_buf, &delay_buf);
+        r = read_num(&pri, pri_buf, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_delay(&delay, delay_buf, NULL);
+        r = read_duration(&delay, delay_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
@@ -1398,7 +1391,7 @@ dispatch_cmd(Conn *c)
         id = strtoull(c->cmd + CMD_BURY_LEN, &pri_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_pri(&pri, pri_buf, NULL);
+        r = read_num(&pri, pri_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
@@ -1576,7 +1569,7 @@ dispatch_cmd(Conn *c)
         r = read_tube_name(&name, c->cmd + CMD_PAUSE_TUBE_LEN, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_delay(&delay, delay_buf, NULL);
+        r = read_duration(&delay, delay_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         *delay_buf = '\0';
