@@ -230,7 +230,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 static char bucket[BUCKET_BUF_SIZE];
 
 static uint ready_ct = 0;
-static struct stats global_stat = {0, 0, 0, 0, 0};
+static struct stats global_stat = {0, 0, 0, 0, 0, 0, 0};
 
 static tube default_tube;
 
@@ -436,7 +436,7 @@ process_queue()
 static job
 delay_q_peek()
 {
-    int i;
+    size_t i;
     tube t;
     job j = NULL, nj;
 
@@ -488,10 +488,8 @@ enqueue_job(Server *s, job j, int64 delay, char update_store)
 static int
 bury_job(Server *s, job j, char update_store)
 {
-    int z;
-
     if (update_store) {
-        z = walresvupdate(&s->wal, j);
+        int z = walresvupdate(&s->wal, j);
         if (!z) return 0;
         j->walresv += z;
     }
@@ -1185,7 +1183,6 @@ static void
 dispatch_cmd(Conn *c)
 {
     int r, i, timeout = -1;
-    int z;
     uint count;
     job j = 0;
     byte type;
@@ -1377,7 +1374,7 @@ dispatch_cmd(Conn *c)
         /* We want to update the delay deadline on disk, so reserve space for
          * that. */
         if (delay) {
-            z = walresvupdate(&c->srv->wal, j);
+            int z = walresvupdate(&c->srv->wal, j);
             if (!z) return reply_serr(c, MSG_OUT_OF_MEMORY);
             j->walresv += z;
         }

@@ -423,7 +423,7 @@ warnpos(File *f, int adj, char *fmt, ...)
     va_list ap;
 
     off = lseek(f->fd, 0, SEEK_CUR);
-    fprintf(stderr, "%s:%u: ", f->path, off+adj);
+    fprintf(stderr, "%s:%d: ", f->path, off+adj);
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
     va_end(ap);
