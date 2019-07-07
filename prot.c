@@ -452,6 +452,7 @@ delay_q_peek()
     return j;
 }
 
+/* Inserts job j in the tube, returns 1 on success, otherwise 0 */
 static int
 enqueue_job(Server *s, job j, int64 delay, char update_store)
 {
@@ -713,21 +714,23 @@ check_err(Conn *c, const char *s)
 
 /* Scan the given string for the sequence "\r\n" and return the line length.
  * Always returns at least 2 if a match is found. Returns 0 if no match. */
-static int
+static size_t
 scan_line_end(const char *s, int size)
 {
     char *match;
 
     match = memchr(s, '\r', size - 1);
-    if (!match) return 0;
+    if (!match)
+        return 0;
 
     /* this is safe because we only scan size - 1 chars above */
-    if (match[1] == '\n') return match - s + 2;
+    if (match[1] == '\n')
+        return match - s + 2;
 
     return 0;
 }
 
-static int
+static size_t
 cmd_len(Conn *c)
 {
     return scan_line_end(c->cmd, c->cmd_read);
@@ -870,7 +873,7 @@ fmt_stats(char *buf, size_t size, void *x)
 {
     int whead = 0, wcur = 0;
     Server *srv;
-    struct rusage ru = {{0, 0}, {0, 0}};
+    struct rusage ru;
 
     srv = x;
 
@@ -1175,7 +1178,8 @@ prot_remove_tube(tube t)
 static void
 dispatch_cmd(Conn *c)
 {
-    int r, i, timeout = -1;
+    int r, timeout = -1;
+    uint i;
     uint count;
     job j = 0;
     byte type;
@@ -1646,13 +1650,6 @@ enter_drain_mode(int sig)
 }
 
 static void
-do_cmd(Conn *c)
-{
-    dispatch_cmd(c);
-    fill_extra_data(c);
-}
-
-static void
 reset_conn(Conn *c)
 {
     connwant(c, 'r');
@@ -1677,7 +1674,8 @@ conn_data(Conn *c)
     switch (c->state) {
     case STATE_WANTCOMMAND:
         r = read(c->sock.fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
-        if (r == -1) return check_err(c, "read()");
+        if (r == -1)
+            return check_err(c, "read()");
         if (r == 0) {
             c->state = STATE_CLOSE;
             return;
@@ -1688,7 +1686,11 @@ conn_data(Conn *c)
         c->cmd_len = cmd_len(c); /* find the EOL */
 
         /* yay, complete command line */
-        if (c->cmd_len) return do_cmd(c);
+        if (c->cmd_len) {
+            dispatch_cmd(c);
+            fill_extra_data(c);
+            return;
+        }
 
         /* c->cmd_read > LINE_BUF_SIZE can't happen */
 
@@ -1723,7 +1725,8 @@ conn_data(Conn *c)
         j = c->in_job;
 
         r = read(c->sock.fd, j->body + c->in_job_read, j->r.body_size -c->in_job_read);
-        if (r == -1) return check_err(c, "read()");
+        if (r == -1)
+            return check_err(c, "read()");
         if (r == 0) {
             c->state = STATE_CLOSE;
             return;
@@ -1737,7 +1740,8 @@ conn_data(Conn *c)
         break;
     case STATE_SENDWORD:
         r= write(c->sock.fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
-        if (r == -1) return check_err(c, "write()");
+        if (r == -1)
+            return check_err(c, "write()");
         if (r == 0) {
             c->state = STATE_CLOSE;
             return;
@@ -1760,7 +1764,8 @@ conn_data(Conn *c)
         iov[1].iov_len = j->r.body_size - c->out_job_sent;
 
         r = writev(c->sock.fd, iov, 2);
-        if (r == -1) return check_err(c, "writev()");
+        if (r == -1)
+            return check_err(c, "writev()");
         if (r == 0) {
             c->state = STATE_CLOSE;
             return;
@@ -1831,7 +1836,10 @@ h_conn(const int fd, const short which, Conn *c)
     }
 
     conn_data(c);
-    while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
+    while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) {
+        dispatch_cmd(c);
+        fill_extra_data(c);
+    }
     if (c->state == STATE_CLOSE) {
         protrmdirty(c);
         connclose(c);
@@ -1848,10 +1856,8 @@ prothandle(Conn *c, int ev)
 int64
 prottick(Server *s)
 {
-    int r;
     job j;
     int64 now;
-    int i;
     tube t;
     int64 period = 0x34630B8A000LL; /* 1 hour in nanoseconds */
     int64 d;
@@ -1864,10 +1870,12 @@ prottick(Server *s)
             break;
         }
         j = delay_q_take();
-        r = enqueue_job(s, j, 0, 0);
-        if (r < 1) bury_job(s, j, 0); /* out of memory, so bury it */
+        int r = enqueue_job(s, j, 0, 0);
+        if (r < 1)
+            bury_job(s, j, 0);  /* out of memory */
     }
 
+    size_t i;
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
         d = t->deadline_at - now;

@@ -201,7 +201,7 @@ readrec(File *f, job l, int *err)
     case Buried:
     case Delayed:
         if (!j) {
-            if (jr.body_size > job_data_size_limit) {
+            if ((size_t)jr.body_size > job_data_size_limit) {
                 warnpos(f, -r, "job %"PRIu64" is too big (%"PRId32" > %zu)",
                         jr.id,
                         jr.body_size,
@@ -325,7 +325,7 @@ readrec5(File *f, job l, int *err)
     case Buried:
     case Delayed:
         if (!j) {
-            if (jr.body_size > job_data_size_limit) {
+            if ((size_t)jr.body_size > job_data_size_limit) {
                 warnpos(f, -r, "job %"PRIu64" is too big (%"PRId32" > %zu)",
                         jr.id,
                         jr.body_size,
@@ -460,7 +460,7 @@ filewopen(File *f)
     }
 
     n = write(fd, &ver, sizeof(int));
-    if (n < sizeof(int)) {
+    if (n < 0 || (size_t)n < sizeof(int)) {
         twarn("write %s", f->path);
         close(fd);
         return;
