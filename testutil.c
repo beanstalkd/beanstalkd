@@ -8,7 +8,7 @@
 #include "dat.h"
 
 void
-cttestallocf()
+cttest_allocf()
 {
     char *got;
 
@@ -16,9 +16,8 @@ cttestallocf()
     assertf(strcmp("hello, world 5", got) == 0, "got \"%s\"", got);
 }
 
-
 void
-cttestoptnone()
+cttest_opt_none()
 {
     char *args[] = {
         NULL,
@@ -37,16 +36,14 @@ cttestoptnone()
     assert(verbose == 0);
 }
 
-
 static void
 success(void)
 {
     _exit(0);
 }
 
-
 void
-cttestoptminus()
+cttest_optminus()
 {
     char *args[] = {
         "-",
@@ -58,9 +55,8 @@ cttestoptminus()
     assertf(0, "optparse failed to call exit");
 }
 
-
 void
-cttestoptp()
+cttest_optp()
 {
     char *args[] = {
         "-p1234",
@@ -71,9 +67,8 @@ cttestoptp()
     assert(strcmp(srv.port, "1234") == 0);
 }
 
-
 void
-cttestoptl()
+cttest_optl()
 {
     char *args[] = {
         "-llocalhost",
@@ -84,9 +79,8 @@ cttestoptl()
     assert(strcmp(srv.addr, "localhost") == 0);
 }
 
-
 void
-cttestoptlseparate()
+cttest_optlseparate()
 {
     char *args[] = {
         "-l",
@@ -98,9 +92,8 @@ cttestoptlseparate()
     assert(strcmp(srv.addr, "localhost") == 0);
 }
 
-
 void
-cttestoptz()
+cttest_optz()
 {
     char *args[] = {
         "-z1234",
@@ -111,9 +104,8 @@ cttestoptz()
     assert(job_data_size_limit == 1234);
 }
 
-
 void
-cttestopts()
+cttest_opts()
 {
     char *args[] = {
         "-s1234",
@@ -124,9 +116,8 @@ cttestopts()
     assert(srv.wal.filesize == 1234);
 }
 
-
 void
-cttestoptc()
+cttest_optc()
 {
     char *args[] = {
         "-n",
@@ -138,9 +129,8 @@ cttestoptc()
     assert(srv.wal.nocomp == 0);
 }
 
-
 void
-cttestoptn()
+cttest_optn()
 {
     char *args[] = {
         "-n",
@@ -151,9 +141,8 @@ cttestoptn()
     assert(srv.wal.nocomp == 1);
 }
 
-
 void
-cttestoptf()
+cttest_optf()
 {
     char *args[] = {
         "-f1234",
@@ -165,9 +154,8 @@ cttestoptf()
     assert(srv.wal.wantsync == 1);
 }
 
-
 void
-cttestoptF()
+cttest_optF()
 {
     char *args[] = {
         "-f1234",
@@ -179,9 +167,8 @@ cttestoptF()
     assert(srv.wal.wantsync == 0);
 }
 
-
 void
-cttestoptu()
+cttest_optu()
 {
     char *args[] = {
         "-ukr",
@@ -192,9 +179,8 @@ cttestoptu()
     assert(strcmp(srv.user, "kr") == 0);
 }
 
-
 void
-cttestoptb()
+cttest_optb()
 {
     char *args[] = {
         "-bfoo",
@@ -206,9 +192,8 @@ cttestoptb()
     assert(srv.wal.use == 1);
 }
 
-
 void
-cttestoptV()
+cttest_optV()
 {
     char *args[] = {
         "-V",
@@ -219,9 +204,8 @@ cttestoptV()
     assert(verbose == 1);
 }
 
-
 void
-cttestoptV_V()
+cttest_optV_V()
 {
     char *args[] = {
         "-V",
@@ -233,9 +217,8 @@ cttestoptV_V()
     assert(verbose == 2);
 }
 
-
 void
-cttestoptVVV()
+cttest_optVVV()
 {
     char *args[] = {
         "-VVV",
@@ -246,9 +229,8 @@ cttestoptVVV()
     assert(verbose == 3);
 }
 
-
 void
-cttestoptVnVu()
+cttest_optVnVu()
 {
     char *args[] = {
         "-VnVukr",

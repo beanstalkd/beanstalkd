@@ -8,7 +8,7 @@
 
 
 void
-cttestheap_insert_one()
+cttest_heap_insert_one()
 {
     Heap h = {0};
     job j;
@@ -24,9 +24,8 @@ cttestheap_insert_one()
     assertf(j->heap_index == 0, "should match");
 }
 
-
 void
-cttestheap_insert_and_remove_one()
+cttest_heap_insert_and_remove_one()
 {
     Heap h = {0};
     int r;
@@ -47,9 +46,8 @@ cttestheap_insert_and_remove_one()
     assertf(j->heap_index == -1, "j's heap index should be invalid");
 }
 
-
 void
-cttestheap_priority()
+cttest_heap_priority()
 {
     Heap h = {0};
     int r;
@@ -92,9 +90,8 @@ cttestheap_priority()
     assertf(j == j3, "j3 should come out third.");
 }
 
-
 void
-cttestheap_fifo_property()
+cttest_heap_fifo_property()
 {
     Heap h = {0};
     int r;
@@ -140,9 +137,8 @@ cttestheap_fifo_property()
     assertf(j == j3c, "j3c should come out third.");
 }
 
-
 void
-cttestheap_many_jobs()
+cttest_heap_many_jobs()
 {
     Heap h = {0};
     uint last_pri;
@@ -167,9 +163,8 @@ cttestheap_many_jobs()
     }
 }
 
-
 void
-cttestheap_remove_k()
+cttest_heap_remove_k()
 {
     Heap h = {0};
     uint last_pri;
@@ -201,7 +196,7 @@ cttestheap_remove_k()
 }
 
 void
-ctbenchheapinsert(int n)
+ctbench_heap_insert(int n)
 {
     job *j;
     int i;
@@ -222,7 +217,7 @@ ctbenchheapinsert(int n)
 }
 
 void
-ctbenchheapremove(int n)
+ctbench_heap_remove(int n)
 {
     Heap h = {0};
     job j;
