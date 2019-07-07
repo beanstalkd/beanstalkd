@@ -938,30 +938,38 @@ fmt_stats(char *buf, size_t size, void *x)
             node_info.nodename);
 }
 
-/* Read a number value from the given buffer and place it in num.
+/* Read an integer from the given buffer and place it in num.
+ * Parsed integer should fit into uint32.
  * Update end to point to the address after the last character consumed.
  * num and end can be NULL. If they are both NULL, read_num() will do the
- * conversion and return the status code but not update any values. This is an
- * easy way to check for errors.
+ * conversion and return the status code but not update any values.
+ * This is an easy way to check for errors.
  * If end is NULL, read_num will also check that the entire input string was
  * consumed and return an error code otherwise.
  * Return 0 on success, or nonzero on failure.
  * If a failure occurs, num and end are not modified. */
 static int
-read_num(uint *num, const char *buf, char **end)
+read_num(uint32 *num, const char *buf, char **end)
 {
-    uint tnum;
+    uint64 tnum;
     char *tend;
 
     errno = 0;
-    while (buf[0] == ' ') buf++;
-    if (buf[0] < '0' || '9' < buf[0]) return -1;
-    tnum = strtoul(buf, &tend, 10);
-    if (tend == buf) return -1;
-    if (errno && errno != ERANGE) return -1;
-    if (!end && tend[0] != '\0') return -1;
+    while (buf[0] == ' ')
+        buf++;
+    if (buf[0] < '0' || '9' < buf[0])
+        return -1;
+    tnum = strtoumax(buf, &tend, 10);
+    if (tend == buf)
+        return -1;
+    if (errno && errno != ERANGE)
+        return -1;
+    if (!end && tend[0] != '\0')
+        return -1;
+    if (tnum > MAX_UINT32)
+        return -1;
 
-    if (num) *num = tnum;
+    if (num) *num = (uint32)tnum;
     if (end) *end = tend;
     return 0;
 }
@@ -973,10 +981,11 @@ static int
 read_duration(int64 *duration, const char *buf, char **end)
 {
     int r;
-    uint dur_sec;
+    uint32 dur_sec;
 
     r = read_num(&dur_sec, buf, end);
-    if (r) return r;
+    if (r)
+        return r;
     *duration = ((int64) dur_sec) * 1000000000;
     return 0;
 }
@@ -1184,7 +1193,8 @@ dispatch_cmd(Conn *c)
     job j = 0;
     byte type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
-    uint pri, body_size;
+    uint32 pri;
+    uint body_size;
     int64 delay, ttr;
     uint64 id;
     tube t = NULL;
