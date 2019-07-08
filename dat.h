@@ -342,7 +342,7 @@ void walinit(Wal*, job list);
 int  walwrite(Wal*, job);
 void walmaint(Wal*);
 int  walresvput(Wal*, job);
-int  walresvupdate(Wal*, job);
+int  walresvupdate(Wal*);
 void walgc(Wal*);
 
 

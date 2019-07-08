@@ -490,7 +490,7 @@ static int
 bury_job(Server *s, job j, char update_store)
 {
     if (update_store) {
-        int z = walresvupdate(&s->wal, j);
+        int z = walresvupdate(&s->wal);
         if (!z) return 0;
         j->walresv += z;
     }
@@ -545,7 +545,7 @@ kick_buried_job(Server *s, job j)
     int r;
     int z;
 
-    z = walresvupdate(&s->wal, j);
+    z = walresvupdate(&s->wal);
     if (!z) return 0;
     j->walresv += z;
 
@@ -580,7 +580,7 @@ kick_delayed_job(Server *s, job j)
     int r;
     int z;
 
-    z = walresvupdate(&s->wal, j);
+    z = walresvupdate(&s->wal);
     if (!z) return 0;
     j->walresv += z;
 
@@ -1381,7 +1381,7 @@ dispatch_cmd(Conn *c)
         /* We want to update the delay deadline on disk, so reserve space for
          * that. */
         if (delay) {
-            int z = walresvupdate(&c->srv->wal, j);
+            int z = walresvupdate(&c->srv->wal);
             if (!z) return reply_serr(c, MSG_OUT_OF_MEMORY);
             j->walresv += z;
         }
@@ -2033,7 +2033,7 @@ prot_replay(Server *s, job list)
     for (j = list->next ; j != list ; j = nj) {
         nj = j->next;
         job_remove(j);
-        z = walresvupdate(&s->wal, j);
+        z = walresvupdate(&s->wal);
         if (!z) {
             twarnx("failed to reserve space");
             return 0;

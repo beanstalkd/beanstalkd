@@ -388,10 +388,9 @@ walresvput(Wal *w, job j)
 
 // Returns the number of bytes reserved or 0 on error.
 int
-walresvupdate(Wal *w, job j)
+walresvupdate(Wal *w)
 {
     int z = 0;
-
     z +=sizeof(int);
     z +=sizeof(Jobrec);
     return reserve(w, z);
