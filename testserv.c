@@ -60,19 +60,18 @@ muststart(char *a0, char *a1, char *a2, char *a3, char *a4)
 static int
 mustdiallocal(int port)
 {
-    int r, fd;
     struct sockaddr_in addr = {};
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    r = inet_aton("127.0.0.1", &addr.sin_addr);
+    int r = inet_aton("127.0.0.1", &addr.sin_addr);
     if (!r) {
         errno = EINVAL;
         twarn("inet_aton");
         exit(1);
     }
 
-    fd = socket(PF_INET, SOCK_STREAM, 0);
+    int fd = socket(PF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
         twarn("socket");
         exit(1);
@@ -87,12 +86,43 @@ mustdiallocal(int port)
     return fd;
 }
 
-#define SERVER() (progname = __func__, mustforksrv())
+#ifdef WITHCOV
+void __gcov_flush (void);
+
+void
+gcov_flush(int signum)
+{
+    __gcov_flush(); /* dump coverage data  */
+    usleep(500000); /* .5s; time to write data */
+    exit(1);        /* some tests are stuck without it */
+}
+
+static void
+set_sig_usr2()
+{
+    struct sigaction sa;
+
+    sa.sa_flags = 0;
+    int r = sigemptyset(&sa.sa_mask);
+    if (r == -1) {
+        twarn("sigemptyset()");
+        exit(111);
+    }
+
+    sa.sa_handler = gcov_flush;
+    r = sigaction(SIGUSR2, &sa, 0);
+    if (r == -1) {
+        twarn("sigaction(SIGUSR2)");
+        exit(111);
+    }
+}
+#endif
+
+#define SERVER() (progname=__func__, mustforksrv())
 
 static int
 mustforksrv()
 {
-    int r, len, port, ok;
     struct sockaddr_in addr;
 
     srv.sock.fd = make_server_socket("127.0.0.1", "0");
@@ -101,14 +131,14 @@ mustforksrv()
         exit(1);
     }
 
-    len = sizeof(addr);
-    r = getsockname(srv.sock.fd, (struct sockaddr *)&addr, (socklen_t *)&len);
+    size_t len = sizeof(addr);
+    int r = getsockname(srv.sock.fd, (struct sockaddr*)&addr, (socklen_t*)&len);
     if (r == -1 || len > sizeof(addr)) {
         puts("mustforksrv failed");
         exit(1);
     }
 
-    port = ntohs(addr.sin_port);
+    int port = ntohs(addr.sin_port);
     srvpid = fork();
     if (srvpid < 0) {
         twarn("fork");
@@ -123,6 +153,9 @@ mustforksrv()
     /* now in child */
 
     prot_init();
+#ifdef WITHCOV
+    set_sig_usr2();
+#endif
 
     if (srv.wal.use) {
         struct job list = {};
@@ -136,7 +169,7 @@ mustforksrv()
 
         list.prev = list.next = &list;
         walinit(&srv.wal, &list);
-        ok = prot_replay(&srv, &list);
+        int ok = prot_replay(&srv, &list);
         if (!ok) {
             twarnx("failed to replay log");
             exit(11);
@@ -150,7 +183,6 @@ mustforksrv()
 static char *
 readline(int fd)
 {
-    int r, i = 0;
     char c = 0, p = 0;
     static char buf[1024];
     fd_set rfd;
@@ -158,12 +190,14 @@ readline(int fd)
 
     printf("<%d ", fd);
     fflush(stdout);
+
+    size_t i = 0;
     for (;;) {
         FD_ZERO(&rfd);
         FD_SET(fd, &rfd);
         tv.tv_sec = timeout / 1000000000;
         tv.tv_usec = (timeout/1000) % 1000000;
-        r = select(fd+1, &rfd, NULL, NULL, &tv);
+        int r = select(fd+1, &rfd, NULL, NULL, &tv);
         switch (r) {
         case 1:
             break;
@@ -202,18 +236,14 @@ readline(int fd)
 static void
 ckresp(int fd, char *exp)
 {
-    char *line;
-
-    line = readline(fd);
+    char *line = readline(fd);
     assertf(strcmp(exp, line) == 0, "\"%s\" != \"%s\"", exp, line);
 }
 
 static void
 ckrespsub(int fd, char *sub)
 {
-    char *line;
-
-    line = readline(fd);
+    char *line = readline(fd);
     assertf(strstr(line, sub), "\"%s\" not in \"%s\"", sub, line);
 }
 
@@ -242,10 +272,9 @@ mustsend(int fd, char *s)
 static int
 filesize(char *path)
 {
-    int r;
     struct stat s;
 
-    r = stat(path, &s);
+    int r = stat(path, &s);
     if (r == -1) {
         twarn("stat");
         exit(1);
@@ -256,10 +285,9 @@ filesize(char *path)
 static int
 exist(char *path)
 {
-    int r;
     struct stat s;
 
-    r = stat(path, &s);
+    int r = stat(path, &s);
     return r != -1;
 }
 

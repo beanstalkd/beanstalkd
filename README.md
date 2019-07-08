@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/beanstalkd/beanstalkd.svg?branch=master)](https://travis-ci.org/beanstalkd/beanstalkd)
+[![codecov](https://codecov.io/gh/beanstalkd/beanstalkd/branch/master/graph/badge.svg)](https://codecov.io/gh/beanstalkd/beanstalkd)
+
 # beanstalkd
 
 Simple and fast general purpose work queue.
@@ -45,8 +48,4 @@ See http://github.com/rtomayko/ronn.
 
 Unit tests are in test*.c. See https://github.com/kr/ct for
 information on how to write them.
-
-## Code Status
-[![Build Status](https://travis-ci.org/beanstalkd/beanstalkd.svg?branch=master)](https://travis-ci.org/beanstalkd/beanstalkd)
-[![codecov](https://codecov.io/gh/beanstalkd/beanstalkd/branch/master/graph/badge.svg)](https://codecov.io/gh/beanstalkd/beanstalkd)
 

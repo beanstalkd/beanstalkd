@@ -46,7 +46,7 @@ endif
 
 CLEANFILES=\
 	vers.c\
-	$(wildcard *.gcda *.gcno)
+	$(wildcard *.gc*)
 
 .PHONY: all
 all: $(TARG)
@@ -89,7 +89,7 @@ ct/ct.o ct/_ctcheck.o: ct/ct.h ct/internal.h
 
 $(TOFILES): $(HFILES) ct/ct.h
 
-CLEANFILES+=$(wildcard ct/_* ct/*.o)
+CLEANFILES+=$(wildcard ct/_* ct/*.o ct/*.gc*)
 
 ifneq ($(shell ./verc.sh),$(shell cat vers.c 2>/dev/null))
 .PHONY: vers.c

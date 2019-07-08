@@ -36,7 +36,6 @@ su(const char *user)
     }
 }
 
-
 static void
 set_sig_handlers()
 {
