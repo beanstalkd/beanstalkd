@@ -60,6 +60,8 @@ typedef int(FAlloc)(int, int);
 /* Maximum value (uint32) allowed in pri, delay and ttr parameters */
 #define MAX_UINT32 4294967295
 
+#define UNUSED_PARAMETER(x) (void)(x)
+
 extern const char version[];
 extern int verbose;
 extern struct Server srv;

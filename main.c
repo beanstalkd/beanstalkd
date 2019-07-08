@@ -12,11 +12,8 @@
 static void
 su(const char *user) 
 {
-    int r;
-    struct passwd *pwent;
-
     errno = 0;
-    pwent = getpwnam(user);
+    struct passwd *pwent = getpwnam(user);
     if (errno) {
         twarn("getpwnam(\"%s\")", user);
         exit(32);
@@ -26,7 +23,7 @@ su(const char *user)
         exit(33);
     }
 
-    r = setgid(pwent->pw_gid);
+    int r = setgid(pwent->pw_gid);
     if (r == -1) {
         twarn("setgid(%d \"%s\")", pwent->pw_gid, user);
         exit(34);
@@ -43,12 +40,11 @@ su(const char *user)
 static void
 set_sig_handlers()
 {
-    int r;
     struct sigaction sa;
 
     sa.sa_handler = SIG_IGN;
     sa.sa_flags = 0;
-    r = sigemptyset(&sa.sa_mask);
+    int r = sigemptyset(&sa.sa_mask);
     if (r == -1) {
         twarn("sigemptyset()");
         exit(111);
@@ -71,8 +67,7 @@ set_sig_handlers()
 int
 main(int argc, char **argv)
 {
-    int r;
-    struct job list = {};
+    UNUSED_PARAMETER(argc);
 
     progname = argv[0];
     setlinebuf(stdout);
@@ -82,7 +77,7 @@ main(int argc, char **argv)
         printf("pid %d\n", getpid());
     }
 
-    r = make_server_socket(srv.addr, srv.port);
+    int r = make_server_socket(srv.addr, srv.port);
     if (r == -1) {
         twarnx("make_server_socket()");
         exit(111);
@@ -92,7 +87,8 @@ main(int argc, char **argv)
 
     prot_init();
 
-    if (srv.user) su(srv.user);
+    if (srv.user)
+        su(srv.user);
     set_sig_handlers();
 
     if (srv.wal.use) {
@@ -104,6 +100,7 @@ main(int argc, char **argv)
             exit(10);
         }
 
+        struct job list = {};
         list.prev = list.next = &list;
         walinit(&srv.wal, &list);
         r = prot_replay(&srv, &list);

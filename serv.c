@@ -4,11 +4,9 @@
 #include "dat.h"
 
 struct Server srv = {
-    Portdef,
-    NULL,
-    NULL,
-    {
-        Filesizedef,
+    .port = Portdef,
+    .wal = {
+        .filesize = Filesizedef,
     },
 };
 
