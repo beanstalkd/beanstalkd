@@ -274,9 +274,9 @@ struct Conn {
     int    pending_timeout;
     char   halfclosed;
 
-    char cmd[LINE_BUF_SIZE]; // this string is NOT NUL-terminated
-    int  cmd_len;
-    int  cmd_read;
+    char   cmd[LINE_BUF_SIZE]; // this string is NOT NUL-terminated
+    size_t cmd_len;
+    int    cmd_read;
 
     char *reply;
     int  reply_len;
