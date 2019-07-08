@@ -57,6 +57,9 @@ typedef int(FAlloc)(int, int);
 #define URGENT_THRESHOLD 1024
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 
+/* Maximum value (uint32) allowed in pri, delay and ttr parameters */
+#define MAX_UINT32 4294967295
+
 extern const char version[];
 extern int verbose;
 extern struct Server srv;

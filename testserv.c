@@ -264,6 +264,27 @@ exist(char *path)
 }
 
 void
+cttest_unknown_command()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "nont10knowncommand\r\n");
+    ckresp(fd, "UNKNOWN_COMMAND\r\n");
+}
+
+void
+cttest_too_long_commandline()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    int i;
+    for (i = 0; i < 5; i++)
+        mustsend(fd, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    mustsend(fd, "\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+}
+
+void
 cttest_pause()
 {
     int64 s;
@@ -356,6 +377,48 @@ cttest_negative_delay()
     port = SERVER();
     fd = mustdiallocal(port);
     mustsend(fd, "put 512 -1 100 0\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+}
+
+/* TODO: add more edge cases tests for delay and ttr */
+
+void
+cttest_garbage_priority()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put -1kkdj9djjkd9 0 100 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+}
+
+void
+cttest_negative_priority()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put -1 0 100 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+}
+
+void
+cttest_max_priority()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 4294967295 0 100 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+}
+
+void
+cttest_too_big_priority()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 4294967296 0 100 1\r\n");
+    mustsend(fd, "a\r\n");
     ckresp(fd, "BAD_FORMAT\r\n");
 }
 

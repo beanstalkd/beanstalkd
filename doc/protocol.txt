@@ -135,13 +135,14 @@ below).
 
  - <delay> is an integer number of seconds to wait before putting the job in
    the ready queue. The job will be in the "delayed" state during this time.
+   Maximum delay is 2**32-1.
 
  - <ttr> -- time to run -- is an integer number of seconds to allow a worker
    to run this job. This time is counted from the moment a worker reserves
    this job. If the worker does not delete, release, or bury the job within
    <ttr> seconds, the job will time out and the server will release the job.
    The minimum ttr is 1. If the client sends 0, the server will silently
-   increase the ttr to 1.
+   increase the ttr to 1. Maximum ttr is 2**32-1.
 
  - <bytes> is an integer indicating the size of the job body, not including the
    trailing "\r\n". This value must be less than max-job-size (default: 2**16).
