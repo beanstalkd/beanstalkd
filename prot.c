@@ -1654,8 +1654,9 @@ conn_timeout(Conn *c)
 }
 
 void
-enter_drain_mode(int sig)
+enter_drain_mode(int signum)
 {
+    UNUSED_PARAMETER(signum);
     drain_mode = 1;
 }
 
@@ -1918,13 +1919,11 @@ prottick(Server *s)
 void
 h_accept(const int fd, const short which, Server *s)
 {
-    Conn *c;
-    int cfd, flags, r;
-    socklen_t addrlen;
+    UNUSED_PARAMETER(which);
     struct sockaddr_in6 addr;
 
-    addrlen = sizeof addr;
-    cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
+    socklen_t addrlen = sizeof addr;
+    int cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
         update_conns();
@@ -1934,7 +1933,7 @@ h_accept(const int fd, const short which, Server *s)
         printf("accept %d\n", cfd);
     }
 
-    flags = fcntl(cfd, F_GETFL, 0);
+    int flags = fcntl(cfd, F_GETFL, 0);
     if (flags < 0) {
         twarn("getting flags");
         close(cfd);
@@ -1945,7 +1944,7 @@ h_accept(const int fd, const short which, Server *s)
         return;
     }
 
-    r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
+    int r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
     if (r < 0) {
         twarn("setting O_NONBLOCK");
         close(cfd);
@@ -1956,7 +1955,7 @@ h_accept(const int fd, const short which, Server *s)
         return;
     }
 
-    c = make_conn(cfd, STATE_WANTCOMMAND, default_tube, default_tube);
+    Conn *c = make_conn(cfd, STATE_WANTCOMMAND, default_tube, default_tube);
     if (!c) {
         twarnx("make_conn() failed");
         close(cfd);

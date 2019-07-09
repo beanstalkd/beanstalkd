@@ -16,6 +16,8 @@ int verbose = 0;
 static void
 on_watch(ms a, tube t, size_t i)
 {
+    UNUSED_PARAMETER(a);
+    UNUSED_PARAMETER(i);
     tube_iref(t);
     t->watching_ct++;
 }
@@ -23,6 +25,8 @@ on_watch(ms a, tube t, size_t i)
 static void
 on_ignore(ms a, tube t, size_t i)
 {
+    UNUSED_PARAMETER(a);
+    UNUSED_PARAMETER(i);
     t->watching_ct--;
     tube_dref(t);
 }
