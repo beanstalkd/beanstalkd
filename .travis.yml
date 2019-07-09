@@ -34,7 +34,7 @@ script:
     - |
       if [ $COVERAGE = "ON" ]; then
           export LDFLAGS=" -lgcov --coverage"
-          export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage -DWITHCOV=1"
+          export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
       fi
     - make $MAKEJOBS || ( echo "Build failure. Verbose build follows." && make V=1 ; false )
     - |

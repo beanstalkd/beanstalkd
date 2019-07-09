@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -89,7 +90,6 @@ mustdiallocal(int port)
 static void
 exit_process(int signum)
 {
-    printf("exiting from child\n");
     exit(0);
 }
 
@@ -113,28 +113,20 @@ set_sig_handler()
     }
 }
 
+// Kill the child process with our chosen signal to give it a chance
+// to write gcov data to the filesystem before ct kills it with SIGKILL.
 static void
 kill_srv_atexit(void)
 {
-    /* if we are already in child do not exit.
-       Code below can make tests pass,
-       but decreases coverage from 58.5 to 46.2%. */
-    /* if (srvpid != 0) */
-    /*     return; */
-
-    /* printf statements are for debugging purposes */
-    printf("killing %d\n", srvpid);
     kill(srvpid, SIGTERM);
-
-    printf("waiting %d\n", srvpid);
     waitpid(srvpid, 0, 0);
-    printf("exited %d\n", srvpid);
 }
 
-#define SERVER() (progname=__func__, mustforksrv())
+#define SERVER() (progname=__func__, mustforksrv(true))
+#define SERVER_NO_ATEXIT() (progname=__func__, mustforksrv(false))
 
 static int
-mustforksrv()
+mustforksrv(bool set_atexit)
 {
     struct sockaddr_in addr;
 
@@ -159,17 +151,18 @@ mustforksrv()
     }
 
     if (srvpid > 0) {
-        /* srvpid is of a child. */
-        /* When the parent (test) has finished it will send sigterm to the child */
-        atexit(kill_srv_atexit);
+        /* When the parent (test) is finished it will send SIGTERM to the child */
+        if (set_atexit) {
+            atexit(kill_srv_atexit);
+        }
         printf("start server port=%d pid=%d\n", port, srvpid);
         return port;
     }
 
     /* now in child */
 
-    prot_init();
     set_sig_handler();
+    prot_init();
 
     if (srv.wal.use) {
         struct job list = {};
@@ -712,7 +705,7 @@ cttest_binlog_empty_exit()
     srv.wal.use = 1;
     job_data_size_limit = 10;
 
-    port = SERVER();
+    port = SERVER_NO_ATEXIT();
 
     kill(srvpid, SIGTERM);
     waitpid(srvpid, NULL, 0);
@@ -750,7 +743,7 @@ cttest_binlog_basic()
     srv.wal.use = 1;
     job_data_size_limit = 10;
 
-    port = SERVER();
+    port = SERVER_NO_ATEXIT();
     fd = mustdiallocal(port);
     mustsend(fd, "put 0 0 100 0\r\n");
     mustsend(fd, "\r\n");
@@ -827,7 +820,7 @@ cttest_binlog_read()
     srv.wal.syncrate = 0;
     srv.wal.wantsync = 1;
 
-    port = SERVER();
+    port = SERVER_NO_ATEXIT();
     fd = mustdiallocal(port);
     mustsend(fd, "use test\r\n");
     ckresp(fd, "USING test\r\n");
