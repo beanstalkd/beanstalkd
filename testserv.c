@@ -27,7 +27,7 @@ static byte fallocpat[3];
 static int
 wrapfalloc(int fd, int size)
 {
-    static int c = 0;
+    static size_t c = 0;
 
     printf("\nwrapfalloc: fd=%d size=%d\n", fd, size);
     if (c >= sizeof(fallocpat) || !fallocpat[c++]) {
