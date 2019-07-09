@@ -86,19 +86,15 @@ mustdiallocal(int port)
     return fd;
 }
 
-#ifdef WITHCOV
-void __gcov_flush (void);
-
-void
-gcov_flush(int signum)
+static void
+exit_process(int signum)
 {
-    __gcov_flush(); /* dump coverage data  */
-    usleep(500000); /* .5s; time to write data */
-    exit(1);        /* some tests are stuck without it */
+    printf("exiting from child\n");
+    exit(0);
 }
 
 static void
-set_sig_usr2()
+set_sig_handler()
 {
     struct sigaction sa;
 
@@ -109,14 +105,31 @@ set_sig_usr2()
         exit(111);
     }
 
-    sa.sa_handler = gcov_flush;
-    r = sigaction(SIGUSR2, &sa, 0);
+    sa.sa_handler = exit_process;
+    r = sigaction(SIGTERM, &sa, 0);
     if (r == -1) {
-        twarn("sigaction(SIGUSR2)");
+        twarn("sigaction(SIGTERM)");
         exit(111);
     }
 }
-#endif
+
+static void
+kill_srv_atexit(void)
+{
+    /* if we are already in child do not exit.
+       Code below can make tests pass,
+       but decreases coverage from 58.5 to 46.2%. */
+    /* if (srvpid != 0) */
+    /*     return; */
+
+    /* printf statements are for debugging purposes */
+    printf("killing %d\n", srvpid);
+    kill(srvpid, SIGTERM);
+
+    printf("waiting %d\n", srvpid);
+    waitpid(srvpid, 0, 0);
+    printf("exited %d\n", srvpid);
+}
 
 #define SERVER() (progname=__func__, mustforksrv())
 
@@ -146,6 +159,9 @@ mustforksrv()
     }
 
     if (srvpid > 0) {
+        /* srvpid is of a child. */
+        /* When the parent (test) has finished it will send sigterm to the child */
+        atexit(kill_srv_atexit);
         printf("start server port=%d pid=%d\n", port, srvpid);
         return port;
     }
@@ -153,9 +169,7 @@ mustforksrv()
     /* now in child */
 
     prot_init();
-#ifdef WITHCOV
-    set_sig_usr2();
-#endif
+    set_sig_handler();
 
     if (srv.wal.use) {
         struct job list = {};
@@ -700,7 +714,7 @@ cttest_binlog_empty_exit()
 
     port = SERVER();
 
-    kill(srvpid, 9);
+    kill(srvpid, SIGTERM);
     waitpid(srvpid, NULL, 0);
 
     port = SERVER();
@@ -742,7 +756,7 @@ cttest_binlog_basic()
     mustsend(fd, "\r\n");
     ckresp(fd, "INSERTED 1\r\n");
 
-    kill(srvpid, 9);
+    kill(srvpid, SIGTERM);
     waitpid(srvpid, NULL, 0);
 
     port = SERVER();
@@ -836,7 +850,7 @@ cttest_binlog_read()
     mustsend(fd, "delete 2\r\n");
     ckresp(fd, "DELETED\r\n");
 
-    kill(srvpid, 9);
+    kill(srvpid, SIGTERM);
     waitpid(srvpid, NULL, 0);
 
     port = SERVER();

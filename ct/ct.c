@@ -167,7 +167,7 @@ waittest(Test *ts)
     if (pid == -1) {
         die(3, errno, "wait");
     }
-    killpg(pid, SIGUSR2);
+    killpg(pid, 9);
 
     for (t=ts; t->f; t++) {
         if (t->pid == pid) {
