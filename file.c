@@ -533,7 +533,10 @@ filewclose(File *f)
     if (!f) return;
     if (!f->iswopen) return;
     if (f->free) {
-        (void)ftruncate(f->fd, f->w->filesize - f->free);
+        errno = 0;
+        if (ftruncate(f->fd, f->w->filesize - f->free) != 0) {
+            twarn("ftruncate");
+        }
     }
     close(f->fd);
     f->iswopen = 0;
