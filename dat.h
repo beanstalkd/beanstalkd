@@ -31,7 +31,7 @@ typedef struct Wal    Wal;
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 typedef void(*Handle)(void*, int rw);
 typedef int(*Less)(void*, void*);
-typedef void(*Record)(void*, int);
+typedef void(*Record)(void*, size_t);
 typedef int(FAlloc)(int, int);
 
 #if _LP64
@@ -81,14 +81,14 @@ struct stats {
 
 
 struct Heap {
-    int     cap;
-    int     len;
+    size_t  cap;
+    size_t  len;
     void    **data;
     Less    less;
     Record  rec;
 };
 int   heapinsert(Heap *h, void *x);
-void* heapremove(Heap *h, int k);
+void* heapremove(Heap *h, size_t k);
 
 
 struct Socket {
@@ -210,7 +210,7 @@ void job_free(job j);
 job job_find(uint64 job_id);
 
 /* the void* parameters are really job pointers */
-void job_setheappos(void*, int);
+void job_setheappos(void*, size_t);
 int job_pri_less(void*, void*);
 int job_delay_less(void*, void*);
 

@@ -89,6 +89,7 @@ mustdiallocal(int port)
 static void
 exit_process(int signum)
 {
+    UNUSED_PARAMETER(signum);
     exit(0);
 }
 

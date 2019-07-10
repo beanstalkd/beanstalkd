@@ -10,13 +10,12 @@
 void
 cttest_heap_insert_one()
 {
-    Heap h = {0};
-    job j;
+    Heap h = {
+        .less = job_pri_less,
+        .rec = job_setheappos,
+    };
 
-    h.less = job_pri_less;
-    h.rec = job_setheappos;
-
-    j = make_job(1, 0, 1, 0, 0);
+    job j = make_job(1, 0, 1, 0, 0);
     assertf(j, "allocate job");
 
     heapinsert(&h, j);
@@ -27,34 +26,31 @@ cttest_heap_insert_one()
 void
 cttest_heap_insert_and_remove_one()
 {
-    Heap h = {0};
-    int r;
-    job j, j1;
+    Heap h = {
+        .less = job_pri_less,
+        .rec = job_setheappos,
+    };
 
-    h.less = job_pri_less;
-    h.rec = job_setheappos;
-    j1 = make_job(1, 0, 1, 0, 0);
+    job j1 = make_job(1, 0, 1, 0, 0);
     assertf(j1, "allocate job");
 
-    r = heapinsert(&h, j1);
+    int r = heapinsert(&h, j1);
     assertf(r, "insert should succeed");
 
-    j = heapremove(&h, 0);
-    assertf(j == j1, "j1 should come back out");
+    job got = heapremove(&h, 0);
+    assertf(got == j1, "j1 should come back out");
     assertf(h.len == 0, "h should be empty.");
-    printf("j->heap_index is %zu\n", j->heap_index);
-    assertf(j->heap_index == -1, "j's heap index should be invalid");
 }
 
 void
 cttest_heap_priority()
 {
-    Heap h = {0};
-    int r;
+    Heap h = {
+        .less = job_pri_less,
+        .rec = job_setheappos,
+    };
     job j, j1, j2, j3;
 
-    h.less = job_pri_less;
-    h.rec = job_setheappos;
     j1 = make_job(1, 0, 1, 0, 0);
     j2 = make_job(2, 0, 1, 0, 0);
     j3 = make_job(3, 0, 1, 0, 0);
@@ -62,7 +58,7 @@ cttest_heap_priority()
     assertf(j2, "allocate job");
     assertf(j3, "allocate job");
 
-    r = heapinsert(&h, j2);
+    int r = heapinsert(&h, j2);
     assertf(r, "insert should succeed");
     assertf(j2->heap_index == 0, "should match");
 
@@ -93,12 +89,12 @@ cttest_heap_priority()
 void
 cttest_heap_fifo_property()
 {
-    Heap h = {0};
-    int r;
+    Heap h = {
+        .less = job_pri_less,
+        .rec = job_setheappos,
+    };
     job j, j3a, j3b, j3c;
 
-    h.less = job_pri_less;
-    h.rec = job_setheappos;
     j3a = make_job(3, 0, 1, 0, 0);
     j3b = make_job(3, 0, 1, 0, 0);
     j3c = make_job(3, 0, 1, 0, 0);
@@ -106,7 +102,7 @@ cttest_heap_fifo_property()
     assertf(j3b, "allocate job");
     assertf(j3c, "allocate job");
 
-    r = heapinsert(&h, j3a);
+    int r = heapinsert(&h, j3a);
     assertf(r, "insert should succeed");
     assertf(h.data[0] == j3a, "j3a should be in pos 0");
     assertf(j3a->heap_index == 0, "should match");
@@ -140,22 +136,22 @@ cttest_heap_fifo_property()
 void
 cttest_heap_many_jobs()
 {
-    Heap h = {0};
-    uint last_pri;
-    int r, i, n = 20;
+    Heap h = {
+        .less = job_pri_less,
+        .rec = job_setheappos,
+    };
+    const int n = 20;
     job j;
 
-    h.less = job_pri_less;
-    h.rec = job_setheappos;
-
+    int i;
     for (i = 0; i < n; i++) {
         j = make_job(1 + rand() % 8192, 0, 1, 0, 0);
         assertf(j, "allocation");
-        r = heapinsert(&h, j);
+        int r = heapinsert(&h, j);
         assertf(r, "heapinsert");
     }
 
-    last_pri = 0;
+    uint last_pri = 0;
     for (i = 0; i < n; i++) {
         j = heapremove(&h, 0);
         assertf(j->r.pri >= last_pri, "should come out in order");
@@ -166,19 +162,18 @@ cttest_heap_many_jobs()
 void
 cttest_heap_remove_k()
 {
-    Heap h = {0};
-    uint last_pri;
-    int r, i, c, n = 20;
-    job j;
+    Heap h = {
+        .less = job_pri_less,
+        .rec = job_setheappos,
+    };
+    const int n = 20;
 
-    h.less = job_pri_less;
-    h.rec = job_setheappos;
-
+    int c, i;
     for (c = 0; c < 50; c++) {
         for (i = 0; i < n; i++) {
-            j = make_job(1 + rand() % 8192, 0, 1, 0, 0);
+            job j = make_job(1 + rand() % 8192, 0, 1, 0, 0);
             assertf(j, "allocation");
-            r = heapinsert(&h, j);
+            int r = heapinsert(&h, j);
             assertf(r, "heapinsert");
         }
 
@@ -186,9 +181,9 @@ cttest_heap_remove_k()
         heapremove(&h, 25);
 
         /* now make sure the rest are still a valid heap */
-        last_pri = 0;
+        uint last_pri = 0;
         for (i = 1; i < n; i++) {
-            j = heapremove(&h, 0);
+            job j = heapremove(&h, 0);
             assertf(j->r.pri >= last_pri, "should come out in order");
             last_pri = j->r.pri;
         }
@@ -198,18 +193,18 @@ cttest_heap_remove_k()
 void
 ctbench_heap_insert(int n)
 {
-    job *j;
-    int i;
-    j = calloc(n, sizeof *j);
+    job *j = calloc(n, sizeof *j);
     assert(j);
+    int i;
     for (i = 0; i < n; i++) {
         j[i] = make_job(1, 0, 1, 0, 0);
         assert(j[i]);
         j[i]->r.pri = -j[i]->r.id;
     }
-    Heap h = {0};
-    h.less = job_pri_less;
-    h.rec = job_setheappos;
+    Heap h = {
+        .less = job_pri_less,
+        .rec = job_setheappos,
+    };
     ctresettimer();
     for (i = 0; i < n; i++) {
         heapinsert(&h, j[i]);
@@ -219,14 +214,14 @@ ctbench_heap_insert(int n)
 void
 ctbench_heap_remove(int n)
 {
-    Heap h = {0};
-    job j;
-    int i;
+    Heap h = {
+        .less = job_pri_less,
+        .rec = job_setheappos,
+    };
 
-    h.less = job_pri_less;
-    h.rec = job_setheappos;
+    int i;
     for (i = 0; i < n; i++) {
-        j = make_job(1, 0, 1, 0, 0);
+        job j = make_job(1, 0, 1, 0, 0);
         assertf(j, "allocate job");
         heapinsert(&h, j);
     }

@@ -158,7 +158,7 @@ job_free(job j)
 }
 
 void
-job_setheappos(void *j, int pos)
+job_setheappos(void *j, size_t pos)
 {
     ((job)j)->heap_index = pos;
 }
