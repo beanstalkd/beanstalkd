@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -105,6 +104,7 @@ set_sig_handler()
         exit(111);
     }
 
+    // This is required to trigger gcov on exit. See issue #443.
     sa.sa_handler = exit_process;
     r = sigaction(SIGTERM, &sa, 0);
     if (r == -1) {
@@ -113,20 +113,23 @@ set_sig_handler()
     }
 }
 
-// Kill the child process with our chosen signal to give it a chance
+// Kill the srvpid (child process) with SIGTERM to give it a chance
 // to write gcov data to the filesystem before ct kills it with SIGKILL.
+// Do nothing in case of srvpid==0; child was already killed.
 static void
-kill_srv_atexit(void)
+kill_srvpid(void)
 {
+    if (!srvpid)
+        return;
     kill(srvpid, SIGTERM);
     waitpid(srvpid, 0, 0);
+    srvpid = 0;
 }
 
-#define SERVER() (progname=__func__, mustforksrv(true))
-#define SERVER_NO_ATEXIT() (progname=__func__, mustforksrv(false))
+#define SERVER() (progname=__func__, mustforksrv())
 
 static int
-mustforksrv(bool set_atexit)
+mustforksrv(void)
 {
     struct sockaddr_in addr;
 
@@ -137,7 +140,7 @@ mustforksrv(bool set_atexit)
     }
 
     size_t len = sizeof(addr);
-    int r = getsockname(srv.sock.fd, (struct sockaddr*)&addr, (socklen_t*)&len);
+    int r = getsockname(srv.sock.fd, (struct sockaddr *)&addr, (socklen_t *)&len);
     if (r == -1 || len > sizeof(addr)) {
         puts("mustforksrv failed");
         exit(1);
@@ -151,10 +154,8 @@ mustforksrv(bool set_atexit)
     }
 
     if (srvpid > 0) {
-        /* When the parent (test) is finished it will send SIGTERM to the child */
-        if (set_atexit) {
-            atexit(kill_srv_atexit);
-        }
+        // On exit the parent (test) sends SIGTERM to the child.
+        atexit(kill_srvpid);
         printf("start server port=%d pid=%d\n", port, srvpid);
         return port;
     }
@@ -705,10 +706,8 @@ cttest_binlog_empty_exit()
     srv.wal.use = 1;
     job_data_size_limit = 10;
 
-    port = SERVER_NO_ATEXIT();
-
-    kill(srvpid, SIGTERM);
-    waitpid(srvpid, NULL, 0);
+    port = SERVER();
+    kill_srvpid();
 
     port = SERVER();
     fd = mustdiallocal(port);
@@ -743,14 +742,13 @@ cttest_binlog_basic()
     srv.wal.use = 1;
     job_data_size_limit = 10;
 
-    port = SERVER_NO_ATEXIT();
+    port = SERVER();
     fd = mustdiallocal(port);
     mustsend(fd, "put 0 0 100 0\r\n");
     mustsend(fd, "\r\n");
     ckresp(fd, "INSERTED 1\r\n");
 
-    kill(srvpid, SIGTERM);
-    waitpid(srvpid, NULL, 0);
+    kill_srvpid();
 
     port = SERVER();
     fd = mustdiallocal(port);
@@ -820,7 +818,7 @@ cttest_binlog_read()
     srv.wal.syncrate = 0;
     srv.wal.wantsync = 1;
 
-    port = SERVER_NO_ATEXIT();
+    port = SERVER();
     fd = mustdiallocal(port);
     mustsend(fd, "use test\r\n");
     ckresp(fd, "USING test\r\n");
@@ -843,8 +841,7 @@ cttest_binlog_read()
     mustsend(fd, "delete 2\r\n");
     ckresp(fd, "DELETED\r\n");
 
-    kill(srvpid, SIGTERM);
-    waitpid(srvpid, NULL, 0);
+    kill_srvpid();
 
     port = SERVER();
     fd = mustdiallocal(port);
@@ -1081,7 +1078,7 @@ cttest_binlog_v5()
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\nkicks: 0\n");
 
-    kill(srvpid, 9);
+    kill(srvpid, SIGTERM);
     waitpid(srvpid, NULL, 0);
 
     srv.wal.dir = ctdir();
