@@ -1,7 +1,7 @@
 PREFIX?=/usr/local
 BINDIR=$(DESTDIR)$(PREFIX)/bin
 
-override CFLAGS+=-Wall -Werror -Wformat=2 -g
+override CFLAGS+=-Wall -Werror -Wformat=2 -g -std=c99
 override LDFLAGS?=
 
 LDLIBS?=
