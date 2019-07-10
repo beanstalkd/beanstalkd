@@ -60,19 +60,18 @@ muststart(char *a0, char *a1, char *a2, char *a3, char *a4)
 static int
 mustdiallocal(int port)
 {
-    int r, fd;
     struct sockaddr_in addr = {};
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    r = inet_aton("127.0.0.1", &addr.sin_addr);
+    int r = inet_aton("127.0.0.1", &addr.sin_addr);
     if (!r) {
         errno = EINVAL;
         twarn("inet_aton");
         exit(1);
     }
 
-    fd = socket(PF_INET, SOCK_STREAM, 0);
+    int fd = socket(PF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
         twarn("socket");
         exit(1);
@@ -87,12 +86,51 @@ mustdiallocal(int port)
     return fd;
 }
 
-#define SERVER() (progname = __func__, mustforksrv())
+static void
+exit_process(int signum)
+{
+    exit(0);
+}
+
+static void
+set_sig_handler()
+{
+    struct sigaction sa;
+
+    sa.sa_flags = 0;
+    int r = sigemptyset(&sa.sa_mask);
+    if (r == -1) {
+        twarn("sigemptyset()");
+        exit(111);
+    }
+
+    // This is required to trigger gcov on exit. See issue #443.
+    sa.sa_handler = exit_process;
+    r = sigaction(SIGTERM, &sa, 0);
+    if (r == -1) {
+        twarn("sigaction(SIGTERM)");
+        exit(111);
+    }
+}
+
+// Kill the srvpid (child process) with SIGTERM to give it a chance
+// to write gcov data to the filesystem before ct kills it with SIGKILL.
+// Do nothing in case of srvpid==0; child was already killed.
+static void
+kill_srvpid(void)
+{
+    if (!srvpid)
+        return;
+    kill(srvpid, SIGTERM);
+    waitpid(srvpid, 0, 0);
+    srvpid = 0;
+}
+
+#define SERVER() (progname=__func__, mustforksrv())
 
 static int
-mustforksrv()
+mustforksrv(void)
 {
-    int r, len, port, ok;
     struct sockaddr_in addr;
 
     srv.sock.fd = make_server_socket("127.0.0.1", "0");
@@ -101,14 +139,14 @@ mustforksrv()
         exit(1);
     }
 
-    len = sizeof(addr);
-    r = getsockname(srv.sock.fd, (struct sockaddr *)&addr, (socklen_t *)&len);
+    size_t len = sizeof(addr);
+    int r = getsockname(srv.sock.fd, (struct sockaddr *)&addr, (socklen_t *)&len);
     if (r == -1 || len > sizeof(addr)) {
         puts("mustforksrv failed");
         exit(1);
     }
 
-    port = ntohs(addr.sin_port);
+    int port = ntohs(addr.sin_port);
     srvpid = fork();
     if (srvpid < 0) {
         twarn("fork");
@@ -116,12 +154,15 @@ mustforksrv()
     }
 
     if (srvpid > 0) {
+        // On exit the parent (test) sends SIGTERM to the child.
+        atexit(kill_srvpid);
         printf("start server port=%d pid=%d\n", port, srvpid);
         return port;
     }
 
     /* now in child */
 
+    set_sig_handler();
     prot_init();
 
     if (srv.wal.use) {
@@ -136,7 +177,7 @@ mustforksrv()
 
         list.prev = list.next = &list;
         walinit(&srv.wal, &list);
-        ok = prot_replay(&srv, &list);
+        int ok = prot_replay(&srv, &list);
         if (!ok) {
             twarnx("failed to replay log");
             exit(11);
@@ -150,7 +191,6 @@ mustforksrv()
 static char *
 readline(int fd)
 {
-    int r, i = 0;
     char c = 0, p = 0;
     static char buf[1024];
     fd_set rfd;
@@ -158,12 +198,14 @@ readline(int fd)
 
     printf("<%d ", fd);
     fflush(stdout);
+
+    size_t i = 0;
     for (;;) {
         FD_ZERO(&rfd);
         FD_SET(fd, &rfd);
         tv.tv_sec = timeout / 1000000000;
         tv.tv_usec = (timeout/1000) % 1000000;
-        r = select(fd+1, &rfd, NULL, NULL, &tv);
+        int r = select(fd+1, &rfd, NULL, NULL, &tv);
         switch (r) {
         case 1:
             break;
@@ -202,18 +244,14 @@ readline(int fd)
 static void
 ckresp(int fd, char *exp)
 {
-    char *line;
-
-    line = readline(fd);
+    char *line = readline(fd);
     assertf(strcmp(exp, line) == 0, "\"%s\" != \"%s\"", exp, line);
 }
 
 static void
 ckrespsub(int fd, char *sub)
 {
-    char *line;
-
-    line = readline(fd);
+    char *line = readline(fd);
     assertf(strstr(line, sub), "\"%s\" not in \"%s\"", sub, line);
 }
 
@@ -242,10 +280,9 @@ mustsend(int fd, char *s)
 static int
 filesize(char *path)
 {
-    int r;
     struct stat s;
 
-    r = stat(path, &s);
+    int r = stat(path, &s);
     if (r == -1) {
         twarn("stat");
         exit(1);
@@ -256,10 +293,9 @@ filesize(char *path)
 static int
 exist(char *path)
 {
-    int r;
     struct stat s;
 
-    r = stat(path, &s);
+    int r = stat(path, &s);
     return r != -1;
 }
 
@@ -671,9 +707,7 @@ cttest_binlog_empty_exit()
     job_data_size_limit = 10;
 
     port = SERVER();
-
-    kill(srvpid, 9);
-    waitpid(srvpid, NULL, 0);
+    kill_srvpid();
 
     port = SERVER();
     fd = mustdiallocal(port);
@@ -714,8 +748,7 @@ cttest_binlog_basic()
     mustsend(fd, "\r\n");
     ckresp(fd, "INSERTED 1\r\n");
 
-    kill(srvpid, 9);
-    waitpid(srvpid, NULL, 0);
+    kill_srvpid();
 
     port = SERVER();
     fd = mustdiallocal(port);
@@ -808,8 +841,7 @@ cttest_binlog_read()
     mustsend(fd, "delete 2\r\n");
     ckresp(fd, "DELETED\r\n");
 
-    kill(srvpid, 9);
-    waitpid(srvpid, NULL, 0);
+    kill_srvpid();
 
     port = SERVER();
     fd = mustdiallocal(port);
@@ -1046,7 +1078,7 @@ cttest_binlog_v5()
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\nkicks: 0\n");
 
-    kill(srvpid, 9);
+    kill(srvpid, SIGTERM);
     waitpid(srvpid, NULL, 0);
 
     srv.wal.dir = ctdir();
