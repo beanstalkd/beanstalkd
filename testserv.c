@@ -509,6 +509,46 @@ cttest_too_big()
 }
 
 void
+cttest_job_size_invalid()
+{
+    job_data_size_limit = JOB_DATA_SIZE_LIMIT_MAX;
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 0 0 0 4294967296\r\n");
+    mustsend(fd, "put 0 0 0 10b\r\n");
+    mustsend(fd, "put 0 0 0 --!@#$%^&&**()0b\r\n");
+    mustsend(fd, "put 0 0 0 1\r\n");
+    mustsend(fd, "x\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+}
+
+void
+cttest_job_size_max_plus_1()
+{
+    /* verify that server reject the job larger than maximum allowed. */
+    job_data_size_limit = JOB_DATA_SIZE_LIMIT_MAX;
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 0 0 0 1073741825\r\n");
+
+    const int len = 1024*1024;
+    char body[len+1];
+    memset(body, 'a', len);
+    body[len] = 0;
+
+    int i;
+    for (i=0; i<JOB_DATA_SIZE_LIMIT_MAX; i+=len) {
+        mustsend(fd, body);
+    }
+    mustsend(fd, "x");
+    mustsend(fd, "\r\n");
+    ckresp(fd, "JOB_TOO_BIG\r\n");
+}
+
+void
 cttest_delete_ready()
 {
     port = SERVER();

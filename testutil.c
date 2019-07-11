@@ -105,6 +105,18 @@ cttest_optz()
 }
 
 void
+cttest_optz_more_than_max()
+{
+    char *args[] = {
+        "-z1073741825",
+        NULL,
+    };
+
+    optparse(&srv, args);
+    assert(job_data_size_limit == 1073741824);
+}
+
+void
 cttest_opts()
 {
     char *args[] = {

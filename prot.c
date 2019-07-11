@@ -774,14 +774,13 @@ which_cmd(Conn *c)
 static void
 fill_extra_data(Conn *c)
 {
-    int extra_bytes, job_data_bytes = 0, cmd_bytes;
-
     if (!c->sock.fd) return; /* the connection was closed */
     if (!c->cmd_len) return; /* we don't have a complete command */
 
     /* how many extra bytes did we read? */
-    extra_bytes = c->cmd_read - c->cmd_len;
+    int32 extra_bytes = c->cmd_read - c->cmd_len;
 
+    int32 job_data_bytes = 0;
     /* how many bytes should we put into the job body? */
     if (c->in_job) {
         job_data_bytes = min(extra_bytes, c->in_job->r.body_size);
@@ -794,14 +793,16 @@ fill_extra_data(Conn *c)
     }
 
     /* how many bytes are left to go into the future cmd? */
-    cmd_bytes = extra_bytes - job_data_bytes;
+    int32 cmd_bytes = extra_bytes - job_data_bytes;
     memmove(c->cmd, c->cmd + c->cmd_len + job_data_bytes, cmd_bytes);
     c->cmd_read = cmd_bytes;
     c->cmd_len = 0; /* we no longer know the length of the new command */
 }
 
+#define skip(conn,n,msg) (_skip(conn,n,msg,CONSTSTRLEN(msg)))
+
 static void
-_skip(Conn *c, int n, char *line, int len)
+_skip(Conn *c, int32 n, char *msg, int msglen)
 {
     /* Invert the meaning of in_job_read while throwing away data -- it
      * counts the bytes that remain to be thrown away. */
@@ -809,16 +810,15 @@ _skip(Conn *c, int n, char *line, int len)
     c->in_job_read = n;
     fill_extra_data(c);
 
-    if (c->in_job_read == 0) return reply(c, line, len, STATE_SENDWORD);
+    if (c->in_job_read == 0)
+        return reply(c, msg, msglen, STATE_SENDWORD);
 
-    c->reply = line;
-    c->reply_len = len;
+    c->reply = msg;
+    c->reply_len = msglen;
     c->reply_sent = 0;
     c->state = STATE_BITBUCKET;
     return;
 }
-
-#define skip(c,n,m) (_skip(c,n,m,CONSTSTRLEN(m)))
 
 static void
 enqueue_incoming_job(Conn *c)
@@ -1194,7 +1194,7 @@ dispatch_cmd(Conn *c)
     byte type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
     uint32 pri;
-    uint body_size;
+    uint32 body_size;
     int64 delay, ttr;
     uint64 id;
     tube t = NULL;
@@ -1214,18 +1214,17 @@ dispatch_cmd(Conn *c)
 
     switch (type) {
     case OP_PUT:
-        r = read_num(&pri, c->cmd + 4, &delay_buf);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_num(&pri, c->cmd + 4, &delay_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_duration(&delay, delay_buf, &ttr_buf);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_duration(&delay, delay_buf, &ttr_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_duration(&ttr, ttr_buf, &size_buf);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_duration(&ttr, ttr_buf, &size_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        errno = 0;
-        body_size = strtoul(size_buf, &end_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_num(&body_size, size_buf, &end_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
 
@@ -1235,7 +1234,8 @@ dispatch_cmd(Conn *c)
         }
 
         /* don't allow trailing garbage */
-        if (end_buf[0] != '\0') return reply_msg(c, MSG_BAD_FORMAT);
+        if (end_buf[0] != '\0')
+            return reply_msg(c, MSG_BAD_FORMAT);
 
         connsetproducer(c);
 
