@@ -193,9 +193,9 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define STATS_TUBE_FMT "---\n" \
     "name: %s\n" \
     "current-jobs-urgent: %u\n" \
-    "current-jobs-ready: %u\n" \
+    "current-jobs-ready: %zu\n" \
     "current-jobs-reserved: %u\n" \
-    "current-jobs-delayed: %u\n" \
+    "current-jobs-delayed: %zu\n" \
     "current-jobs-buried: %u\n" \
     "total-jobs: %" PRIu64 "\n" \
     "current-using: %u\n" \
