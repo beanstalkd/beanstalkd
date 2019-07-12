@@ -82,6 +82,16 @@ jobs:
     - stage: Benchmark
       os: osx
       compiler: clang
+      env:
+          - CFLAGS="-march=native -mtune=native -O3"
+      before_script:
+          - export COVERAGE=OFF
+      script:
+          - make $MAKEJOBS
+          - make $MAKEJOBS bench
+    - stage: Benchmark
+      os: osx
+      compiler: clang
       before_script:
           - export COVERAGE=OFF
       script:
