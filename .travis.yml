@@ -73,7 +73,7 @@ jobs:
       os: linux
       compiler: gcc
       env:
-          - CFLAGS="-O3"
+          - CFLAGS="-march=native -mtune=native -O3"
       before_script:
           - export COVERAGE=OFF
       script:
