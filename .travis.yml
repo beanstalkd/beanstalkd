@@ -72,9 +72,10 @@ jobs:
     - stage: Benchmark
       os: linux
       compiler: gcc
+      env:
+          - CFLAGS="-O3"
       before_script:
           - export COVERAGE=OFF
-          - export CFLAGS="-O3"
       script:
           - make $MAKEJOBS
           - make $MAKEJOBS bench
