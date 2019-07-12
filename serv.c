@@ -1,7 +1,7 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-#include "dat.h"
 
 struct Server srv = {
     .port = Portdef,

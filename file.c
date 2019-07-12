@@ -1,3 +1,4 @@
+#include "dat.h"
 #include <stdint.h>
 #include <inttypes.h>
 #include <stddef.h>
@@ -10,7 +11,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include "dat.h"
 
 static int  readrec(File*, job, int*);
 static int  readrec5(File*, job, int*);
