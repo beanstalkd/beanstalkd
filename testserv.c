@@ -701,8 +701,8 @@ cttest_reserve_ttr_deadline_soon()
     ckrespsub(prod, "OK ");
     ckrespsub(prod, "\nstate: reserved\n");
 
-    // After 0.6s the job should time out and be ready again.
-    usleep(600000);
+    // After 0.7s the job should time out and be ready again.
+    usleep(700000);
     mustsend(prod, "stats-job 1\r\n");
     ckrespsub(prod, "OK ");
     ckrespsub(prod, "\nstate: ready\n");
@@ -760,6 +760,49 @@ cttest_unpause_tube()
     // test will not pass.
     ckresp(fd1, "RESERVED 1 0\r\n");
     ckresp(fd1, "\r\n");
+}
+
+void
+cttest_list_tube()
+{
+    port = SERVER();
+    int fd0 = mustdiallocal(port);
+
+    mustsend(fd0, "watch w\r\n");
+    ckresp(fd0, "WATCHING 2\r\n");
+
+    mustsend(fd0, "use u\r\n");
+    ckresp(fd0, "USING u\r\n");
+
+    mustsend(fd0, "list-tubes\r\n");
+    ckrespsub(fd0, "OK ");
+    ckresp(fd0,
+           "---\n"
+           "- default\n"
+           "- w\n"
+           "- u\n\r\n");
+
+    mustsend(fd0, "list-tube-used\r\n");
+    ckresp(fd0, "USING u\r\n");
+
+    mustsend(fd0, "list-tubes-watched\r\n");
+    ckrespsub(fd0, "OK ");
+    ckresp(fd0,
+           "---\n"
+           "- default\n"
+           "- w\n\r\n");
+
+    mustsend(fd0, "ignore default\r\n");
+    ckresp(fd0, "WATCHING 1\r\n");
+
+    mustsend(fd0, "list-tubes-watched\r\n");
+    ckrespsub(fd0, "OK ");
+    ckresp(fd0,
+           "---\n"
+           "- w\n\r\n");
+
+    mustsend(fd0, "ignore w\r\n");
+    ckresp(fd0, "NOT_IGNORED\r\n");
 }
 
 void
