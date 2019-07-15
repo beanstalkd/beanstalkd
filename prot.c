@@ -1309,7 +1309,7 @@ dispatch_cmd(Conn *c)
 
         /* So, peek is annoying, because some other connection might free the
          * job while we are still trying to write it out. So we copy it and
-         * then free the copy when it's done sending. */
+         * free the copy when it's done sending, in the "reset_conn" function. */
         j = job_copy(peek_job(id));
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
