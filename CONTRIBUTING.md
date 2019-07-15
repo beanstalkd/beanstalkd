@@ -1,3 +1,5 @@
+# Contributing to beanstalkd
+
 Greetings. Firstly, if you're thinking of contributing to
 beanstalkd, thank you! It's the hard work of people like you that
 keeps beanstalkd a high-quality codebase and running smoothly in
@@ -8,13 +10,13 @@ Please note that this project is released with a Contributor
 Code of Conduct. By participating in this project you agree
 to abide by its terms. See CodeOfConduct.txt for details.
 
-General
+## General
 
 This is a mature project, so it rarely takes on new features. We
 mostly focus on stability, bug fixing, clarity, and performance,
 in that order.
 
-Issues
+## Issues
 
 When reporting a bug, please describe:
 
@@ -27,7 +29,13 @@ If you're not using the latest version, please consider also
 testing with the latest. There's a good chance the bug you found
 has already been fixed.
 
-Pull Requests
+## Good commit messages
+
+Please see how to write good commit messages in the Go contributing guide
+[here](https://golang.org/doc/contribute.html#commit_messages).
+
+
+## Pull Requests
 
 When opening a pull request, try to keep the changes focused on
 one topic and avoid unrelated changes (even small things, like
