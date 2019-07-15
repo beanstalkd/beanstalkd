@@ -818,8 +818,8 @@ cttest_reserve_ttr_deadline_soon()
     ckresp(prod, "RESERVED 1 1\r\n");
     ckresp(prod, "a\r\n");
 
-    // After 0.5s the job should be still reserved.
-    usleep(500000);
+    // After 0.3s the job should be still reserved.
+    usleep(300000);
     mustsend(prod, "stats-job 1\r\n");
     ckrespsub(prod, "OK ");
     ckrespsub(prod, "\nstate: reserved\n");
@@ -832,8 +832,9 @@ cttest_reserve_ttr_deadline_soon()
     ckrespsub(prod, "OK ");
     ckrespsub(prod, "\nstate: reserved\n");
 
-    // After 0.7s the job should time out and be ready again.
-    usleep(700000);
+    // We don't want to process the job, so release it and check that it's ready.
+    mustsend(prod, "release 1 0 0\r\n");
+    ckresp(prod, "RELEASED\r\n");
     mustsend(prod, "stats-job 1\r\n");
     ckrespsub(prod, "OK ");
     ckrespsub(prod, "\nstate: ready\n");
