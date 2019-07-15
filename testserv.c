@@ -805,6 +805,68 @@ cttest_reserve_with_timeout_2conns()
 }
 
 void
+cttest_reserve_ttr_deadline_soon()
+{
+    port = SERVER();
+    int prod = mustdiallocal(port);
+
+    mustsend(prod, "put 0 0 1 1\r\n");
+    mustsend(prod, "a\r\n");
+    ckresp(prod, "INSERTED 1\r\n");
+
+    mustsend(prod, "reserve-with-timeout 1\r\n");
+    ckresp(prod, "RESERVED 1 1\r\n");
+    ckresp(prod, "a\r\n");
+
+    // After 0.5s the job should be still reserved.
+    usleep(500000);
+    mustsend(prod, "stats-job 1\r\n");
+    ckrespsub(prod, "OK ");
+    ckrespsub(prod, "\nstate: reserved\n");
+
+    mustsend(prod, "reserve-with-timeout 1\r\n");
+    ckresp(prod, "DEADLINE_SOON\r\n");
+
+    // Job should be reserved; last "reserve" took less than 1s.
+    mustsend(prod, "stats-job 1\r\n");
+    ckrespsub(prod, "OK ");
+    ckrespsub(prod, "\nstate: reserved\n");
+
+    // After 0.7s the job should time out and be ready again.
+    usleep(700000);
+    mustsend(prod, "stats-job 1\r\n");
+    ckrespsub(prod, "OK ");
+    ckrespsub(prod, "\nstate: ready\n");
+}
+
+void
+cttest_close_frees_job()
+{
+    port = SERVER();
+    int cons = mustdiallocal(port);
+    int prod = mustdiallocal(port);
+    mustsend(cons, "reserve-with-timeout 1\r\n");
+
+    mustsend(prod, "put 0 0 100 1\r\n");
+    mustsend(prod, "a\r\n");
+    ckresp(prod, "INSERTED 1\r\n");
+
+    ckresp(cons, "RESERVED 1 1\r\n");
+    ckresp(cons, "a\r\n");
+
+    mustsend(prod, "stats-job 1\r\n");
+    ckrespsub(prod, "OK ");
+    ckrespsub(prod, "\nstate: reserved\n");
+
+    // Closed consumer connection should make the job ready again.
+    close(cons);
+
+    mustsend(prod, "stats-job 1\r\n");
+    ckrespsub(prod, "OK ");
+    ckrespsub(prod, "\nstate: ready\n");
+}
+
+void
 cttest_unpause_tube()
 {
     int fd0, fd1;
@@ -829,6 +891,49 @@ cttest_unpause_tube()
     // test will not pass.
     ckresp(fd1, "RESERVED 1 0\r\n");
     ckresp(fd1, "\r\n");
+}
+
+void
+cttest_list_tube()
+{
+    port = SERVER();
+    int fd0 = mustdiallocal(port);
+
+    mustsend(fd0, "watch w\r\n");
+    ckresp(fd0, "WATCHING 2\r\n");
+
+    mustsend(fd0, "use u\r\n");
+    ckresp(fd0, "USING u\r\n");
+
+    mustsend(fd0, "list-tubes\r\n");
+    ckrespsub(fd0, "OK ");
+    ckresp(fd0,
+           "---\n"
+           "- default\n"
+           "- w\n"
+           "- u\n\r\n");
+
+    mustsend(fd0, "list-tube-used\r\n");
+    ckresp(fd0, "USING u\r\n");
+
+    mustsend(fd0, "list-tubes-watched\r\n");
+    ckrespsub(fd0, "OK ");
+    ckresp(fd0,
+           "---\n"
+           "- default\n"
+           "- w\n\r\n");
+
+    mustsend(fd0, "ignore default\r\n");
+    ckresp(fd0, "WATCHING 1\r\n");
+
+    mustsend(fd0, "list-tubes-watched\r\n");
+    ckrespsub(fd0, "OK ");
+    ckresp(fd0,
+           "---\n"
+           "- w\n\r\n");
+
+    mustsend(fd0, "ignore w\r\n");
+    ckresp(fd0, "NOT_IGNORED\r\n");
 }
 
 void
