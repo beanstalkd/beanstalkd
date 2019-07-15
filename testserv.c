@@ -60,10 +60,11 @@ muststart(char *a0, char *a1, char *a2, char *a3, char *a4)
 static int
 mustdiallocal(int port)
 {
-    struct sockaddr_in addr = {};
+    struct sockaddr_in addr = {
+        .sin_family = AF_INET,
+        .sin_port = htons(port),
+    };
 
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
     int r = inet_aton("127.0.0.1", &addr.sin_addr);
     if (!r) {
         errno = EINVAL;
@@ -167,7 +168,6 @@ mustforksrv(void)
     prot_init();
 
     if (srv.wal.use) {
-        struct job list = {};
         // We want to make sure that only one beanstalkd tries
         // to use the wal directory at a time. So acquire a lock
         // now and never release it.
@@ -176,6 +176,10 @@ mustforksrv(void)
             exit(10);
         }
 
+        struct job list = {
+            .prev = NULL,
+            .next = NULL,
+        };
         list.prev = list.next = &list;
         walinit(&srv.wal, &list);
         int ok = prot_replay(&srv, &list);

@@ -17,6 +17,11 @@ typedef uint64_t      uint64;
 #define int64_t  do_not_use_int64_t
 #define uint64_t do_not_use_uint64_t
 
+/* TODO: typedefs of ms, job and tube should not hide the pointer.
+   Make them similar to other typedefs (Conn, Heap).
+   Maybem move each typedef next to the corresponding struct definition.
+   See issue #458. */
+
 typedef struct ms     *ms;
 typedef struct job    *job;
 typedef struct tube   *tube;
