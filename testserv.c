@@ -701,8 +701,8 @@ cttest_reserve_ttr_deadline_soon()
     ckrespsub(prod, "OK ");
     ckrespsub(prod, "\nstate: reserved\n");
 
-    // After 0.5s the job should time out and be ready again.
-    usleep(500000);
+    // After 0.6s the job should time out and be ready again.
+    usleep(600000);
     mustsend(prod, "stats-job 1\r\n");
     ckrespsub(prod, "OK ");
     ckrespsub(prod, "\nstate: ready\n");
