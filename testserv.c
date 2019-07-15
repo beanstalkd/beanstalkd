@@ -322,6 +322,137 @@ cttest_too_long_commandline()
 }
 
 void
+cttest_put_in_drain()
+{
+    enter_drain_mode(SIGUSR1);
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "x\r\n");
+    ckresp(fd, "DRAINING\r\n");
+}
+
+void
+cttest_peek_ok()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "peek 1\r\n");
+    ckresp(fd, "FOUND 1 1\r\n");
+    ckresp(fd, "a\r\n");
+}
+
+void
+cttest_peek_not_found()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "peek 2\r\n");
+    ckresp(fd, "NOT_FOUND\r\n");
+    mustsend(fd, "peek 18446744073709551615\r\n");  // max uint64
+    ckresp(fd, "NOT_FOUND\r\n");
+}
+
+/*
+  TODO: Enable this test after fixing #464.
+void
+cttest_peek_bad_format()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "peek 18446744073709551616\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+
+    mustsend(fd, "peek foo111\r\n");
+    ckresp(fd, "BAD_FORMAT\r\n");
+}
+*/
+
+void
+cttest_peek_delayed()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "peek-delayed\r\n");
+    ckresp(fd, "NOT_FOUND\r\n");
+
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "A\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+    mustsend(fd, "put 0 99 1 1\r\n");
+    mustsend(fd, "B\r\n");
+    ckresp(fd, "INSERTED 2\r\n");
+    mustsend(fd, "put 0 1 1 1\r\n");
+    mustsend(fd, "C\r\n");
+    ckresp(fd, "INSERTED 3\r\n");
+
+    mustsend(fd, "peek-delayed\r\n");
+    ckresp(fd, "FOUND 3 1\r\n");
+    ckresp(fd, "C\r\n");
+
+    mustsend(fd, "delete 3\r\n");
+    ckresp(fd, "DELETED\r\n");
+
+    mustsend(fd, "peek-delayed\r\n");
+    ckresp(fd, "FOUND 2 1\r\n");
+    ckresp(fd, "B\r\n");
+
+    mustsend(fd, "delete 2\r\n");
+    ckresp(fd, "DELETED\r\n");
+
+    mustsend(fd, "peek-delayed\r\n");
+    ckresp(fd, "NOT_FOUND\r\n");
+}
+
+void
+cttest_peek_buried_kick()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "A\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "bury 1 0\r\n");
+    ckresp(fd, "NOT_FOUND\r\n");
+
+    mustsend(fd, "peek-buried\r\n");
+    ckresp(fd, "NOT_FOUND\r\n");
+
+    mustsend(fd, "reserve-with-timeout 0\r\n");
+    ckresp(fd, "RESERVED 1 1\r\n");
+    ckresp(fd, "A\r\n");
+
+    mustsend(fd, "bury 1 0\r\n");
+    ckresp(fd, "BURIED\r\n");
+
+    mustsend(fd, "peek-buried\r\n");
+    ckresp(fd, "FOUND 1 1\r\n");
+    ckresp(fd, "A\r\n");
+
+    mustsend(fd, "kick 1\r\n");
+    ckresp(fd, "KICKED 1\r\n");
+
+    mustsend(fd, "peek-buried\r\n");
+    ckresp(fd, "NOT_FOUND\r\n");
+
+    mustsend(fd, "peek-ready\r\n");
+    ckresp(fd, "FOUND 1 1\r\n");
+    ckresp(fd, "A\r\n");
+
+    mustsend(fd, "kick 1\r\n");
+    ckresp(fd, "KICKED 0\r\n");
+}
+
+void
 cttest_pause()
 {
     int64 s;
