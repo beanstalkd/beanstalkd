@@ -3,32 +3,32 @@ branches:
         - master
 
 git:
-    quiet: true
-    depth: 5
+  quiet: true
+  depth: 5
 
 language: c
 
 addons:
-    apt:
-      packages:
-          - lcov
+  apt:
+    packages:
+      - lcov
 
 compiler:
-    - clang
-    - gcc
+  - clang
+  - gcc
 
 os:
-    - linux
-    - osx
+  - linux
+  - osx
 
 env:
-    global:
-        - MAKEJOBS="-j$(getconf _NPROCESSORS_ONLN)"
-        - TRAVIS_COMMIT_LOG=`git log --format=fuller -2`
-        - COVERAGE=OFF # Currently works only with gcc on linux
+  global:
+    - MAKEJOBS="-j$(getconf _NPROCESSORS_ONLN)"
+    - TRAVIS_COMMIT_LOG=`git log --format=fuller -2`
+    - COVERAGE=OFF # Currently works only with gcc on linux
 
 before_script:
-    - if [ "${TRAVIS_OS_NAME}-${TRAVIS_COMPILER}" = "linux-gcc" ]; then export COVERAGE="ON"; fi
+  - if [ "${TRAVIS_OS_NAME}-${TRAVIS_COMPILER}" = "linux-gcc" ]; then export COVERAGE="ON"; fi
 
 script:
     - |
@@ -61,42 +61,40 @@ script:
 
 jobs:
   include:
-    - stage: Benchmark
-      os: linux
-      compiler: gcc
-      before_script:
-          - export COVERAGE=OFF
-      script:
-          - make $MAKEJOBS
-          - make $MAKEJOBS bench
+    # - stage: Benchmark
+    #   os: linux
+    #   compiler: gcc
+    #   before_script:
+    #       - export COVERAGE=OFF
+    #   script:
+    #       - make $MAKEJOBS bench
     - stage: Benchmark
       os: linux
       compiler: gcc
       env:
-          - CFLAGS="-march=native -mtune=native -O3"
+          - CFLAGS="-O3"
+          - CFLAGS=""
       before_script:
           - export COVERAGE=OFF
       script:
-          - make $MAKEJOBS
           - make $MAKEJOBS bench
     - stage: Benchmark
       os: osx
       compiler: clang
       env:
-          - CFLAGS="-march=native -mtune=native -O3"
+          - CFLAGS="-O3"
+          - CFLAGS=""
       before_script:
           - export COVERAGE=OFF
       script:
-          - make $MAKEJOBS
           - make $MAKEJOBS bench
-    - stage: Benchmark
-      os: osx
-      compiler: clang
-      before_script:
-          - export COVERAGE=OFF
-      script:
-          - make $MAKEJOBS
-          - make $MAKEJOBS bench
+    # - stage: Benchmark
+    #   os: osx
+    #   compiler: clang
+    #   before_script:
+    #       - export COVERAGE=OFF
+    #   script:
+    #       - make $MAKEJOBS bench
 
 after_success:
     - |
