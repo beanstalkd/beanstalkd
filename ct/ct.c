@@ -167,7 +167,7 @@ waittest(Test *ts)
     if (pid == -1) {
         die(3, errno, "wait");
     }
-    killpg(pid, 9);
+    killpg(pid, SIGKILL);
 
     for (t=ts; t->f; t++) {
         if (t->pid == pid) {
@@ -337,7 +337,7 @@ runbenchn(Benchmark *b, int n)
     if (pid == -1) {
         die(3, errno, "wait");
     }
-    killpg(pid, 9);
+    killpg(pid, SIGKILL);
     rmtree(b->dir);
     if (b->status != 0) {
         putchar('\n');
