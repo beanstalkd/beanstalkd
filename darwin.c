@@ -1,3 +1,4 @@
+#include "dat.h"
 #include <stdint.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -6,7 +7,6 @@
 #include <errno.h>
 #include <sys/event.h>
 #include <sys/time.h>
-#include "dat.h"
 
 enum
 {

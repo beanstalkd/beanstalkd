@@ -1,3 +1,4 @@
+#include "dat.h"
 #include <stdint.h>
 #include <signal.h>
 #include <stdio.h>
@@ -7,7 +8,6 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <fcntl.h>
-#include "dat.h"
 
 static void
 su(const char *user) 

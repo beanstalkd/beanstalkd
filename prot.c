@@ -1,3 +1,4 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,7 +14,6 @@
 #include <netinet/in.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include "dat.h"
 
 /* job body cannot be greater than this many bytes long */
 size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
