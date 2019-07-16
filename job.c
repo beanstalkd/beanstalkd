@@ -1,7 +1,7 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dat.h"
 
 static uint64 next_id = 1;
 

@@ -1,4 +1,6 @@
 #define _XOPEN_SOURCE 600
+
+#include "dat.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdint.h>
@@ -6,7 +8,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/epoll.h>
-#include "dat.h"
 
 #ifndef EPOLLRDHUP
 #define EPOLLRDHUP 0x2000
