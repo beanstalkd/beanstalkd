@@ -19,8 +19,13 @@
 #include <errno.h>
 
 static int srvpid, port, fd, size;
-static int64 timeout = 5000000000LL; // 5s
 
+// Global timeout set for reading response in tests; 5sec.
+static int64 timeout = 5000000000LL;
+
+// Allocation pattern for wrapfalloc that replaces falloc in tests.
+// Zero value at N-th element means that N-th call to the falloc
+// should fail with ENOSPC result.
 static byte fallocpat[3];
 
 
@@ -130,6 +135,9 @@ kill_srvpid(void)
 
 #define SERVER() (progname=__func__, mustforksrv())
 
+// Forks the server storing the pid in srvpid.
+// The parent process returns port assigned.
+// The child process serves until the SIGTERM is received by it.
 static int
 mustforksrv(void)
 {
@@ -885,7 +893,7 @@ cttest_reserve_ttr_deadline_soon()
 }
 
 void
-cttest_close_frees_job()
+cttest_close_releases_job()
 {
     port = SERVER();
     int cons = mustdiallocal(port);
@@ -903,12 +911,14 @@ cttest_close_frees_job()
     ckrespsub(prod, "OK ");
     ckrespsub(prod, "\nstate: reserved\n");
 
-    // Closed consumer connection should make the job ready again.
+    // Closed consumer connection should make the job ready sooner than ttr=100.
     close(cons);
 
-    mustsend(prod, "stats-job 1\r\n");
-    ckrespsub(prod, "OK ");
-    ckrespsub(prod, "\nstate: ready\n");
+    // Job should be released in less than 1s. It is low expectation,
+    // but we do not make guarantees about how soon jobs should be released.
+    mustsend(prod, "reserve-with-timeout 1\r\n");
+    ckresp(prod, "RESERVED 1 1\r\n");
+    ckresp(prod, "a\r\n");
 }
 
 void
