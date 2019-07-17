@@ -1,4 +1,6 @@
 #define _XOPEN_SOURCE 600
+
+#include "dat.h"
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdint.h>
@@ -6,7 +8,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/epoll.h>
-#include "dat.h"
 
 #ifndef EPOLLRDHUP
 #define EPOLLRDHUP 0x2000
@@ -41,7 +42,6 @@ int
 sockwant(Socket *s, int rw)
 {
     int op;
-    struct epoll_event ev = {};
 
     if (!s->added && !rw) {
         return 0;
@@ -54,6 +54,7 @@ sockwant(Socket *s, int rw)
         op = EPOLL_CTL_MOD;
     }
 
+    struct epoll_event ev = {.events=0};
     switch (rw) {
     case 'r':
         ev.events = EPOLLIN;
@@ -73,7 +74,7 @@ int
 socknext(Socket **s, int64 timeout)
 {
     int r;
-    struct epoll_event ev;
+    struct epoll_event ev = {.events=0};
 
     r = epoll_wait(epfd, &ev, 1, (int)(timeout/1000000));
     if (r == -1 && errno != EINTR) {

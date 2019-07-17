@@ -1,11 +1,11 @@
+#include "dat.h"
+#include <errno.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <limits.h>
 #include <unistd.h>
-#include "dat.h"
 
 #define SAFETY_MARGIN (1000000000) /* 1 second */
 
@@ -16,6 +16,8 @@ int verbose = 0;
 static void
 on_watch(ms a, tube t, size_t i)
 {
+    UNUSED_PARAMETER(a);
+    UNUSED_PARAMETER(i);
     tube_iref(t);
     t->watching_ct++;
 }
@@ -23,6 +25,8 @@ on_watch(ms a, tube t, size_t i)
 static void
 on_ignore(ms a, tube t, size_t i)
 {
+    UNUSED_PARAMETER(a);
+    UNUSED_PARAMETER(i);
     t->watching_ct--;
     tube_dref(t);
 }

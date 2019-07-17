@@ -1,7 +1,7 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dat.h"
 
 struct ms tubes;
 
@@ -21,7 +21,9 @@ make_tube(const char *name)
     t->delay.less = job_delay_less;
     t->ready.rec = job_setheappos;
     t->delay.rec = job_setheappos;
-    t->buried = (struct job) { };
+
+    struct job j = {.tube = NULL};
+    t->buried = j;
     t->buried.prev = t->buried.next = &t->buried;
     ms_init(&t->waiting, NULL, NULL);
 

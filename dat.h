@@ -1,6 +1,5 @@
-// Requirements:
-// #include <stdint.h>
-// #include <stdlib.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 typedef unsigned char uchar;
 typedef uchar         byte;
@@ -10,13 +9,10 @@ typedef uint32_t      uint32;
 typedef int64_t       int64;
 typedef uint64_t      uint64;
 
-#define int8_t   do_not_use_int8_t
-#define uint8_t  do_not_use_uint8_t
-#define int32_t  do_not_use_int32_t
-#define uint32_t do_not_use_uint32_t
-#define int64_t  do_not_use_int64_t
-#define uint64_t do_not_use_uint64_t
-
+/* TODO: typedefs of ms, job and tube should not hide the pointer.
+   Make them similar to other typedefs (Conn, Heap).
+   Maybem move each typedef next to the corresponding struct definition.
+   See issue #458. */
 typedef struct ms     *ms;
 typedef struct job    *job;
 typedef struct tube   *tube;
@@ -31,7 +27,7 @@ typedef struct Wal    Wal;
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 typedef void(*Handle)(void*, int rw);
 typedef int(*Less)(void*, void*);
-typedef void(*Record)(void*, int);
+typedef void(*Record)(void*, size_t);
 typedef int(FAlloc)(int, int);
 
 #if _LP64
@@ -57,6 +53,16 @@ typedef int(FAlloc)(int, int);
 #define URGENT_THRESHOLD 1024
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 
+// The maximum value that job_data_size_limit can be set to via "-z".
+// It could be up to INT32_MAX-2 (~2GB), but set it to 1024^3 (1GB).
+// The width is restricted by Jobrec.body_size that is int32.
+#define JOB_DATA_SIZE_LIMIT_MAX 1073741824
+
+// Maximum value (uint32) allowed in pri, delay and ttr parameters
+#define MAX_UINT32 4294967295
+
+#define UNUSED_PARAMETER(x) (void)(x)
+
 extern const char version[];
 extern int verbose;
 extern struct Server srv;
@@ -76,14 +82,14 @@ struct stats {
 
 
 struct Heap {
-    int     cap;
-    int     len;
+    size_t  cap;
+    size_t  len;
     void    **data;
     Less    less;
     Record  rec;
 };
 int   heapinsert(Heap *h, void *x);
-void* heapremove(Heap *h, int k);
+void* heapremove(Heap *h, size_t k);
 
 
 struct Socket {
@@ -117,7 +123,10 @@ enum // Jobrec.state
     Copy
 };
 
-// if you modify this struct, you must increment Walver above
+// If you modify this struct, you must increment Walver above,
+// Beanstalkd does not handle migration between different versions:
+// it will reject the old data and exit from the server.
+// TODO: Handle Walver migrations automatically.
 struct Jobrec {
     uint64 id;
     uint32 pri;
@@ -205,7 +214,7 @@ void job_free(job j);
 job job_find(uint64 job_id);
 
 /* the void* parameters are really job pointers */
-void job_setheappos(void*, int);
+void job_setheappos(void*, size_t);
 int job_pri_less(void*, void*);
 int job_delay_less(void*, void*);
 
@@ -274,9 +283,9 @@ struct Conn {
     int    pending_timeout;
     char   halfclosed;
 
-    char cmd[LINE_BUF_SIZE]; // this string is NOT NUL-terminated
-    int  cmd_len;
-    int  cmd_read;
+    char   cmd[LINE_BUF_SIZE]; // this string is NOT NUL-terminated
+    size_t cmd_len;
+    int    cmd_read;
 
     char *reply;
     int  reply_len;
@@ -287,8 +296,8 @@ struct Conn {
     // while in_job_read is nonzero, we are in bit bucket mode and
     // in_job_read's meaning is inverted -- then it counts the bytes that
     // remain to be thrown away.
-    int in_job_read;
-    job in_job; // a job to be read from the client
+    int32 in_job_read;
+    job   in_job; // a job to be read from the client
 
     job out_job;
     int out_job_sent;
@@ -339,7 +348,7 @@ void walinit(Wal*, job list);
 int  walwrite(Wal*, job);
 void walmaint(Wal*);
 int  walresvput(Wal*, job);
-int  walresvupdate(Wal*, job);
+int  walresvupdate(Wal*);
 void walgc(Wal*);
 
 

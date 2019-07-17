@@ -1,3 +1,4 @@
+#include "dat.h"
 #include <stdint.h>
 #include <inttypes.h>
 #include <stddef.h>
@@ -10,7 +11,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
-#include "dat.h"
 
 static int  readrec(File*, job, int*);
 static int  readrec5(File*, job, int*);
@@ -201,7 +201,7 @@ readrec(File *f, job l, int *err)
     case Buried:
     case Delayed:
         if (!j) {
-            if (jr.body_size > job_data_size_limit) {
+            if ((size_t)jr.body_size > job_data_size_limit) {
                 warnpos(f, -r, "job %"PRIu64" is too big (%"PRId32" > %zu)",
                         jr.id,
                         jr.body_size,
@@ -325,7 +325,7 @@ readrec5(File *f, job l, int *err)
     case Buried:
     case Delayed:
         if (!j) {
-            if (jr.body_size > job_data_size_limit) {
+            if ((size_t)jr.body_size > job_data_size_limit) {
                 warnpos(f, -r, "job %"PRIu64" is too big (%"PRId32" > %zu)",
                         jr.id,
                         jr.body_size,
@@ -423,7 +423,7 @@ warnpos(File *f, int adj, char *fmt, ...)
     va_list ap;
 
     off = lseek(f->fd, 0, SEEK_CUR);
-    fprintf(stderr, "%s:%u: ", f->path, off+adj);
+    fprintf(stderr, "%s:%d: ", f->path, off+adj);
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
     va_end(ap);
@@ -460,7 +460,7 @@ filewopen(File *f)
     }
 
     n = write(fd, &ver, sizeof(int));
-    if (n < sizeof(int)) {
+    if (n < 0 || (size_t)n < sizeof(int)) {
         twarn("write %s", f->path);
         close(fd);
         return;
@@ -533,7 +533,10 @@ filewclose(File *f)
     if (!f) return;
     if (!f->iswopen) return;
     if (f->free) {
-        (void)ftruncate(f->fd, f->w->filesize - f->free);
+        errno = 0;
+        if (ftruncate(f->fd, f->w->filesize - f->free) != 0) {
+            twarn("ftruncate");
+        }
     }
     close(f->fd);
     f->iswopen = 0;

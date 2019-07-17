@@ -1,3 +1,4 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,7 +14,6 @@
 #include <netinet/in.h>
 #include <inttypes.h>
 #include <stdarg.h>
-#include "dat.h"
 
 /* job body cannot be greater than this many bytes long */
 size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
@@ -185,6 +185,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "binlog-records-migrated: %" PRId64 "\n" \
     "binlog-records-written: %" PRId64 "\n" \
     "binlog-max-size: %d\n" \
+    "draining: %s\n" \
     "id: %s\n" \
     "hostname: %s\n" \
     "\r\n"
@@ -192,9 +193,9 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define STATS_TUBE_FMT "---\n" \
     "name: %s\n" \
     "current-jobs-urgent: %u\n" \
-    "current-jobs-ready: %u\n" \
+    "current-jobs-ready: %zu\n" \
     "current-jobs-reserved: %u\n" \
-    "current-jobs-delayed: %u\n" \
+    "current-jobs-delayed: %zu\n" \
     "current-jobs-buried: %u\n" \
     "total-jobs: %" PRIu64 "\n" \
     "current-using: %u\n" \
@@ -229,7 +230,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 static char bucket[BUCKET_BUF_SIZE];
 
 static uint ready_ct = 0;
-static struct stats global_stat = {0, 0, 0, 0, 0};
+static struct stats global_stat = {0, 0, 0, 0, 0, 0, 0};
 
 static tube default_tube;
 
@@ -435,7 +436,7 @@ process_queue()
 static job
 delay_q_peek()
 {
-    int i;
+    size_t i;
     tube t;
     job j = NULL, nj;
 
@@ -451,6 +452,7 @@ delay_q_peek()
     return j;
 }
 
+/* Inserts job j in the tube, returns 1 on success, otherwise 0 */
 static int
 enqueue_job(Server *s, job j, int64 delay, char update_store)
 {
@@ -487,10 +489,8 @@ enqueue_job(Server *s, job j, int64 delay, char update_store)
 static int
 bury_job(Server *s, job j, char update_store)
 {
-    int z;
-
     if (update_store) {
-        z = walresvupdate(&s->wal, j);
+        int z = walresvupdate(&s->wal);
         if (!z) return 0;
         j->walresv += z;
     }
@@ -545,7 +545,7 @@ kick_buried_job(Server *s, job j)
     int r;
     int z;
 
-    z = walresvupdate(&s->wal, j);
+    z = walresvupdate(&s->wal);
     if (!z) return 0;
     j->walresv += z;
 
@@ -580,7 +580,7 @@ kick_delayed_job(Server *s, job j)
     int r;
     int z;
 
-    z = walresvupdate(&s->wal, j);
+    z = walresvupdate(&s->wal);
     if (!z) return 0;
     j->walresv += z;
 
@@ -714,21 +714,23 @@ check_err(Conn *c, const char *s)
 
 /* Scan the given string for the sequence "\r\n" and return the line length.
  * Always returns at least 2 if a match is found. Returns 0 if no match. */
-static int
+static size_t
 scan_line_end(const char *s, int size)
 {
     char *match;
 
     match = memchr(s, '\r', size - 1);
-    if (!match) return 0;
+    if (!match)
+        return 0;
 
     /* this is safe because we only scan size - 1 chars above */
-    if (match[1] == '\n') return match - s + 2;
+    if (match[1] == '\n')
+        return match - s + 2;
 
     return 0;
 }
 
-static int
+static size_t
 cmd_len(Conn *c)
 {
     return scan_line_end(c->cmd, c->cmd_read);
@@ -772,14 +774,13 @@ which_cmd(Conn *c)
 static void
 fill_extra_data(Conn *c)
 {
-    int extra_bytes, job_data_bytes = 0, cmd_bytes;
-
     if (!c->sock.fd) return; /* the connection was closed */
     if (!c->cmd_len) return; /* we don't have a complete command */
 
     /* how many extra bytes did we read? */
-    extra_bytes = c->cmd_read - c->cmd_len;
+    int32 extra_bytes = c->cmd_read - c->cmd_len;
 
+    int32 job_data_bytes = 0;
     /* how many bytes should we put into the job body? */
     if (c->in_job) {
         job_data_bytes = min(extra_bytes, c->in_job->r.body_size);
@@ -792,14 +793,16 @@ fill_extra_data(Conn *c)
     }
 
     /* how many bytes are left to go into the future cmd? */
-    cmd_bytes = extra_bytes - job_data_bytes;
+    int32 cmd_bytes = extra_bytes - job_data_bytes;
     memmove(c->cmd, c->cmd + c->cmd_len + job_data_bytes, cmd_bytes);
     c->cmd_read = cmd_bytes;
     c->cmd_len = 0; /* we no longer know the length of the new command */
 }
 
+#define skip(conn,n,msg) (_skip(conn,n,msg,CONSTSTRLEN(msg)))
+
 static void
-_skip(Conn *c, int n, char *line, int len)
+_skip(Conn *c, int32 n, char *msg, int msglen)
 {
     /* Invert the meaning of in_job_read while throwing away data -- it
      * counts the bytes that remain to be thrown away. */
@@ -807,16 +810,15 @@ _skip(Conn *c, int n, char *line, int len)
     c->in_job_read = n;
     fill_extra_data(c);
 
-    if (c->in_job_read == 0) return reply(c, line, len, STATE_SENDWORD);
+    if (c->in_job_read == 0)
+        return reply(c, msg, msglen, STATE_SENDWORD);
 
-    c->reply = line;
-    c->reply_len = len;
+    c->reply = msg;
+    c->reply_len = msglen;
     c->reply_sent = 0;
     c->state = STATE_BITBUCKET;
     return;
 }
-
-#define skip(c,n,m) (_skip(c,n,m,CONSTSTRLEN(m)))
 
 static void
 enqueue_incoming_job(Conn *c)
@@ -871,7 +873,7 @@ fmt_stats(char *buf, size_t size, void *x)
 {
     int whead = 0, wcur = 0;
     Server *srv;
-    struct rusage ru = {{0, 0}, {0, 0}};
+    struct rusage ru;
 
     srv = x;
 
@@ -931,58 +933,61 @@ fmt_stats(char *buf, size_t size, void *x)
             srv->wal.nmig,
             srv->wal.nrec,
             srv->wal.filesize,
+            drain_mode ? "true" : "false",
             id,
             node_info.nodename);
 }
 
-/* Read a priority value from the given buffer and place it in pri.
+/* Read an integer from the given buffer and place it in num.
+ * Parsed integer should fit into uint32.
  * Update end to point to the address after the last character consumed.
- * Pri and end can be NULL. If they are both NULL, read_pri() will do the
- * conversion and return the status code but not update any values. This is an
- * easy way to check for errors.
- * If end is NULL, read_pri will also check that the entire input string was
+ * num and end can be NULL. If they are both NULL, read_num() will do the
+ * conversion and return the status code but not update any values.
+ * This is an easy way to check for errors.
+ * If end is NULL, read_num will also check that the entire input string was
  * consumed and return an error code otherwise.
  * Return 0 on success, or nonzero on failure.
- * If a failure occurs, pri and end are not modified. */
+ * If a failure occurs, num and end are not modified. */
 static int
-read_pri(uint *pri, const char *buf, char **end)
+read_num(uint32 *num, const char *buf, char **end)
 {
+    uint64 tnum;
     char *tend;
-    uint tpri;
 
     errno = 0;
-    while (buf[0] == ' ') buf++;
-    if (buf[0] < '0' || '9' < buf[0]) return -1;
-    tpri = strtoul(buf, &tend, 10);
-    if (tend == buf) return -1;
-    if (errno && errno != ERANGE) return -1;
-    if (!end && tend[0] != '\0') return -1;
+    while (buf[0] == ' ')
+        buf++;
+    if (buf[0] < '0' || '9' < buf[0])
+        return -1;
+    tnum = strtoumax(buf, &tend, 10);
+    if (tend == buf)
+        return -1;
+    if (errno && errno != ERANGE)
+        return -1;
+    if (!end && tend[0] != '\0')
+        return -1;
+    if (tnum > MAX_UINT32)
+        return -1;
 
-    if (pri) *pri = tpri;
+    if (num) *num = (uint32)tnum;
     if (end) *end = tend;
     return 0;
 }
 
-/* Read a delay value from the given buffer and place it in delay.
- * The interface and behavior are analogous to read_pri(). */
+/* Read a delay value in seconds from the given buffer and
+   place it in duration in nanoseconds.
+   The interface and behavior are analogous to read_num(). */
 static int
-read_delay(int64 *delay, const char *buf, char **end)
+read_duration(int64 *duration, const char *buf, char **end)
 {
     int r;
-    uint delay_sec;
+    uint32 dur_sec;
 
-    r = read_pri(&delay_sec, buf, end);
-    if (r) return r;
-    *delay = ((int64) delay_sec) * 1000000000;
+    r = read_num(&dur_sec, buf, end);
+    if (r)
+        return r;
+    *duration = ((int64) dur_sec) * 1000000000;
     return 0;
-}
-
-/* Read a timeout value from the given buffer and place it in ttr.
- * The interface and behavior are the same as in read_delay(). */
-static int
-read_ttr(int64 *ttr, const char *buf, char **end)
-{
-    return read_delay(ttr, buf, end);
 }
 
 /* Read a tube name from the given buffer moving the buffer to the name start */
@@ -1182,13 +1187,14 @@ prot_remove_tube(tube t)
 static void
 dispatch_cmd(Conn *c)
 {
-    int r, i, timeout = -1;
-    int z;
+    int r, timeout = -1;
+    uint i;
     uint count;
     job j = 0;
     byte type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
-    uint pri, body_size;
+    uint32 pri;
+    uint32 body_size;
     int64 delay, ttr;
     uint64 id;
     tube t = NULL;
@@ -1208,18 +1214,17 @@ dispatch_cmd(Conn *c)
 
     switch (type) {
     case OP_PUT:
-        r = read_pri(&pri, c->cmd + 4, &delay_buf);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_num(&pri, c->cmd + 4, &delay_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_delay(&delay, delay_buf, &ttr_buf);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_duration(&delay, delay_buf, &ttr_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_ttr(&ttr, ttr_buf, &size_buf);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_duration(&ttr, ttr_buf, &size_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        errno = 0;
-        body_size = strtoul(size_buf, &end_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_num(&body_size, size_buf, &end_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
 
@@ -1229,7 +1234,8 @@ dispatch_cmd(Conn *c)
         }
 
         /* don't allow trailing garbage */
-        if (end_buf[0] != '\0') return reply_msg(c, MSG_BAD_FORMAT);
+        if (end_buf[0] != '\0')
+            return reply_msg(c, MSG_BAD_FORMAT);
 
         connsetproducer(c);
 
@@ -1303,7 +1309,7 @@ dispatch_cmd(Conn *c)
 
         /* So, peek is annoying, because some other connection might free the
          * job while we are still trying to write it out. So we copy it and
-         * then free the copy when it's done sending. */
+         * free the copy when it's done sending, in the "reset_conn" function. */
         j = job_copy(peek_job(id));
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
@@ -1361,10 +1367,10 @@ dispatch_cmd(Conn *c)
         id = strtoull(c->cmd + CMD_RELEASE_LEN, &pri_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_pri(&pri, pri_buf, &delay_buf);
+        r = read_num(&pri, pri_buf, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_delay(&delay, delay_buf, NULL);
+        r = read_duration(&delay, delay_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
@@ -1375,7 +1381,7 @@ dispatch_cmd(Conn *c)
         /* We want to update the delay deadline on disk, so reserve space for
          * that. */
         if (delay) {
-            z = walresvupdate(&c->srv->wal, j);
+            int z = walresvupdate(&c->srv->wal);
             if (!z) return reply_serr(c, MSG_OUT_OF_MEMORY);
             j->walresv += z;
         }
@@ -1399,7 +1405,7 @@ dispatch_cmd(Conn *c)
         id = strtoull(c->cmd + CMD_BURY_LEN, &pri_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_pri(&pri, pri_buf, NULL);
+        r = read_num(&pri, pri_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
@@ -1577,7 +1583,7 @@ dispatch_cmd(Conn *c)
         r = read_tube_name(&name, c->cmd + CMD_PAUSE_TUBE_LEN, &delay_buf);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_delay(&delay, delay_buf, NULL);
+        r = read_duration(&delay, delay_buf, NULL);
         if (r) return reply_msg(c, MSG_BAD_FORMAT);
 
         *delay_buf = '\0';
@@ -1649,16 +1655,10 @@ conn_timeout(Conn *c)
 }
 
 void
-enter_drain_mode(int sig)
+enter_drain_mode(int signum)
 {
+    UNUSED_PARAMETER(signum);
     drain_mode = 1;
-}
-
-static void
-do_cmd(Conn *c)
-{
-    dispatch_cmd(c);
-    fill_extra_data(c);
 }
 
 static void
@@ -1686,7 +1686,8 @@ conn_data(Conn *c)
     switch (c->state) {
     case STATE_WANTCOMMAND:
         r = read(c->sock.fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);
-        if (r == -1) return check_err(c, "read()");
+        if (r == -1)
+            return check_err(c, "read()");
         if (r == 0) {
             c->state = STATE_CLOSE;
             return;
@@ -1697,7 +1698,11 @@ conn_data(Conn *c)
         c->cmd_len = cmd_len(c); /* find the EOL */
 
         /* yay, complete command line */
-        if (c->cmd_len) return do_cmd(c);
+        if (c->cmd_len) {
+            dispatch_cmd(c);
+            fill_extra_data(c);
+            return;
+        }
 
         /* c->cmd_read > LINE_BUF_SIZE can't happen */
 
@@ -1732,7 +1737,8 @@ conn_data(Conn *c)
         j = c->in_job;
 
         r = read(c->sock.fd, j->body + c->in_job_read, j->r.body_size -c->in_job_read);
-        if (r == -1) return check_err(c, "read()");
+        if (r == -1)
+            return check_err(c, "read()");
         if (r == 0) {
             c->state = STATE_CLOSE;
             return;
@@ -1746,7 +1752,8 @@ conn_data(Conn *c)
         break;
     case STATE_SENDWORD:
         r= write(c->sock.fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
-        if (r == -1) return check_err(c, "write()");
+        if (r == -1)
+            return check_err(c, "write()");
         if (r == 0) {
             c->state = STATE_CLOSE;
             return;
@@ -1769,7 +1776,8 @@ conn_data(Conn *c)
         iov[1].iov_len = j->r.body_size - c->out_job_sent;
 
         r = writev(c->sock.fd, iov, 2);
-        if (r == -1) return check_err(c, "writev()");
+        if (r == -1)
+            return check_err(c, "writev()");
         if (r == 0) {
             c->state = STATE_CLOSE;
             return;
@@ -1840,7 +1848,10 @@ h_conn(const int fd, const short which, Conn *c)
     }
 
     conn_data(c);
-    while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) do_cmd(c);
+    while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) {
+        dispatch_cmd(c);
+        fill_extra_data(c);
+    }
     if (c->state == STATE_CLOSE) {
         protrmdirty(c);
         connclose(c);
@@ -1857,10 +1868,8 @@ prothandle(Conn *c, int ev)
 int64
 prottick(Server *s)
 {
-    int r;
     job j;
     int64 now;
-    int i;
     tube t;
     int64 period = 0x34630B8A000LL; /* 1 hour in nanoseconds */
     int64 d;
@@ -1873,10 +1882,12 @@ prottick(Server *s)
             break;
         }
         j = delay_q_take();
-        r = enqueue_job(s, j, 0, 0);
-        if (r < 1) bury_job(s, j, 0); /* out of memory, so bury it */
+        int r = enqueue_job(s, j, 0, 0);
+        if (r < 1)
+            bury_job(s, j, 0);  /* out of memory */
     }
 
+    size_t i;
     for (i = 0; i < tubes.used; i++) {
         t = tubes.items[i];
         d = t->deadline_at - now;
@@ -1909,13 +1920,11 @@ prottick(Server *s)
 void
 h_accept(const int fd, const short which, Server *s)
 {
-    Conn *c;
-    int cfd, flags, r;
-    socklen_t addrlen;
+    UNUSED_PARAMETER(which);
     struct sockaddr_in6 addr;
 
-    addrlen = sizeof addr;
-    cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
+    socklen_t addrlen = sizeof addr;
+    int cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
         update_conns();
@@ -1925,7 +1934,7 @@ h_accept(const int fd, const short which, Server *s)
         printf("accept %d\n", cfd);
     }
 
-    flags = fcntl(cfd, F_GETFL, 0);
+    int flags = fcntl(cfd, F_GETFL, 0);
     if (flags < 0) {
         twarn("getting flags");
         close(cfd);
@@ -1936,7 +1945,7 @@ h_accept(const int fd, const short which, Server *s)
         return;
     }
 
-    r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
+    int r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
     if (r < 0) {
         twarn("setting O_NONBLOCK");
         close(cfd);
@@ -1947,7 +1956,7 @@ h_accept(const int fd, const short which, Server *s)
         return;
     }
 
-    c = make_conn(cfd, STATE_WANTCOMMAND, default_tube, default_tube);
+    Conn *c = make_conn(cfd, STATE_WANTCOMMAND, default_tube, default_tube);
     if (!c) {
         twarnx("make_conn() failed");
         close(cfd);
@@ -2024,7 +2033,7 @@ prot_replay(Server *s, job list)
     for (j = list->next ; j != list ; j = nj) {
         nj = j->next;
         job_remove(j);
-        z = walresvupdate(&s->wal, j);
+        z = walresvupdate(&s->wal);
         if (!z) {
             twarnx("failed to reserve space");
             return 0;

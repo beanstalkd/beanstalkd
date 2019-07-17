@@ -1,3 +1,4 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -5,7 +6,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include "sd-daemon.h"
-#include "dat.h"
 
 const char *progname;
 
@@ -106,7 +106,7 @@ usage(int code)
             " -l ADDR  listen on address (default is 0.0.0.0)\n"
             " -p PORT  listen on port (default is " Portdef ")\n"
             " -u USER  become user and group\n"
-            " -z BYTES set the maximum job size in bytes (default is %d)\n"
+            " -z BYTES set the maximum job size in bytes (default is %d, max allowed is %d)\n"
             " -s BYTES set the size of each write-ahead log file (default is %d)\n"
             "            (will be rounded up to a multiple of 512 bytes)\n"
             " -c       compact the binlog (default)\n"
@@ -114,7 +114,10 @@ usage(int code)
             " -v       show version information\n"
             " -V       increase verbosity\n"
             " -h       show this help\n",
-            progname, JOB_DATA_SIZE_LIMIT_DEFAULT, Filesizedef);
+            progname,
+            JOB_DATA_SIZE_LIMIT_DEFAULT,
+            JOB_DATA_SIZE_LIMIT_MAX,
+            Filesizedef);
     exit(code);
 }
 
@@ -163,6 +166,10 @@ optparse(Server *s, char **argv)
                     break;
                 case 'z':
                     job_data_size_limit = parse_size_t(EARGF(flagusage("-z")));
+                    if (job_data_size_limit > JOB_DATA_SIZE_LIMIT_MAX) {
+                        warnx("maximum job size was set to %d", JOB_DATA_SIZE_LIMIT_MAX);
+                        job_data_size_limit = JOB_DATA_SIZE_LIMIT_MAX;
+                    }
                     break;
                 case 's':
                     s->wal.filesize = parse_size_t(EARGF(flagusage("-s")));

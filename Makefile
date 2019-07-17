@@ -1,11 +1,13 @@
-PREFIX=/usr/local
+PREFIX?=/usr/local
 BINDIR=$(DESTDIR)$(PREFIX)/bin
 
 override CFLAGS+=-Wall -Werror -Wformat=2 -g
 override LDFLAGS?=
 
-OS=$(shell uname|tr A-Z a-z)
-INSTALL=install
+LDLIBS?=
+
+OS?=$(shell uname | tr 'A-Z' 'a-z')
+INSTALL?=install
 
 VERS=$(shell ./vers.sh)
 TARG=beanstalkd
@@ -39,16 +41,12 @@ HFILES=\
 	sd-daemon.h\
 
 ifeq ($(OS),linux)
-
-LDLIBS=\
-	-lrt\
-
+   LDLIBS+=-lrt
 endif
 
 CLEANFILES=\
 	vers.c\
-	*.gcda\
-	*.gcno\
+	$(wildcard *.gc*)
 
 .PHONY: all
 all: $(TARG)
@@ -63,13 +61,15 @@ $(BINDIR)/%: %
 	$(INSTALL) -d $(dir $@)
 	$(INSTALL) $< $@
 
-CLEANFILES:=$(CLEANFILES) $(TARG)
+CLEANFILES+=$(TARG)
 
 $(OFILES) $(MOFILE): $(HFILES)
 
+CLEANFILES+=$(wildcard *.o)
+
 .PHONY: clean
 clean:
-	rm -f *.o $(CLEANFILES)
+	rm -f $(CLEANFILES)
 
 .PHONY: check
 check: ct/_ctcheck
@@ -89,7 +89,7 @@ ct/ct.o ct/_ctcheck.o: ct/ct.h ct/internal.h
 
 $(TOFILES): $(HFILES) ct/ct.h
 
-CLEANFILES:=$(CLEANFILES) ct/_* ct/*.o
+CLEANFILES+=$(wildcard ct/_* ct/*.o ct/*.gc*)
 
 ifneq ($(shell ./verc.sh),$(shell cat vers.c 2>/dev/null))
 .PHONY: vers.c

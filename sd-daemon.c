@@ -43,9 +43,12 @@
 
 #include "sd-daemon.h"
 
+#define UNUSED_PARAMETER(x) (void)(x)
+
 int sd_listen_fds(int unset_environment) {
 
 #if defined(DISABLE_SYSTEMD) || !defined(__linux__)
+        UNUSED_PARAMETER(unset_environment);
         return 0;
 #else
         int r, fd;
@@ -326,6 +329,8 @@ int sd_is_socket_unix(int fd, int type, int listening, const char *path, size_t 
 
 int sd_notify(int unset_environment, const char *state) {
 #if defined(DISABLE_SYSTEMD) || !defined(__linux__) || !defined(SOCK_CLOEXEC)
+        UNUSED_PARAMETER(unset_environment);
+        UNUSED_PARAMETER(state);
         return 0;
 #else
         int fd = -1, r;
@@ -394,6 +399,8 @@ finish:
 
 int sd_notifyf(int unset_environment, const char *format, ...) {
 #if defined(DISABLE_SYSTEMD) || !defined(__linux__)
+        UNUSED_PARAMETER(unset_environment);
+        UNUSED_PARAMETER(format);
         return 0;
 #else
         va_list ap;
