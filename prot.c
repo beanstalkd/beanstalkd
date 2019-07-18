@@ -1864,6 +1864,7 @@ prothandle(Conn *c, int ev)
     h_conn(c->sock.fd, ev, c);
 }
 
+// prottick returns nanoseconds till the next work.
 int64
 prottick(Server *s)
 {
@@ -1899,6 +1900,8 @@ prottick(Server *s)
         }
     }
 
+    // Process connections with pending timeouts. Release jobs with expired ttr.
+    // Capture the period from the soonest connection.
     while (s->conns.len) {
         Conn *c = s->conns.data[0];
         d = c->tickat - now;
@@ -1908,6 +1911,7 @@ prottick(Server *s)
         }
 
         heapremove(&s->conns, 0);
+        c->in_conns = 0;
         conn_timeout(c);
     }
 

@@ -275,9 +275,10 @@ struct Conn {
     char   state;
     char   type;
     Conn   *next;
-    tube   use;
-    int64  tickat;      // time at which to do more work
-    int    tickpos;     // position in srv->conns
+    tube   use;         // tube currently in use
+    int64  tickat;      // time at which to do more work; determines pos in heap
+    size_t tickpos;     // position in srv->conns, stale when in_conns=0
+    byte   in_conns;    // 1 if the conn is in srv->conns heap, 0 otherwise
     job    soonest_job; // memoization of the soonest job
     int    rw;          // currently want: 'r', 'w', or 'h'
     int    pending_timeout;
@@ -306,7 +307,7 @@ struct Conn {
     struct job reserved_jobs; // linked list header
 };
 int  connless(Conn *a, Conn *b);
-void connrec(Conn *c, int i);
+void connrec(Conn *c, size_t i);
 void connwant(Conn *c, int rw);
 void connsched(Conn *c);
 void connclose(Conn *c);
@@ -387,6 +388,8 @@ struct Server {
 
     Wal    wal;
     Socket sock;
+
+    // Connections that must produce deadline or timeout, ordered by the time.
     Heap   conns;
 };
 void srvserve(Server *srv);
