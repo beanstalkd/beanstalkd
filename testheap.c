@@ -12,7 +12,7 @@ cttest_heap_insert_one()
 {
     Heap h = {
         .less = job_pri_less,
-        .rec = job_setheappos,
+        .setpos = job_setpos,
     };
 
     job j = make_job(1, 0, 1, 0, 0);
@@ -28,7 +28,7 @@ cttest_heap_insert_and_remove_one()
 {
     Heap h = {
         .less = job_pri_less,
-        .rec = job_setheappos,
+        .setpos = job_setpos,
     };
 
     job j1 = make_job(1, 0, 1, 0, 0);
@@ -47,7 +47,7 @@ cttest_heap_priority()
 {
     Heap h = {
         .less = job_pri_less,
-        .rec = job_setheappos,
+        .setpos = job_setpos,
     };
     job j, j1, j2, j3;
 
@@ -91,7 +91,7 @@ cttest_heap_fifo_property()
 {
     Heap h = {
         .less = job_pri_less,
-        .rec = job_setheappos,
+        .setpos = job_setpos,
     };
     job j, j3a, j3b, j3c;
 
@@ -138,7 +138,7 @@ cttest_heap_many_jobs()
 {
     Heap h = {
         .less = job_pri_less,
-        .rec = job_setheappos,
+        .setpos = job_setpos,
     };
     const int n = 20;
     job j;
@@ -164,7 +164,7 @@ cttest_heap_remove_k()
 {
     Heap h = {
         .less = job_pri_less,
-        .rec = job_setheappos,
+        .setpos = job_setpos,
     };
     const int n = 20;
 
@@ -203,7 +203,7 @@ ctbench_heap_insert(int n)
     }
     Heap h = {
         .less = job_pri_less,
-        .rec = job_setheappos,
+        .setpos = job_setpos,
     };
     ctresettimer();
     for (i = 0; i < n; i++) {
@@ -216,7 +216,7 @@ ctbench_heap_remove(int n)
 {
     Heap h = {
         .less = job_pri_less,
-        .rec = job_setheappos,
+        .setpos = job_setpos,
     };
 
     int i;

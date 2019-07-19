@@ -8,7 +8,7 @@ static void
 set(Heap *h, size_t k, void *x)
 {
     h->data[k] = x;
-    h->rec(x, k);
+    h->setpos(x, k);
 }
 
 

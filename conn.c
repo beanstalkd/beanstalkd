@@ -209,16 +209,18 @@ conn_ready(Conn *c)
 
 
 int
-connless(Conn *a, Conn *b)
+conn_less(void *ca, void *cb)
 {
+    Conn *a = (Conn *)ca;
+    Conn *b = (Conn *)cb;
     return a->tickat < b->tickat;
 }
 
 
 void
-connrec(Conn *c, size_t i)
+conn_setpos(void *c, size_t i)
 {
-    c->tickpos = i;
+    ((Conn *)c)->tickpos = i;
 }
 
 

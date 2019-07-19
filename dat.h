@@ -26,8 +26,6 @@ typedef struct Wal    Wal;
 
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 typedef void(*Handle)(void*, int rw);
-typedef int(*Less)(void*, void*);
-typedef void(*Record)(void*, size_t);
 typedef int(FAlloc)(int, int);
 
 
@@ -93,12 +91,20 @@ struct stats {
 };
 
 
+// less_fn is used by the binary heap to determine the order of elements.
+typedef int(*less_fn)(void*, void*);
+
+// setpos_fn is used by the binary heap to record the new positions of elements
+// whenever they get moved or inserted.
+typedef void(*setpos_fn)(void*, size_t);
+
 struct Heap {
-    size_t  cap;
-    size_t  len;
-    void    **data;
-    Less    less;
-    Record  rec;
+    size_t  cap;                // capacity of the heap
+    size_t  len;                // amount of elements in the heap
+    void    **data;             // actual elements
+
+    less_fn   less;
+    setpos_fn setpos;
 };
 int   heapinsert(Heap *h, void *x);
 void* heapremove(Heap *h, size_t k);
@@ -227,9 +233,9 @@ void job_free(job j);
 job job_find(uint64 job_id);
 
 /* the void* parameters are really job pointers */
-void job_setheappos(void*, size_t);
-int job_pri_less(void*, void*);
-int job_delay_less(void*, void*);
+void job_setpos(void *j, size_t i);
+int job_pri_less(void *ja, void *jb);
+int job_delay_less(void *ja, void *jb);
 
 job job_copy(job j);
 
@@ -319,8 +325,8 @@ struct Conn {
     struct ms  watch;
     struct job reserved_jobs; // linked list header
 };
-int  connless(Conn *a, Conn *b);
-void connrec(Conn *c, size_t i);
+int  conn_less(void *ax, void *bx);
+void conn_setpos(void *cx, size_t i);
 void connwant(Conn *c, int rw);
 void connsched(Conn *c);
 void connclose(Conn *c);

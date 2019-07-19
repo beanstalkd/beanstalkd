@@ -158,24 +158,26 @@ job_free(job j)
 }
 
 void
-job_setheappos(void *j, size_t pos)
+job_setpos(void *j, size_t pos)
 {
     ((job)j)->heap_index = pos;
 }
 
 int
-job_pri_less(void *ax, void *bx)
+job_pri_less(void *ja, void *jb)
 {
-    job a = ax, b = bx;
+    job a = (job)ja;
+    job b = (job)jb;
     if (a->r.pri < b->r.pri) return 1;
     if (a->r.pri > b->r.pri) return 0;
     return a->r.id < b->r.id;
 }
 
 int
-job_delay_less(void *ax, void *bx)
+job_delay_less(void *ja, void *jb)
 {
-    job a = ax, b = bx;
+    job a = ja;
+    job b = jb;
     if (a->r.deadline_at < b->r.deadline_at) return 1;
     if (a->r.deadline_at > b->r.deadline_at) return 0;
     return a->r.id < b->r.id;
