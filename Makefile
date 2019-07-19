@@ -10,7 +10,7 @@ OS?=$(shell uname | tr 'A-Z' 'a-z')
 INSTALL?=install
 
 ifeq ($(OS),sunos)
-LDFLAGS += -lxnet -lsocket -lnsl
+override LDFLAGS += -lxnet -lsocket -lnsl
 endif
 
 VERS=$(shell ./vers.sh)
