@@ -1,7 +1,7 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include "dat.h"
 
 int64
 nanoseconds(void)

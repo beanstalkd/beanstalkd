@@ -1,7 +1,7 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dat.h"
 
 static uint64 next_id = 1;
 
@@ -105,7 +105,7 @@ allocate_job(int body_size)
 }
 
 job
-make_job_with_id(uint pri, int64 delay, int64 ttr,
+make_job_with_id(uint32 pri, int64 delay, int64 ttr,
                  int body_size, tube tube, uint64 id)
 {
     job j;
@@ -158,7 +158,7 @@ job_free(job j)
 }
 
 void
-job_setheappos(void *j, int pos)
+job_setheappos(void *j, size_t pos)
 {
     ((job)j)->heap_index = pos;
 }

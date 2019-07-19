@@ -1,8 +1,17 @@
+branches:
+    only:
+        - master
+
 git:
     quiet: true
     depth: 5
 
 language: c
+
+addons:
+    apt:
+      packages:
+          - lcov
 
 compiler:
     - clang
@@ -28,13 +37,53 @@ script:
           export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
       fi
     - make $MAKEJOBS || ( echo "Build failure. Verbose build follows." && make V=1 ; false )
-    - make check $MAKEJOBS VERBOSE=1
+    - |
+      if [ $COVERAGE = "ON" ]; then
+          # Reset all execution counts to zero
+          lcov \
+              --quiet \
+              --directory . \
+              --base-directory=$(pwd) \
+              --compat-libtool \
+              --zerocounters
+
+         # Capture coverage data
+         lcov \
+             --quiet \
+              --directory . \
+              --base-directory=$(pwd) \
+              --capture \
+              --initial \
+              --compat-libtool \
+              --output-file $(pwd)/lcov.info
+      fi
+    - make check -j1 VERBOSE=1
 
 jobs:
   include:
     - stage: Benchmark
       os: linux
       compiler: gcc
+      before_script:
+          - export COVERAGE=OFF
+      script:
+          - make $MAKEJOBS
+          - make $MAKEJOBS bench
+    - stage: Benchmark
+      os: linux
+      compiler: gcc
+      env:
+          - CFLAGS="-march=native -mtune=native -O3"
+      before_script:
+          - export COVERAGE=OFF
+      script:
+          - make $MAKEJOBS
+          - make $MAKEJOBS bench
+    - stage: Benchmark
+      os: osx
+      compiler: clang
+      env:
+          - CFLAGS="-march=native -mtune=native -O3"
       before_script:
           - export COVERAGE=OFF
       script:
@@ -61,7 +110,36 @@ jobs:
           - make check $MAKEJOBS VERBOSE=1
 
 after_success:
-    - if [ $COVERAGE = "ON" ]; then (bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"); fi;
+    - |
+      if [ $COVERAGE = "ON" ]; then
+          # Capture coverage data
+          lcov \
+              --quiet \
+              --directory . \
+              --base-directory=$(pwd) \
+              --no-checksum \
+              --capture \
+              --compat-libtool \
+              --output-file $(pwd)/lcov.info
+
+          # Remove files matching exclude patterns
+          lcov \
+              --quiet \
+              --remove $(pwd)/lcov.info "ct/*" \
+              --remove $(pwd)/lcov.info "adm/*" \
+              --remove $(pwd)/lcov.info "pkg/*" \
+              --remove $(pwd)/lcov.info "testheap.c" \
+              --remove $(pwd)/lcov.info "testjobs.c" \
+              --remove $(pwd)/lcov.info "testserv.c" \
+              --remove $(pwd)/lcov.info "testutil.c" \
+              --compat-libtool \
+              --output-file $(pwd)/lcov.info
+
+          # Run codecov
+          curl -sSl https://codecov.io/bash -o ./codecov
+          chmod +x ./codecov
+          ./codecov -f $(pwd)/lcov.info
+      fi
 
 after_script:
     - printf "$TRAVIS_COMMIT_RANGE\n"

@@ -1,11 +1,11 @@
+#include "dat.h"
+#include <errno.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <limits.h>
 #include <unistd.h>
-#include "dat.h"
 
 #define SAFETY_MARGIN (1000000000) /* 1 second */
 
@@ -16,6 +16,8 @@ int verbose = 0;
 static void
 on_watch(ms a, tube t, size_t i)
 {
+    UNUSED_PARAMETER(a);
+    UNUSED_PARAMETER(i);
     tube_iref(t);
     t->watching_ct++;
 }
@@ -23,6 +25,8 @@ on_watch(ms a, tube t, size_t i)
 static void
 on_ignore(ms a, tube t, size_t i)
 {
+    UNUSED_PARAMETER(a);
+    UNUSED_PARAMETER(i);
     t->watching_ct--;
     tube_dref(t);
 }
@@ -48,7 +52,8 @@ make_conn(int fd, char start_state, tube use, tube watch)
     c->sock.fd = fd;
     c->state = start_state;
     c->pending_timeout = -1;
-    c->tickpos = -1;
+    c->tickpos = 0; // Does not mean anything if in_conns is set to 0.
+    c->in_conns = 0;
     j = &c->reserved_jobs;
     j->prev = j->next = j;
 
@@ -106,6 +111,7 @@ has_reserved_job(Conn *c)
 }
 
 
+// Returns positive nanoseconds when c should tick, 0 otherwise.
 static int64
 conntickat(Conn *c)
 {
@@ -132,6 +138,8 @@ conntickat(Conn *c)
 }
 
 
+// TODO: remove this function by inlining its content into 3 callees places.
+// Reason: conn.c does not use rw anywhere in this file.
 void
 connwant(Conn *c, int rw)
 {
@@ -140,21 +148,25 @@ connwant(Conn *c, int rw)
 }
 
 
+// Remove c from the c->srv heap and reschedule it using the value
+// returned by conntickat if there is an outstanding timeout in the c.
 void
 connsched(Conn *c)
 {
-    if (c->tickpos > -1) {
+    if (c->in_conns) {
         heapremove(&c->srv->conns, c->tickpos);
+        c->in_conns = 0;
     }
     c->tickat = conntickat(c);
     if (c->tickat) {
         heapinsert(&c->srv->conns, c);
+        c->in_conns = 1;
     }
 }
 
 
-/* return the reserved job with the earliest deadline,
- * or NULL if there's no reserved job */
+// Return the reserved job with the earliest deadline,
+// or NULL if there's no reserved job
 job
 connsoonestjob(Conn *c)
 {
@@ -163,7 +175,8 @@ connsoonestjob(Conn *c)
 
     if (soonest == NULL) {
         for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
-            if (j->r.deadline_at <= (soonest ? : j)->r.deadline_at) soonest = j;
+            if (j->r.deadline_at <= (soonest ? : j)->r.deadline_at)
+                soonest = j;
         }
     }
     c->soonest_job = soonest;
@@ -171,8 +184,8 @@ connsoonestjob(Conn *c)
 }
 
 
-/* return true if c has a reserved job with less than one second until its
- * deadline */
+// Return true if c has a reserved job with less than one second until its
+// deadline.
 int
 conndeadlinesoon(Conn *c)
 {
@@ -188,7 +201,8 @@ conn_ready(Conn *c)
     size_t i;
 
     for (i = 0; i < c->watch.used; i++) {
-        if (((tube) c->watch.items[i])->ready.len) return 1;
+        if (((tube) c->watch.items[i])->ready.len)
+            return 1;
     }
     return 0;
 }
@@ -202,7 +216,7 @@ connless(Conn *a, Conn *b)
 
 
 void
-connrec(Conn *c, int i)
+connrec(Conn *c, size_t i)
 {
     c->tickpos = i;
 }
@@ -237,8 +251,9 @@ connclose(Conn *c)
     c->use->using_ct--;
     TUBE_ASSIGN(c->use, NULL);
 
-    if (c->tickpos > -1) {
+    if (c->in_conns) {
         heapremove(&c->srv->conns, c->tickpos);
+        c->in_conns = 0;
     }
 
     free(c);

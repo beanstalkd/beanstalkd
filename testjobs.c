@@ -1,15 +1,15 @@
+#include "ct/ct.h"
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-#include "ct/ct.h"
-#include "dat.h"
 
 static tube default_tube;
 
 void
-cttestjob_creation()
+cttest_job_creation()
 {
     job j;
 
@@ -19,7 +19,7 @@ cttestjob_creation()
 }
 
 void
-cttestjob_cmp_pris()
+cttest_job_cmp_pris()
 {
     job a, b;
 
@@ -31,7 +31,7 @@ cttestjob_cmp_pris()
 }
 
 void
-cttestjob_cmp_ids()
+cttest_job_cmp_ids()
 {
     job a, b;
 
@@ -43,9 +43,8 @@ cttestjob_cmp_ids()
     assertf(job_pri_less(a, b), "should be less");
 }
 
-
 void
-cttestjob_large_pris()
+cttest_job_large_pris()
 {
     job a, b;
 
@@ -62,7 +61,7 @@ cttestjob_large_pris()
 }
 
 void
-cttestjob_hash_free()
+cttest_job_hash_free()
 {
     job j;
     uint64 jid = 83;
@@ -75,7 +74,7 @@ cttestjob_hash_free()
 }
 
 void
-cttestjob_hash_free_next()
+cttest_job_hash_free_next()
 {
     job a, b;
     uint64 aid = 97, bid = 12386;
@@ -92,7 +91,7 @@ cttestjob_hash_free_next()
 }
 
 void
-cttestjob_all_jobs_used()
+cttest_job_all_jobs_used()
 {
     job j, x;
 
@@ -111,7 +110,7 @@ cttestjob_all_jobs_used()
 }
 
 void
-cttestjob_100_000_jobs()
+cttest_job_100_000_jobs()
 {
     int i;
 
@@ -129,7 +128,7 @@ cttestjob_100_000_jobs()
 }
 
 void
-ctbenchmakejob(int n)
+ctbench_make_job(int n)
 {
     int i;
     TUBE_ASSIGN(default_tube, make_tube("default"));

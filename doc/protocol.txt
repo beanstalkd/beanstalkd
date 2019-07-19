@@ -135,13 +135,14 @@ below).
 
  - <delay> is an integer number of seconds to wait before putting the job in
    the ready queue. The job will be in the "delayed" state during this time.
+   Maximum delay is 2**32-1.
 
  - <ttr> -- time to run -- is an integer number of seconds to allow a worker
    to run this job. This time is counted from the moment a worker reserves
    this job. If the worker does not delete, release, or bury the job within
    <ttr> seconds, the job will time out and the server will release the job.
    The minimum ttr is 1. If the client sends 0, the server will silently
-   increase the ttr to 1.
+   increase the ttr to 1. Maximum ttr is 2**32-1.
 
  - <bytes> is an integer indicating the size of the job body, not including the
    trailing "\r\n". This value must be less than max-job-size (default: 2**16).
@@ -296,7 +297,7 @@ The bury command looks like this:
 
     bury <id> <pri>\r\n
 
- - <id> is the job id to release.
+ - <id> is the job id to bury.
 
  - <pri> is a new priority to assign to the job.
 
@@ -434,10 +435,10 @@ The response is one of:
    - <bytes> is the size of the following data section in bytes.
 
    - <data> is a sequence of bytes of length <bytes> from the previous line. It
-     is a YAML file with statistical information represented a dictionary.
+     is a YAML file with statistical information represented by a dictionary.
 
-The stats-job data is a YAML file representing a single dictionary of strings
-to scalars. It contains these keys:
+The stats-job data is a YAML file representing a single dictionary of string
+keys to scalar values. It contains these keys:
 
  - "id" is the job id
 
@@ -491,10 +492,10 @@ The response is one of:
    - <bytes> is the size of the following data section in bytes.
 
    - <data> is a sequence of bytes of length <bytes> from the previous line. It
-     is a YAML file with statistical information represented a dictionary.
+     is a YAML file with statistical information represented by a dictionary.
 
-The stats-tube data is a YAML file representing a single dictionary of strings
-to scalars. It contains these keys:
+The stats-tube data is a YAML file representing a single dictionary of string
+keys to scalar values. It contains these keys:
 
  - "name" is the tube's name.
 
@@ -544,11 +545,12 @@ The server will respond:
  - <bytes> is the size of the following data section in bytes.
 
  - <data> is a sequence of bytes of length <bytes> from the previous line. It
-   is a YAML file with statistical information represented a dictionary.
+   is a YAML file with statistical information represented by a dictionary.
 
 The stats data for the system is a YAML file representing a single dictionary
-of strings to scalars. Entries described as "cumulative" are reset when the
-beanstalkd process starts; they are not stored on disk with the -b flag.
+of string keys to scalar values. Entries described as "cumulative" are reset
+when the beanstalkd process starts;
+they are not stored on disk with the -b flag.
 
  - "current-jobs-urgent" is the number of ready jobs with priority < 1024.
 
@@ -648,6 +650,9 @@ beanstalkd process starts; they are not stored on disk with the -b flag.
 
  - "binlog-records-migrated" is the cumulative number of records written
    as part of compaction.
+
+ - "draining" is set to "true" if the server is in drain mode,
+   "false" otherwise.
 
  - "id" is a random id string for this server process, generated when each
    beanstalkd process starts.

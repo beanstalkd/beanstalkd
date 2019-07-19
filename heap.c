@@ -1,11 +1,11 @@
+#include "dat.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dat.h"
 
 
 static void
-set(Heap *h, int k, void *x)
+set(Heap *h, size_t k, void *x)
 {
     h->data[k] = x;
     h->rec(x, k);
@@ -13,7 +13,7 @@ set(Heap *h, int k, void *x)
 
 
 static void
-swap(Heap *h, int a, int b)
+swap(Heap *h, size_t a, size_t b)
 {
     void *tmp;
 
@@ -24,17 +24,17 @@ swap(Heap *h, int a, int b)
 
 
 static int
-less(Heap *h, int a, int b)
+less(Heap *h, size_t a, size_t b)
 {
     return h->less(h->data[a], h->data[b]);
 }
 
 
 static void
-siftdown(Heap *h, int k)
+siftdown(Heap *h, size_t k)
 {
     for (;;) {
-        int p = (k-1) / 2; /* parent */
+        size_t p = (k-1) / 2; /* parent */
 
         if (k == 0 || less(h, p, k)) {
             return;
@@ -47,16 +47,14 @@ siftdown(Heap *h, int k)
 
 
 static void
-siftup(Heap *h, int k)
+siftup(Heap *h, size_t k)
 {
     for (;;) {
-        int l, r, s;
-
-        l = k*2 + 1; /* left child */
-        r = k*2 + 2; /* right child */
+        size_t l = k*2 + 1; /* left child */
+        size_t r = k*2 + 2; /* right child */
 
         /* find the smallest of the three */
-        s = k;
+        size_t s = k;
         if (l < h->len && less(h, l, s)) s = l;
         if (r < h->len && less(h, r, s)) s = r;
 
@@ -75,24 +73,22 @@ siftup(Heap *h, int k)
 int
 heapinsert(Heap *h, void *x)
 {
-    int k;
-
     if (h->len == h->cap) {
         void **ndata;
-        int ncap = (h->len+1) * 2; /* allocate twice what we need */
+        size_t ncap = (h->len+1) * 2; /* allocate twice what we need */
 
         ndata = malloc(sizeof(void*) * ncap);
         if (!ndata) {
             return 0;
         }
 
-        memcpy(ndata, h->data, sizeof(void*)*h->len);
+        memcpy(ndata, h->data, sizeof(void*) * h->len);
         free(h->data);
         h->data = ndata;
         h->cap = ncap;
     }
 
-    k = h->len;
+    size_t k = h->len;
     h->len++;
     set(h, k, x);
     siftdown(h, k);
@@ -101,19 +97,16 @@ heapinsert(Heap *h, void *x)
 
 
 void *
-heapremove(Heap *h, int k)
+heapremove(Heap *h, size_t k)
 {
-    void *x;
-
     if (k >= h->len) {
         return 0;
     }
 
-    x = h->data[k];
+    void *x = h->data[k];
     h->len--;
     set(h, k, h->data[h->len]);
     siftdown(h, k);
     siftup(h, k);
-    h->rec(x, -1);
     return x;
 }

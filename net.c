@@ -1,3 +1,5 @@
+#include "dat.h"
+#include "sd-daemon.h"
 #include <netdb.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -7,8 +9,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include "dat.h"
-#include "sd-daemon.h"
 
 int
 make_server_socket(char *host, char *port)

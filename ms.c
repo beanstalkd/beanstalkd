@@ -1,7 +1,7 @@
+#include "dat.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include "dat.h"
 
 void
 ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove)

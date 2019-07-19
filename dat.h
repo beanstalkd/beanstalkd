@@ -1,6 +1,5 @@
-// Requirements:
-// #include <stdint.h>
-// #include <stdlib.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 typedef unsigned char uchar;
 typedef uchar         byte;
@@ -10,13 +9,10 @@ typedef uint32_t      uint32;
 typedef int64_t       int64;
 typedef uint64_t      uint64;
 
-#define int8_t   do_not_use_int8_t
-#define uint8_t  do_not_use_uint8_t
-#define int32_t  do_not_use_int32_t
-#define uint32_t do_not_use_uint32_t
-#define int64_t  do_not_use_int64_t
-#define uint64_t do_not_use_uint64_t
-
+/* TODO: typedefs of ms, job and tube should not hide the pointer.
+   Make them similar to other typedefs (Conn, Heap).
+   Maybem move each typedef next to the corresponding struct definition.
+   See issue #458. */
 typedef struct ms     *ms;
 typedef struct job    *job;
 typedef struct tube   *tube;
@@ -31,39 +27,61 @@ typedef struct Wal    Wal;
 typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 typedef void(*Handle)(void*, int rw);
 typedef int(*Less)(void*, void*);
-typedef void(*Record)(void*, int);
+typedef void(*Record)(void*, size_t);
 typedef int(FAlloc)(int, int);
 
+
+// NUM_PRIMES is used in the jobs hashing.
 #if _LP64
 #define NUM_PRIMES 48
 #else
 #define NUM_PRIMES 19
 #endif
 
+// The name of a tube cannot be longer than MAX_TUBE_NAME_LEN-1
 #define MAX_TUBE_NAME_LEN 201
 
-/* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
- * MUST be enough to hold the longest possible command ("pause-tube a{200} 4294967295\r\n")
- * or reply line ("USING a{200}\r\n"). */
+// A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
+// MUST be enough to hold the longest possible command ("pause-tube a{200} 4294967295\r\n")
+// or reply line ("USING a{200}\r\n").
 #define LINE_BUF_SIZE 224
 
-/* CONN_TYPE_* are bit masks */
+// CONN_TYPE_* are bit masks used to track the count of connection types.
 #define CONN_TYPE_PRODUCER 1
 #define CONN_TYPE_WORKER   2
 #define CONN_TYPE_WAITING  4
 
 #define min(a,b) ((a)<(b)?(a):(b))
 
+// Jobs with priority less than URGENT_THRESHOLD are counted as urgent.
 #define URGENT_THRESHOLD 1024
+
+// The default maximum job size.
 #define JOB_DATA_SIZE_LIMIT_DEFAULT ((1 << 16) - 1)
 
+// The maximum value that job_data_size_limit can be set to via "-z".
+// It could be up to INT32_MAX-2 (~2GB), but set it to 1024^3 (1GB).
+// The width is restricted by Jobrec.body_size that is int32.
+#define JOB_DATA_SIZE_LIMIT_MAX 1073741824
+
+// Maximum value (uint32) allowed in pri, delay and ttr parameters
+#define MAX_UINT32 4294967295
+
+// Use this macro to designate unused parameters in functions.
+#define UNUSED_PARAMETER(x) (void)(x)
+
+// version is defined in vers.c, see vers.sh for details.
 extern const char version[];
+
+// verbose holds the count of -V parameters; it's a verbosity level.
 extern int verbose;
+
 extern struct Server srv;
 
 // Replaced by tests to simulate failures.
 extern FAlloc *falloc;
 
+// stats structure holds counters for operations, both globally and per tube.
 struct stats {
     uint urgent_ct;
     uint waiting_ct;
@@ -76,14 +94,14 @@ struct stats {
 
 
 struct Heap {
-    int     cap;
-    int     len;
+    size_t  cap;
+    size_t  len;
     void    **data;
     Less    less;
     Record  rec;
 };
 int   heapinsert(Heap *h, void *x);
-void* heapremove(Heap *h, int k);
+void* heapremove(Heap *h, size_t k);
 
 
 struct Socket {
@@ -117,7 +135,10 @@ enum // Jobrec.state
     Copy
 };
 
-// if you modify this struct, you must increment Walver above
+// If you modify this struct, you must increment Walver above,
+// Beanstalkd does not handle migration between different versions:
+// it will reject the old data and exit from the server.
+// TODO: Handle Walver migrations automatically.
 struct Jobrec {
     uint64 id;
     uint32 pri;
@@ -135,14 +156,15 @@ struct Jobrec {
 };
 
 struct job {
-    Jobrec r; // persistent fields; these get written to the wal
+     // persistent fields; these get written to the wal
+    Jobrec r;
 
-    /* bookeeping fields; these are in-memory only */
+    // bookeeping fields; these are in-memory only
     char pad[6];
     tube tube;
-    job prev, next; /* linked list of jobs */
-    job ht_next; /* Next job in a hash table list */
-    size_t heap_index; /* where is this job in its current heap */
+    job prev, next;             // linked list of jobs
+    job ht_next;                // Next job in a hash table list
+    size_t heap_index;          // where is this job in its current heap
     File *file;
     job  fnext;
     job  fprev;
@@ -150,7 +172,7 @@ struct job {
     int walresv;
     int walused;
 
-    char body[]; // written separately to the wal
+    char body[];                // written separately to the wal
 };
 
 struct tube {
@@ -205,7 +227,7 @@ void job_free(job j);
 job job_find(uint64 job_id);
 
 /* the void* parameters are really job pointers */
-void job_setheappos(void*, int);
+void job_setheappos(void*, size_t);
 int job_pri_less(void*, void*);
 int job_delay_less(void*, void*);
 
@@ -266,17 +288,18 @@ struct Conn {
     char   state;
     char   type;
     Conn   *next;
-    tube   use;
-    int64  tickat;      // time at which to do more work
-    int    tickpos;     // position in srv->conns
+    tube   use;         // tube currently in use
+    int64  tickat;      // time at which to do more work; determines pos in heap
+    size_t tickpos;     // position in srv->conns, stale when in_conns=0
+    byte   in_conns;    // 1 if the conn is in srv->conns heap, 0 otherwise
     job    soonest_job; // memoization of the soonest job
     int    rw;          // currently want: 'r', 'w', or 'h'
     int    pending_timeout;
     char   halfclosed;
 
-    char cmd[LINE_BUF_SIZE]; // this string is NOT NUL-terminated
-    int  cmd_len;
-    int  cmd_read;
+    char   cmd[LINE_BUF_SIZE];  // this string is NOT NUL-terminated
+    size_t cmd_len;
+    int    cmd_read;
 
     char *reply;
     int  reply_len;
@@ -287,8 +310,8 @@ struct Conn {
     // while in_job_read is nonzero, we are in bit bucket mode and
     // in_job_read's meaning is inverted -- then it counts the bytes that
     // remain to be thrown away.
-    int in_job_read;
-    job in_job; // a job to be read from the client
+    int32 in_job_read;
+    job   in_job;               // a job to be read from the client
 
     job out_job;
     int out_job_sent;
@@ -297,7 +320,7 @@ struct Conn {
     struct job reserved_jobs; // linked list header
 };
 int  connless(Conn *a, Conn *b);
-void connrec(Conn *c, int i);
+void connrec(Conn *c, size_t i);
 void connwant(Conn *c, int rw);
 void connsched(Conn *c);
 void connclose(Conn *c);
@@ -339,7 +362,7 @@ void walinit(Wal*, job list);
 int  walwrite(Wal*, job);
 void walmaint(Wal*);
 int  walresvput(Wal*, job);
-int  walresvupdate(Wal*, job);
+int  walresvupdate(Wal*);
 void walgc(Wal*);
 
 
@@ -378,6 +401,8 @@ struct Server {
 
     Wal    wal;
     Socket sock;
+
+    // Connections that must produce deadline or timeout, ordered by the time.
     Heap   conns;
 };
 void srvserve(Server *srv);
