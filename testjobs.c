@@ -132,6 +132,7 @@ ctbench_make_job(int n)
 {
     int i;
     TUBE_ASSIGN(default_tube, make_tube("default"));
+    ctresettimer();
     for (i = 0; i < n; i++) {
         make_job(0, 0, 1, 0, default_tube);
     }
