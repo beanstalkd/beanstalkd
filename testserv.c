@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <sys/wait.h>
@@ -77,9 +78,16 @@ mustdiallocal(int port)
         exit(1);
     }
 
-    int fd = socket(PF_INET, SOCK_STREAM, 0);
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
         twarn("socket");
+        exit(1);
+    }
+
+    // Fix of the benchmarking issue on Linux. See issue #430.
+    int flags = 1;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(int))) {
+        twarn("setting TCP_NODELAY on fd %d", fd);
         exit(1);
     }
 
@@ -233,6 +241,8 @@ readline(int fd)
             exit(3);
         }
 
+        // TODO: try reading into a buffer to improve performance.
+        // See related issue #430.
         r = read(fd, &c, 1);
         if (r == -1) {
             perror("write");
@@ -1461,6 +1471,7 @@ bench_put_delete_size(int n, int size)
     body[size] = 0;
     ctsetbytes(size);
     sprintf(put, "put 0 0 0 %d\r\n", size);
+    ctresettimer();
     int i;
     for (i = 0; i < n; i++) {
         mustsend(fd, put);
@@ -1471,6 +1482,7 @@ bench_put_delete_size(int n, int size)
         mustsend(fd, buf);
         ckresp(fd, "DELETED\r\n");
     }
+    ctstoptimer();
 }
 
 void
