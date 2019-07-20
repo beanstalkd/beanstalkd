@@ -19,8 +19,8 @@ make_tube(const char *name)
 
     t->ready.less = job_pri_less;
     t->delay.less = job_delay_less;
-    t->ready.rec = job_setheappos;
-    t->delay.rec = job_setheappos;
+    t->ready.setpos = job_setpos;
+    t->delay.setpos = job_setpos;
 
     struct job j = {.tube = NULL};
     t->buried = j;

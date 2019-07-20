@@ -25,8 +25,8 @@ srvserve(Server *s)
 
     s->sock.x = s;
     s->sock.f = (Handle)srvaccept;
-    s->conns.less = (Less)connless;
-    s->conns.rec = (Record)connrec;
+    s->conns.less = conn_less;
+    s->conns.setpos = conn_setpos;
 
     r = listen(s->sock.fd, 1024);
     if (r == -1) {
