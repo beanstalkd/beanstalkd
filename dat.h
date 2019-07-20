@@ -38,6 +38,16 @@ typedef int(FAlloc)(int, int);
 #define NUM_PRIMES 19
 #endif
 
+/* Some compilers (e.g. gcc on SmartOS) define NULL as 0.
+ * This is allowed by the C standard, but is unhelpful when
+ * using NULL in most pointer contexts with errors turned on. */
+#if (defined(sun) || defined(__sun)) && (defined(__SVR4) || defined(__svr4__))
+#ifdef NULL
+#undef NULL
+#endif
+#define NULL ((void*)0)
+#endif
+
 // The name of a tube cannot be longer than MAX_TUBE_NAME_LEN-1
 #define MAX_TUBE_NAME_LEN 201
 
