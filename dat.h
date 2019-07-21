@@ -24,7 +24,6 @@ typedef struct Socket Socket;
 typedef struct Server Server;
 typedef struct Wal    Wal;
 
-typedef void(*ms_event_fn)(ms a, void *item, size_t i);
 typedef void(*Handle)(void*, int rw);
 typedef int(FAlloc)(int, int);
 
@@ -130,11 +129,28 @@ int sockinit(void);
 int sockwant(Socket*, int);
 int socknext(Socket**, int64);
 
+
+// ms_event_fn is called with the element being inserted/removed and its position.
+typedef void(*ms_event_fn)(ms a, void *item, size_t i);
+
+// Resizable multiset
 struct ms {
-    size_t used, cap, last;
+    size_t len;                // amount of stored elements
+    size_t cap;                // capacity
+    size_t last;               // position of last taken element
     void **items;
-    ms_event_fn oninsert, onremove;
+
+    ms_event_fn oninsert;      // called on insertion of an element
+    ms_event_fn onremove;      // called on removal of an element
 };
+
+void ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove);
+void ms_clear(ms a);
+int ms_append(ms a, void *item);
+int ms_remove(ms a, void *item);
+int ms_contains(ms a, void *item);
+void *ms_take(ms a);
+
 
 enum
 {
@@ -222,15 +238,6 @@ extern const char *progname;
 
 int64 nanoseconds(void);
 int   rawfalloc(int fd, int len);
-
-
-void ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove);
-void ms_clear(ms a);
-int ms_append(ms a, void *item);
-int ms_remove(ms a, void *item);
-int ms_contains(ms a, void *item);
-void *ms_take(ms a);
-
 
 #define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
 

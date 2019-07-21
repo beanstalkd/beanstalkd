@@ -200,7 +200,7 @@ conn_ready(Conn *c)
 {
     size_t i;
 
-    for (i = 0; i < c->watch.used; i++) {
+    for (i = 0; i < c->watch.len; i++) {
         if (((tube) c->watch.items[i])->ready.len)
             return 1;
     }

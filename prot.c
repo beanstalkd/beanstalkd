@@ -367,7 +367,7 @@ remove_waiting_conn(Conn *c)
 
     c->type &= ~CONN_TYPE_WAITING;
     global_stat.waiting_ct--;
-    for (i = 0; i < c->watch.used; i++) {
+    for (i = 0; i < c->watch.len; i++) {
         t = c->watch.items[i];
         t->stat.waiting_ct--;
         ms_remove(&t->waiting, c);
@@ -399,13 +399,13 @@ next_eligible_job(int64 now)
     size_t i;
     job j = NULL, candidate;
 
-    for (i = 0; i < tubes.used; i++) {
+    for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
         if (t->pause) {
             if (t->deadline_at > now) continue;
             t->pause = 0;
         }
-        if (t->waiting.used && t->ready.len) {
+        if (t->waiting.len && t->ready.len) {
             candidate = t->ready.data[0];
             if (!j || job_pri_less(candidate, j)) {
                 j = candidate;
@@ -440,7 +440,7 @@ delay_q_peek()
     tube t;
     job j = NULL, nj;
 
-    for (i = 0; i < tubes.used; i++) {
+    for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
         if (t->delay.len == 0) {
             continue;
@@ -567,7 +567,7 @@ get_delayed_job_ct()
     size_t i;
     uint count = 0;
 
-    for (i = 0; i < tubes.used; i++) {
+    for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
         count += t->delay.len;
     }
@@ -670,7 +670,7 @@ enqueue_waiting_conn(Conn *c)
 
     global_stat.waiting_ct++;
     c->type |= CONN_TYPE_WAITING;
-    for (i = 0; i < c->watch.used; i++) {
+    for (i = 0; i < c->watch.len; i++) {
         t = c->watch.items[i];
         t->stat.waiting_ct++;
         ms_append(&t->waiting, c);
@@ -917,7 +917,7 @@ fmt_stats(char *buf, size_t size, void *x)
             timeout_ct,
             global_stat.total_jobs_ct,
             job_data_size_limit,
-            tubes.used,
+            tubes.len,
             count_cur_conns(),
             count_cur_producers(),
             count_cur_workers(),
@@ -1053,7 +1053,7 @@ do_list_tubes(Conn *c, ms l)
 
     /* first, measure how big a buffer we will need */
     resp_z = 6; /* initial "---\n" and final "\r\n" */
-    for (i = 0; i < l->used; i++) {
+    for (i = 0; i < l->len; i++) {
         t = l->items[i];
         resp_z += 3 + strlen(t->name); /* including "- " and "\n" */
     }
@@ -1067,7 +1067,7 @@ do_list_tubes(Conn *c, ms l)
     /* now actually format the response */
     buf = c->out_job->body;
     buf += snprintf(buf, 5, "---\n");
-    for (i = 0; i < l->used; i++) {
+    for (i = 0; i < l->len; i++) {
         t = l->items[i];
         buf += snprintf(buf, 4 + strlen(t->name), "- %s\n", t->name);
     }
@@ -1553,7 +1553,7 @@ dispatch_cmd(Conn *c)
         TUBE_ASSIGN(t, NULL);
         if (!r) return reply_serr(c, MSG_OUT_OF_MEMORY);
 
-        reply_line(c, STATE_SENDWORD, "WATCHING %zu\r\n", c->watch.used);
+        reply_line(c, STATE_SENDWORD, "WATCHING %zu\r\n", c->watch.len);
         break;
     case OP_IGNORE:
         name = c->cmd + CMD_IGNORE_LEN;
@@ -1561,18 +1561,18 @@ dispatch_cmd(Conn *c)
         op_ct[type]++;
 
         t = NULL;
-        for (i = 0; i < c->watch.used; i++) {
+        for (i = 0; i < c->watch.len; i++) {
             t = c->watch.items[i];
             if (strncmp(t->name, name, MAX_TUBE_NAME_LEN) == 0) break;
             t = NULL;
         }
 
-        if (t && c->watch.used < 2) return reply_msg(c, MSG_NOT_IGNORED);
+        if (t && c->watch.len < 2) return reply_msg(c, MSG_NOT_IGNORED);
 
         if (t) ms_remove(&c->watch, t); /* may free t if refcount => 0 */
         t = NULL;
 
-        reply_line(c, STATE_SENDWORD, "WATCHING %zu\r\n", c->watch.used);
+        reply_line(c, STATE_SENDWORD, "WATCHING %zu\r\n", c->watch.len);
         break;
     case OP_QUIT:
         c->state = STATE_CLOSE;
@@ -1888,7 +1888,7 @@ prottick(Server *s)
     }
 
     size_t i;
-    for (i = 0; i < tubes.used; i++) {
+    for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
         d = t->deadline_at - now;
         if (t->pause && d <= 0) {
