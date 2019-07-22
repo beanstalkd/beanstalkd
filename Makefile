@@ -37,6 +37,7 @@ OFILES=\
 TOFILES=\
 	testheap.o\
 	testjobs.o\
+	testms.o\
 	testserv.o\
 	testutil.o\
 

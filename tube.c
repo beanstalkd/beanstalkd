@@ -80,7 +80,7 @@ tube_find(const char *name)
     tube t;
     size_t i;
 
-    for (i = 0; i < tubes.used; i++) {
+    for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
         if (strncmp(t->name, name, MAX_TUBE_NAME_LEN) == 0) return t;
     }

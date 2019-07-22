@@ -117,10 +117,7 @@ after_success:
               --remove $(pwd)/lcov.info "ct/*" \
               --remove $(pwd)/lcov.info "adm/*" \
               --remove $(pwd)/lcov.info "pkg/*" \
-              --remove $(pwd)/lcov.info "testheap.c" \
-              --remove $(pwd)/lcov.info "testjobs.c" \
-              --remove $(pwd)/lcov.info "testserv.c" \
-              --remove $(pwd)/lcov.info "testutil.c" \
+              --remove $(pwd)/lcov.info "test*.c" \
               --compat-libtool \
               --output-file $(pwd)/lcov.info
 
