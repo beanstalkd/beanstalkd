@@ -30,7 +30,10 @@ also try,
     $ make install
     $ make install PREFIX=/usr
 
-Requires Linux (2.6.17 or later), Mac OS X, or FreeBSD.
+Requires Linux (2.6.17 or later), Mac OS X, FreeBSD, or Illumos.
+
+Currently beanstalkd is tested with GCC and clang, but it should work
+with any compiler that supports C99.
 
 Uses ronn to generate the manual.
 See http://github.com/rtomayko/ronn.
