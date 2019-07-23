@@ -71,9 +71,6 @@ typedef int(FAlloc)(int, int);
 // The width is restricted by Jobrec.body_size that is int32.
 #define JOB_DATA_SIZE_LIMIT_MAX 1073741824
 
-// Maximum value (uint32) allowed in pri, delay and ttr parameters
-#define MAX_UINT32 4294967295
-
 // Use this macro to designate unused parameters in functions.
 #define UNUSED_PARAMETER(x) (void)(x)
 
