@@ -37,7 +37,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_JOBKICK "kick-job "
 #define CMD_TOUCH "touch "
 #define CMD_STATS "stats"
-#define CMD_JOBSTATS "stats-job "
+#define CMD_STATSJOB "stats-job "
 #define CMD_USE "use "
 #define CMD_WATCH "watch "
 #define CMD_IGNORE "ignore "
@@ -63,7 +63,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_JOBKICK_LEN CONSTSTRLEN(CMD_JOBKICK)
 #define CMD_TOUCH_LEN CONSTSTRLEN(CMD_TOUCH)
 #define CMD_STATS_LEN CONSTSTRLEN(CMD_STATS)
-#define CMD_JOBSTATS_LEN CONSTSTRLEN(CMD_JOBSTATS)
+#define CMD_STATSJOB_LEN CONSTSTRLEN(CMD_STATSJOB)
 #define CMD_USE_LEN CONSTSTRLEN(CMD_USE)
 #define CMD_WATCH_LEN CONSTSTRLEN(CMD_WATCH)
 #define CMD_IGNORE_LEN CONSTSTRLEN(CMD_IGNORE)
@@ -120,7 +120,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_BURY 6
 #define OP_KICK 7
 #define OP_STATS 8
-#define OP_JOBSTATS 9
+#define OP_STATSJOB 9
 #define OP_PEEK_BURIED 10
 #define OP_USE 11
 #define OP_WATCH 12
@@ -258,7 +258,7 @@ static const char * op_names[] = {
     CMD_BURY,
     CMD_KICK,
     CMD_STATS,
-    CMD_JOBSTATS,
+    CMD_STATSJOB,
     CMD_PEEK_BURIED,
     CMD_USE,
     CMD_WATCH,
@@ -754,7 +754,7 @@ which_cmd(Conn *c)
     TEST_CMD(c->cmd, CMD_KICK, OP_KICK);
     TEST_CMD(c->cmd, CMD_JOBKICK, OP_JOBKICK);
     TEST_CMD(c->cmd, CMD_TOUCH, OP_TOUCH);
-    TEST_CMD(c->cmd, CMD_JOBSTATS, OP_JOBSTATS);
+    TEST_CMD(c->cmd, CMD_STATSJOB, OP_STATSJOB);
     TEST_CMD(c->cmd, CMD_STATS_TUBE, OP_STATS_TUBE);
     TEST_CMD(c->cmd, CMD_STATS, OP_STATS);
     TEST_CMD(c->cmd, CMD_USE, OP_USE);
@@ -908,7 +908,7 @@ fmt_stats(char *buf, size_t size, void *x)
             op_ct[OP_KICK],
             op_ct[OP_TOUCH],
             op_ct[OP_STATS],
-            op_ct[OP_JOBSTATS],
+            op_ct[OP_STATSJOB],
             op_ct[OP_STATS_TUBE],
             op_ct[OP_LIST_TUBES],
             op_ct[OP_LIST_TUBE_USED],
@@ -1473,9 +1473,9 @@ dispatch_cmd(Conn *c)
 
         do_stats(c, fmt_stats, c->srv);
         break;
-    case OP_JOBSTATS:
+    case OP_STATSJOB:
         errno = 0;
-        id = strtoull(c->cmd + CMD_JOBSTATS_LEN, &end_buf, 10);
+        id = strtoull(c->cmd + CMD_STATSJOB_LEN, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
