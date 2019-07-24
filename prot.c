@@ -34,7 +34,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_RELEASE "release "
 #define CMD_BURY "bury "
 #define CMD_KICK "kick "
-#define CMD_JOBKICK "kick-job "
+#define CMD_KICKJOB "kick-job "
 #define CMD_TOUCH "touch "
 #define CMD_STATS "stats"
 #define CMD_STATSJOB "stats-job "
@@ -60,7 +60,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_RELEASE_LEN CONSTSTRLEN(CMD_RELEASE)
 #define CMD_BURY_LEN CONSTSTRLEN(CMD_BURY)
 #define CMD_KICK_LEN CONSTSTRLEN(CMD_KICK)
-#define CMD_JOBKICK_LEN CONSTSTRLEN(CMD_JOBKICK)
+#define CMD_KICKJOB_LEN CONSTSTRLEN(CMD_KICKJOB)
 #define CMD_TOUCH_LEN CONSTSTRLEN(CMD_TOUCH)
 #define CMD_STATS_LEN CONSTSTRLEN(CMD_STATS)
 #define CMD_STATSJOB_LEN CONSTSTRLEN(CMD_STATSJOB)
@@ -135,7 +135,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_TOUCH 21
 #define OP_QUIT 22
 #define OP_PAUSE_TUBE 23
-#define OP_JOBKICK 24
+#define OP_KICKJOB 24
 #define TOTAL_OPS 25
 
 #define STATS_FMT "---\n" \
@@ -273,7 +273,7 @@ static const char * op_names[] = {
     CMD_TOUCH,
     CMD_QUIT,
     CMD_PAUSE_TUBE,
-    CMD_JOBKICK,
+    CMD_KICKJOB,
 };
 
 static job remove_buried_job(job j);
@@ -752,7 +752,7 @@ which_cmd(Conn *c)
     TEST_CMD(c->cmd, CMD_RELEASE, OP_RELEASE);
     TEST_CMD(c->cmd, CMD_BURY, OP_BURY);
     TEST_CMD(c->cmd, CMD_KICK, OP_KICK);
-    TEST_CMD(c->cmd, CMD_JOBKICK, OP_JOBKICK);
+    TEST_CMD(c->cmd, CMD_KICKJOB, OP_KICKJOB);
     TEST_CMD(c->cmd, CMD_TOUCH, OP_TOUCH);
     TEST_CMD(c->cmd, CMD_STATSJOB, OP_STATSJOB);
     TEST_CMD(c->cmd, CMD_STATS_TUBE, OP_STATS_TUBE);
@@ -939,19 +939,19 @@ fmt_stats(char *buf, size_t size, void *x)
 }
 
 /* Read an integer from the given buffer and place it in num.
- * Parsed integer should fit into uint32.
+ * Parsed integer should fit into uint64.
  * Update end to point to the address after the last character consumed.
- * num and end can be NULL. If they are both NULL, read_num() will do the
+ * num and end can be NULL. If they are both NULL, read_u64() will do the
  * conversion and return the status code but not update any values.
  * This is an easy way to check for errors.
- * If end is NULL, read_num will also check that the entire input string was
- * consumed and return an error code otherwise.
+ * If end is NULL, read_u64() will also check that the entire input string
+ * was consumed and return an error code otherwise.
  * Return 0 on success, or nonzero on failure.
  * If a failure occurs, num and end are not modified. */
 static int
-read_num(uint32 *num, const char *buf, char **end)
+read_u64(uint64 *num, const char *buf, char **end)
 {
-    uint64 tnum;
+    uintmax_t tnum;
     char *tend;
 
     errno = 0;
@@ -962,11 +962,38 @@ read_num(uint32 *num, const char *buf, char **end)
     tnum = strtoumax(buf, &tend, 10);
     if (tend == buf)
         return -1;
-    if (errno && errno != ERANGE)
+    if (errno)
         return -1;
     if (!end && tend[0] != '\0')
         return -1;
-    if (tnum > MAX_UINT32)
+    if (tnum > UINT64_MAX)
+        return -1;
+
+    if (num) *num = (uint64)tnum;
+    if (end) *end = tend;
+    return 0;
+}
+
+// Indentical to read_u64() but instead reads into uint32.
+static int
+read_u32(uint32 *num, const char *buf, char **end)
+{
+    uintmax_t tnum;
+    char *tend;
+
+    errno = 0;
+    while (buf[0] == ' ')
+        buf++;
+    if (buf[0] < '0' || '9' < buf[0])
+        return -1;
+    tnum = strtoumax(buf, &tend, 10);
+    if (tend == buf)
+        return -1;
+    if (errno)
+        return -1;
+    if (!end && tend[0] != '\0')
+        return -1;
+    if (tnum > UINT32_MAX)
         return -1;
 
     if (num) *num = (uint32)tnum;
@@ -976,14 +1003,14 @@ read_num(uint32 *num, const char *buf, char **end)
 
 /* Read a delay value in seconds from the given buffer and
    place it in duration in nanoseconds.
-   The interface and behavior are analogous to read_num(). */
+   The interface and behavior are analogous to read_u32(). */
 static int
 read_duration(int64 *duration, const char *buf, char **end)
 {
     int r;
     uint32 dur_sec;
 
-    r = read_num(&dur_sec, buf, end);
+    r = read_u32(&dur_sec, buf, end);
     if (r)
         return r;
     *duration = ((int64) dur_sec) * 1000000000;
@@ -1214,7 +1241,7 @@ dispatch_cmd(Conn *c)
 
     switch (type) {
     case OP_PUT:
-        if (read_num(&pri, c->cmd + 4, &delay_buf))
+        if (read_u32(&pri, c->cmd + 4, &delay_buf))
             return reply_msg(c, MSG_BAD_FORMAT);
 
         if (read_duration(&delay, delay_buf, &ttr_buf))
@@ -1223,7 +1250,7 @@ dispatch_cmd(Conn *c)
         if (read_duration(&ttr, ttr_buf, &size_buf))
             return reply_msg(c, MSG_BAD_FORMAT);
 
-        if (read_num(&body_size, size_buf, &end_buf))
+        if (read_u32(&body_size, size_buf, &end_buf))
             return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
@@ -1302,9 +1329,9 @@ dispatch_cmd(Conn *c)
         reply_job(c, j, MSG_FOUND);
         break;
     case OP_PEEKJOB:
-        errno = 0;
-        id = strtoull(c->cmd + CMD_PEEKJOB_LEN, &end_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_u64(&id, c->cmd + CMD_PEEKJOB_LEN, NULL))
+            return reply_msg(c, MSG_BAD_FORMAT);
+
         op_ct[type]++;
 
         /* So, peek is annoying, because some other connection might free the
@@ -1319,7 +1346,8 @@ dispatch_cmd(Conn *c)
     case OP_RESERVE_TIMEOUT:
         errno = 0;
         timeout = strtol(c->cmd + CMD_RESERVE_TIMEOUT_LEN, &end_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (errno)
+            return reply_msg(c, MSG_BAD_FORMAT);
     case OP_RESERVE: /* FALLTHROUGH */
         /* don't allow trailing garbage */
         if (type == OP_RESERVE && c->cmd_len != CMD_RESERVE_LEN + 2) {
@@ -1338,9 +1366,8 @@ dispatch_cmd(Conn *c)
         process_queue();
         break;
     case OP_DELETE:
-        errno = 0;
-        id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_u64(&id, c->cmd + CMD_DELETE_LEN, NULL))
+            return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
         j = job_find(id);
@@ -1349,7 +1376,8 @@ dispatch_cmd(Conn *c)
             remove_buried_job(j) ? :
             remove_delayed_job(j);
 
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j)
+            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->tube->stat.total_delete_ct++;
 
@@ -1358,31 +1386,33 @@ dispatch_cmd(Conn *c)
         walmaint(&c->srv->wal);
         job_free(j);
 
-        if (!r) return reply_serr(c, MSG_INTERNAL_ERROR);
+        if (!r)
+            return reply_serr(c, MSG_INTERNAL_ERROR);
 
         reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
         break;
     case OP_RELEASE:
-        errno = 0;
-        id = strtoull(c->cmd + CMD_RELEASE_LEN, &pri_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_u64(&id, c->cmd + CMD_RELEASE_LEN, &pri_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_num(&pri, pri_buf, &delay_buf);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_u32(&pri, pri_buf, &delay_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_duration(&delay, delay_buf, NULL);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_duration(&delay, delay_buf, NULL))
+            return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
         j = remove_reserved_job(c, job_find(id));
 
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j)
+            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         /* We want to update the delay deadline on disk, so reserve space for
          * that. */
         if (delay) {
             int z = walresvupdate(&c->srv->wal);
-            if (!z) return reply_serr(c, MSG_OUT_OF_MEMORY);
+            if (!z)
+                return reply_serr(c, MSG_OUT_OF_MEMORY);
             j->walresv += z;
         }
 
@@ -1391,7 +1421,8 @@ dispatch_cmd(Conn *c)
         j->r.release_ct++;
 
         r = enqueue_job(c->srv, j, delay, !!delay);
-        if (r < 0) return reply_serr(c, MSG_INTERNAL_ERROR);
+        if (r < 0)
+            return reply_serr(c, MSG_INTERNAL_ERROR);
         if (r == 1) {
             return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
         }
@@ -1401,21 +1432,23 @@ dispatch_cmd(Conn *c)
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
     case OP_BURY:
-        errno = 0;
-        id = strtoull(c->cmd + CMD_BURY_LEN, &pri_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_u64(&id, c->cmd + CMD_BURY_LEN, &pri_buf))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
-        r = read_num(&pri, pri_buf, NULL);
-        if (r) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_u32(&pri, pri_buf, NULL))
+            return reply_msg(c, MSG_BAD_FORMAT);
+
         op_ct[type]++;
 
         j = remove_reserved_job(c, job_find(id));
 
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j)
+            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         j->r.pri = pri;
         r = bury_job(c->srv, j, 1);
-        if (!r) return reply_serr(c, MSG_INTERNAL_ERROR);
+        if (!r)
+            return reply_serr(c, MSG_INTERNAL_ERROR);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
     case OP_KICK:
@@ -1431,15 +1464,15 @@ dispatch_cmd(Conn *c)
         i = kick_jobs(c->srv, c->use, count);
 
         return reply_line(c, STATE_SENDWORD, "KICKED %u\r\n", i);
-    case OP_JOBKICK:
-        errno = 0;
-        id = strtoull(c->cmd + CMD_JOBKICK_LEN, &end_buf, 10);
-        if (errno) return twarn("strtoull"), reply_msg(c, MSG_BAD_FORMAT);
+    case OP_KICKJOB:
+        if (read_u64(&id, c->cmd + CMD_KICKJOB_LEN, NULL))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
 
         j = job_find(id);
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j)
+            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         if ((j->r.state == Buried && kick_buried_job(c->srv, j)) ||
             (j->r.state == Delayed && kick_delayed_job(c->srv, j))) {
@@ -1449,9 +1482,8 @@ dispatch_cmd(Conn *c)
         }
         break;
     case OP_TOUCH:
-        errno = 0;
-        id = strtoull(c->cmd + CMD_TOUCH_LEN, &end_buf, 10);
-        if (errno) return twarn("strtoull"), reply_msg(c, MSG_BAD_FORMAT);
+        if (read_u64(&id, c->cmd + CMD_TOUCH_LEN, NULL))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
 
@@ -1474,16 +1506,17 @@ dispatch_cmd(Conn *c)
         do_stats(c, fmt_stats, c->srv);
         break;
     case OP_STATSJOB:
-        errno = 0;
-        id = strtoull(c->cmd + CMD_STATSJOB_LEN, &end_buf, 10);
-        if (errno) return reply_msg(c, MSG_BAD_FORMAT);
+        if (read_u64(&id, c->cmd + CMD_STATSJOB_LEN, NULL))
+            return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
 
         j = peek_job(id);
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j)
+            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
-        if (!j->tube) return reply_serr(c, MSG_INTERNAL_ERROR);
+        if (!j->tube)
+            return reply_serr(c, MSG_INTERNAL_ERROR);
         do_stats(c, (fmt_fn) fmt_job_stats, j);
         break;
     case OP_STATS_TUBE:
