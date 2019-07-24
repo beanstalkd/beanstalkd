@@ -149,11 +149,6 @@ int ms_contains(ms a, void *item);
 void *ms_take(ms a);
 
 
-enum
-{
-    Walver = 7
-};
-
 enum // Jobrec.state
 {
     Invalid,
@@ -164,10 +159,31 @@ enum // Jobrec.state
     Copy
 };
 
-// If you modify this struct, you must increment Walver above,
-// Beanstalkd does not handle migration between different versions:
-// it will reject the old data and exit from the server.
-// TODO: Handle Walver migrations automatically.
+enum
+{
+    Walver = 7
+};
+
+// If you modify Jobrec struct, you must increment Walver above.
+//
+// This workflow is expected:
+// 1. If any change needs to be made to the format, first increment Walver.
+// 2. If and only if this is the first such change since the last release:
+//    a. Copy-paste relevant file-reading functions in file.c and
+//       add the old version number to their names. For example,
+//       if you are incrementing Walver from 7 to 8, copy readrec to readrec7.
+//       (Currently, there is only one such function, readrec. But if
+//       a future readrec calls other version-specific functions,
+//       those will have to be copied too.)
+// 3. Add a switch case to fileread for the old version.
+// 4. Modify the current reading function (readrec) to reflect your change.
+//
+// Incrementing Walver for every change, even if not every version
+// will be released, is helpful even if it "wastes" version numbers.
+// It is a really easy thing to do and it means during development
+// you won't have to worry about misinterpreting the contents of a binlog
+// that you generated with a dev copy of beanstalkd.
+
 struct Jobrec {
     uint64 id;
     uint32 pri;
