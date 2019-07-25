@@ -236,7 +236,7 @@ NOT_IGNORED\r\n 如果client企图忽略其仅有的tube时的响应
 
 #### `peek`
 说明
-让client在系统中检查job，有四种形式的命令，其中第一种形式的指令是针对当前使用的tube
+让client在系统中检查job，有四种形式的命令，除第一种形式外，其它均针对当前正在使用的tube。
 格式
 ```
 peek <id>\r\n  返回id对应的job
