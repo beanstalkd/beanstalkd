@@ -194,7 +194,6 @@ void
 ctbench_heap_insert(int n)
 {
     job *j = calloc(n, sizeof *j);
-    assert(j);
     int i;
     for (i = 0; i < n; i++) {
         j[i] = make_job(1, 0, 1, 0, 0);
@@ -205,10 +204,17 @@ ctbench_heap_insert(int n)
         .less = job_pri_less,
         .setpos = job_setpos,
     };
+
     ctresettimer();
     for (i = 0; i < n; i++) {
         heapinsert(&h, j[i]);
     }
+    ctstoptimer();
+
+    for (i = 0; i < n; i++)
+        job_free(heapremove(&h, 0));
+    free(h.data);
+    free(j);
 }
 
 void
@@ -218,15 +224,21 @@ ctbench_heap_remove(int n)
         .less = job_pri_less,
         .setpos = job_setpos,
     };
-
     int i;
     for (i = 0; i < n; i++) {
         job j = make_job(1, 0, 1, 0, 0);
         assertf(j, "allocate job");
         heapinsert(&h, j);
     }
+    job t[n];   // temp storage to deallocate jobs later
+
     ctresettimer();
     for (i = 0; i < n; i++) {
-        heapremove(&h, 0);
+        t[i] = heapremove(&h, 0);
     }
+    ctstoptimer();
+
+    free(h.data);
+    for (i = 0; i < n; i++)
+        job_free(t[i]);
 }
