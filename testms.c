@@ -17,7 +17,7 @@ cttest_ms_append()
 
     int ok = ms_append(a, &i);
     assertf(a->len == 1, "a should contain one item");
-    assertf(ok, "should be added"); 
+    assertf(ok, "should be added");
 
     ok = ms_append(a, &i);
     assertf(a->len == 2, "a should contain two items");
@@ -25,6 +25,7 @@ cttest_ms_append()
 
     ms_clear(a);
     assertf(a->len == 0, "a should be empty");
+    free(a->items);
     free(a);
 }
 
@@ -49,6 +50,7 @@ cttest_ms_remove()
     assertf(!ok, "i was already removed");
 
     assertf(a->len == 0, "a should be empty");
+    free(a->items);
     free(a);
 }
 
@@ -69,6 +71,7 @@ cttest_ms_contains()
     assertf(!ok, "j should not be in a");
 
     ms_clear(a);
+    free(a->items);
     free(a);
 }
 
@@ -81,6 +84,7 @@ cttest_ms_clear_empty()
 
     ms_clear(a);
     assertf(a->len == 0, "a should be empty");
+    free(a->items);
     free(a);
 }
 
@@ -106,6 +110,7 @@ cttest_ms_take()
     n = (int *)ms_take(a);
     assertf(n == NULL, "n should be NULL; ms is empty");
 
+    free(a->items);
     free(a);
 }
 
@@ -128,6 +133,7 @@ cttest_ms_take_sequence()
         assert(*got == e[i]);
     }
 
+    free(a->items);
     free(a);
 }
 

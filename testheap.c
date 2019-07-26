@@ -21,6 +21,10 @@ cttest_heap_insert_one()
     heapinsert(&h, j);
     assertf(h.len == 1, "h should contain one item.");
     assertf(j->heap_index == 0, "should match");
+
+    assert(heapremove(&h, 0));
+    job_free(j);
+    free(h.data);
 }
 
 void
@@ -40,6 +44,9 @@ cttest_heap_insert_and_remove_one()
     job got = heapremove(&h, 0);
     assertf(got == j1, "j1 should come back out");
     assertf(h.len == 0, "h should be empty.");
+
+    free(h.data);
+    job_free(j1);
 }
 
 void
@@ -84,6 +91,11 @@ cttest_heap_priority()
 
     j = heapremove(&h, 0);
     assertf(j == j3, "j3 should come out third.");
+
+    free(h.data);
+    job_free(j1);
+    job_free(j2);
+    job_free(j3);
 }
 
 void
@@ -131,6 +143,11 @@ cttest_heap_fifo_property()
 
     j = heapremove(&h, 0);
     assertf(j == j3c, "j3c should come out third.");
+
+    free(h.data);
+    job_free(j3a);
+    job_free(j3b);
+    job_free(j3c);
 }
 
 void
@@ -156,7 +173,10 @@ cttest_heap_many_jobs()
         j = heapremove(&h, 0);
         assertf(j->r.pri >= last_pri, "should come out in order");
         last_pri = j->r.pri;
+        assert(j);
+        job_free(j);
     }
+    free(h.data);
 }
 
 void
@@ -166,7 +186,8 @@ cttest_heap_remove_k()
         .less = job_pri_less,
         .setpos = job_setpos,
     };
-    const int n = 20;
+    const int n = 50;
+    const int mid = 25;
 
     int c, i;
     for (c = 0; c < 50; c++) {
@@ -178,7 +199,9 @@ cttest_heap_remove_k()
         }
 
         /* remove one from the middle */
-        heapremove(&h, 25);
+        job j0 = heapremove(&h, mid);
+        assertf(j0, "j0 should not be NULL");
+        job_free(j0);
 
         /* now make sure the rest are still a valid heap */
         uint last_pri = 0;
@@ -186,8 +209,11 @@ cttest_heap_remove_k()
             job j = heapremove(&h, 0);
             assertf(j->r.pri >= last_pri, "should come out in order");
             last_pri = j->r.pri;
+            assertf(j, "j should not be NULL");
+            job_free(j);
         }
     }
+    free(h.data);
 }
 
 void
