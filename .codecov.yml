@@ -24,3 +24,11 @@ comment:
   layout: "header, diff"
   behavior: default
   require_changes: no
+
+ignore:
+  # ignore files using wildcards
+  - "test*.c"
+  # ignore folders and all its contents
+  - "ct/.*"
+  - "adm/.*"
+  - "pkg/.*"
