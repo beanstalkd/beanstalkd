@@ -9,11 +9,10 @@ typedef uint32_t      uint32;
 typedef int64_t       int64;
 typedef uint64_t      uint64;
 
-/* TODO: typedefs of ms, job and tube should not hide the pointer.
+/* TODO: typedefs of job and tube should not hide the pointer.
    Make them similar to other typedefs (Conn, Heap).
-   Maybem move each typedef next to the corresponding struct definition.
    See issue #458. */
-typedef struct ms     *ms;
+typedef struct Ms     Ms;
 typedef struct job    *job;
 typedef struct tube   *tube;
 typedef struct Conn   Conn;
@@ -128,10 +127,10 @@ int socknext(Socket**, int64);
 
 
 // ms_event_fn is called with the element being inserted/removed and its position.
-typedef void(*ms_event_fn)(ms a, void *item, size_t i);
+typedef void(*ms_event_fn)(Ms *a, void *item, size_t i);
 
 // Resizable multiset
-struct ms {
+struct Ms {
     size_t len;                // amount of stored elements
     size_t cap;                // capacity
     size_t last;               // position of last taken element
@@ -141,12 +140,12 @@ struct ms {
     ms_event_fn onremove;      // called on removal of an element
 };
 
-void ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove);
-void ms_clear(ms a);
-int ms_append(ms a, void *item);
-int ms_remove(ms a, void *item);
-int ms_contains(ms a, void *item);
-void *ms_take(ms a);
+void ms_init(Ms *a, ms_event_fn oninsert, ms_event_fn onremove);
+void ms_clear(Ms *a);
+int ms_append(Ms *a, void *item);
+int ms_remove(Ms *a, void *item);
+int ms_contains(Ms *a, void *item);
+void *ms_take(Ms *a);
 
 
 enum // Jobrec.state
@@ -225,7 +224,7 @@ struct tube {
     char name[MAX_TUBE_NAME_LEN];
     Heap ready;
     Heap delay;
-    struct ms waiting; /* set of conns */
+    struct Ms waiting; /* set of conns */
     struct stats stat;
     uint using_ct;
     uint watching_ct;
@@ -279,7 +278,7 @@ void job_insert(job head, job j);
 size_t get_all_jobs_used(void);
 
 
-extern struct ms tubes;
+extern struct Ms tubes;
 
 tube make_tube(const char *name);
 void tube_dref(tube t);
@@ -352,7 +351,7 @@ struct Conn {
     job out_job;
     int out_job_sent;
 
-    struct ms  watch;
+    struct Ms  watch;
     struct job reserved_jobs; // linked list header
 };
 int  conn_less(void *ax, void *bx);

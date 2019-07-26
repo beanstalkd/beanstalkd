@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct ms tubes;
+struct Ms tubes;
 
 tube
 make_tube(const char *name)
