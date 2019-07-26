@@ -14,6 +14,7 @@ cttest_allocf()
 
     got = fmtalloc("hello, %s %d", "world", 5);
     assertf(strcmp("hello, world 5", got) == 0, "got \"%s\"", got);
+    free(got);
 }
 
 void

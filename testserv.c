@@ -1218,7 +1218,6 @@ void
 cttest_binlog_size_limit()
 {
     int i = 0;
-    char *b2;
     int gotsize;
 
     size = 1024;
@@ -1230,17 +1229,22 @@ cttest_binlog_size_limit()
 
     port = SERVER();
     fd = mustdiallocal(port);
-    b2 = fmtalloc("%s/binlog.2", ctdir());
+    char *b2 = fmtalloc("%s/binlog.2", ctdir());
     while (!exist(b2)) {
+        char *exp = fmtalloc("INSERTED %d\r\n", ++i);
         mustsend(fd, "put 0 0 100 50\r\n");
         mustsend(fd, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
-        ckresp(fd, fmtalloc("INSERTED %d\r\n", ++i));
+        ckresp(fd, exp);
+        free(exp);
     }
 
-    gotsize = filesize(fmtalloc("%s/binlog.1", ctdir()));
+    char *b1 = fmtalloc("%s/binlog.1", ctdir());
+    gotsize = filesize(b1);
     assertf(gotsize == size, "binlog.1 %d != %d", gotsize, size);
     gotsize = filesize(b2);
     assertf(gotsize == size, "binlog.2 %d != %d", gotsize, size);
+    free(b1);
+    free(b2);
 }
 
 void
@@ -1258,13 +1262,17 @@ cttest_binlog_allocation()
     port = SERVER();
     fd = mustdiallocal(port);
     for (i = 1; i <= 96; i++) {
+        char *exp = fmtalloc("INSERTED %d\r\n", i);
         mustsend(fd, "put 0 0 120 22\r\n");
         mustsend(fd, "job payload xxxxxxxxxx\r\n");
-        ckresp(fd, fmtalloc("INSERTED %d\r\n", i));
+        ckresp(fd, exp);
+        free(exp);
     }
     for (i = 1; i <= 96; i++) {
-        mustsend(fd, fmtalloc("delete %d\r\n", i));
+        char *exp = fmtalloc("delete %d\r\n", i);
+        mustsend(fd, exp);
         ckresp(fd, "DELETED\r\n");
+        free(exp);
     }
 }
 
@@ -1424,7 +1432,9 @@ cttest_binlog_disk_full_delete()
     mustsend(fd, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\r\n");
     ckresp(fd, "OUT_OF_MEMORY\r\n");
 
-    assert(exist(fmtalloc("%s/binlog.1", ctdir())));
+    char *b1 = fmtalloc("%s/binlog.1", ctdir());
+    assert(exist(b1));
+    free(b1);
 
     mustsend(fd, "delete 1\r\n");
     ckresp(fd, "DELETED\r\n");
