@@ -11,7 +11,11 @@ language: c
 addons:
     apt:
       packages:
-          - lcov
+          - valgrind
+
+matrix:
+    allow_failures:
+        - env: MEMCHECK=1
 
 compiler:
     - clang
@@ -77,6 +81,27 @@ jobs:
       script:
           - make $MAKEJOBS
           - make $MAKEJOBS bench
+    - stage: Memcheck
+      os: linux
+      compiler: gcc
+      env: MEMCHECK=1
+      before_script:
+          - export COVERAGE=OFF
+      script:
+          - make $MAKEJOBS
+          - make $MAKEJOBS ct/_ctcheck
+          - export MAKEFLAGS="valgrind --leak-check=full"
+          - |
+            valgrind \
+                --read-var-info=yes \
+                --error-exitcode=1 \
+                --fullpath-after= \
+                --track-origins=yes \
+                --leak-check=full \
+                --show-leak-kinds=all \
+                --num-callers=20 \
+                --run-libc-freeres=no \
+                ct/_ctcheck -b
 
 after_success:
     - '[[ "$COVERAGE" != "ON" ]] || bash <(curl -s https://codecov.io/bash)'
