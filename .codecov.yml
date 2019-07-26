@@ -26,5 +26,9 @@ comment:
   require_changes: no
 
 ignore:
+  # ignore files using wildcards
   - "test*.c"
-  - "ct"
+  # ignore folders and all its contents
+  - "ct/.*"
+  - "adm/.*"
+  - "pkg/.*"
