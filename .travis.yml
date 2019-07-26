@@ -28,7 +28,7 @@ env:
         - COVERAGE=OFF # Currently works only with gcc on linux
 
 before_script:
-    - if [ "${TRAVIS_OS_NAME}-${TRAVIS_COMPILER}" = "linux-gcc" ]; then export COVERAGE="ON"; fi
+    - '[[ "${TRAVIS_OS_NAME}-${TRAVIS_COMPILER}" != "linux-gcc" ]] || export COVERAGE="ON"'
 
 script:
     - |
@@ -37,26 +37,6 @@ script:
           export CFLAGS="-O0 -ggdb -fprofile-arcs -ftest-coverage"
       fi
     - make $MAKEJOBS || ( echo "Build failure. Verbose build follows." && make V=1 ; false )
-    - |
-      if [ $COVERAGE = "ON" ]; then
-          # Reset all execution counts to zero
-          lcov \
-              --quiet \
-              --directory . \
-              --base-directory=$(pwd) \
-              --compat-libtool \
-              --zerocounters
-
-         # Capture coverage data
-         lcov \
-             --quiet \
-              --directory . \
-              --base-directory=$(pwd) \
-              --capture \
-              --initial \
-              --compat-libtool \
-              --output-file $(pwd)/lcov.info
-      fi
     - make check -j1 VERBOSE=1
 
 jobs:
@@ -99,33 +79,7 @@ jobs:
           - make $MAKEJOBS bench
 
 after_success:
-    - |
-      if [ $COVERAGE = "ON" ]; then
-          # Capture coverage data
-          lcov \
-              --quiet \
-              --directory . \
-              --base-directory=$(pwd) \
-              --no-checksum \
-              --capture \
-              --compat-libtool \
-              --output-file $(pwd)/lcov.info
-
-          # Remove files matching exclude patterns
-          lcov \
-              --quiet \
-              --remove $(pwd)/lcov.info "ct/*" \
-              --remove $(pwd)/lcov.info "adm/*" \
-              --remove $(pwd)/lcov.info "pkg/*" \
-              --remove $(pwd)/lcov.info "test*.c" \
-              --compat-libtool \
-              --output-file $(pwd)/lcov.info
-
-          # Run codecov
-          curl -sSl https://codecov.io/bash -o ./codecov
-          chmod +x ./codecov
-          ./codecov -f $(pwd)/lcov.info
-      fi
+    - '[[ "$COVERAGE" != "ON" ]] || bash <(curl -s https://codecov.io/bash)'
 
 after_script:
     - printf "$TRAVIS_COMMIT_RANGE\n"
