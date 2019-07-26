@@ -7,8 +7,8 @@ static uint64 next_id = 1;
 
 static int cur_prime = 0;
 
-static job all_jobs_init[12289] = {0};
-static job *all_jobs = all_jobs_init;
+static Job *all_jobs_init[12289] = {0};
+static Job **all_jobs = all_jobs_init;
 static size_t all_jobs_cap = 12289; /* == primes[0] */
 static size_t all_jobs_used = 0;
 
@@ -23,7 +23,7 @@ _get_job_hash_index(uint64 job_id)
 }
 
 static void
-store_job(job j)
+store_job(Job *j)
 {
     int index = 0;
 
@@ -40,7 +40,7 @@ store_job(job j)
 static void
 rehash(int is_upscaling)
 {
-    job *old = all_jobs;
+    Job **old = all_jobs;
     size_t old_cap = all_jobs_cap, old_used = all_jobs_used, i;
     int old_prime = cur_prime;
     int d = is_upscaling ? 1 : -1;
@@ -52,7 +52,7 @@ rehash(int is_upscaling)
     cur_prime += d;
 
     all_jobs_cap = primes[cur_prime];
-    all_jobs = calloc(all_jobs_cap, sizeof(job));
+    all_jobs = calloc(all_jobs_cap, sizeof(Job *));
     if (!all_jobs) {
         twarnx("Failed to allocate %zu new hash buckets", all_jobs_cap);
         hash_table_was_oom = 1;
@@ -67,7 +67,7 @@ rehash(int is_upscaling)
 
     for (i = 0; i < old_cap; i++) {
         while (old[i]) {
-            job j = old[i];
+            Job *j = old[i];
             old[i] = j->ht_next;
             j->ht_next = NULL;
             store_job(j);
@@ -78,10 +78,10 @@ rehash(int is_upscaling)
     }
 }
 
-job
+Job *
 job_find(uint64 job_id)
 {
-    job jh = NULL;
+    Job *jh = NULL;
     int index = _get_job_hash_index(job_id);
 
     for (jh = all_jobs[index]; jh && jh->r.id != job_id; jh = jh->ht_next);
@@ -89,29 +89,29 @@ job_find(uint64 job_id)
     return jh;
 }
 
-job
+Job *
 allocate_job(int body_size)
 {
-    job j;
+    Job *j;
 
-    j = malloc(sizeof(struct job) + body_size);
-    if (!j) return twarnx("OOM"), (job) 0;
+    j = malloc(sizeof(Job) + body_size);
+    if (!j) return twarnx("OOM"), (Job *) 0;
 
-    memset(j, 0, sizeof(struct job));
+    memset(j, 0, sizeof(Job));
     j->r.created_at = nanoseconds();
     j->r.body_size = body_size;
     j->next = j->prev = j; /* not in a linked list */
     return j;
 }
 
-job
+Job *
 make_job_with_id(uint32 pri, int64 delay, int64 ttr,
                  int body_size, tube tube, uint64 id)
 {
-    job j;
+    Job *j;
 
     j = allocate_job(body_size);
-    if (!j) return twarnx("OOM"), (job) 0;
+    if (!j) return twarnx("OOM"), (Job *) 0;
 
     if (id) {
         j->r.id = id;
@@ -131,9 +131,9 @@ make_job_with_id(uint32 pri, int64 delay, int64 ttr,
 }
 
 static void
-job_hash_free(job j)
+job_hash_free(Job *j)
 {
-    job *slot;
+    Job **slot;
 
     slot = &all_jobs[_get_job_hash_index(j->r.id)];
     while (*slot && *slot != j) slot = &(*slot)->ht_next;
@@ -147,7 +147,7 @@ job_hash_free(job j)
 }
 
 void
-job_free(job j)
+job_free(Job *j)
 {
     if (j) {
         TUBE_ASSIGN(j->tube, NULL);
@@ -160,14 +160,14 @@ job_free(job j)
 void
 job_setpos(void *j, size_t pos)
 {
-    ((job)j)->heap_index = pos;
+    ((Job *)j)->heap_index = pos;
 }
 
 int
 job_pri_less(void *ja, void *jb)
 {
-    job a = (job)ja;
-    job b = (job)jb;
+    Job *a = (Job *)ja;
+    Job *b = (Job *)jb;
     if (a->r.pri < b->r.pri) return 1;
     if (a->r.pri > b->r.pri) return 0;
     return a->r.id < b->r.id;
@@ -176,24 +176,24 @@ job_pri_less(void *ja, void *jb)
 int
 job_delay_less(void *ja, void *jb)
 {
-    job a = ja;
-    job b = jb;
+    Job *a = ja;
+    Job *b = jb;
     if (a->r.deadline_at < b->r.deadline_at) return 1;
     if (a->r.deadline_at > b->r.deadline_at) return 0;
     return a->r.id < b->r.id;
 }
 
-job
-job_copy(job j)
+Job *
+job_copy(Job *j)
 {
-    job n;
+    Job *n;
 
     if (!j) return NULL;
 
-    n = malloc(sizeof(struct job) + j->r.body_size);
-    if (!n) return twarnx("OOM"), (job) 0;
+    n = malloc(sizeof(Job) + j->r.body_size);
+    if (!n) return twarnx("OOM"), (Job *) 0;
 
-    memcpy(n, j, sizeof(struct job) + j->r.body_size);
+    memcpy(n, j, sizeof(Job) + j->r.body_size);
     n->next = n->prev = n; /* not in a linked list */
 
     n->file = NULL; /* copies do not have refcnt on the wal */
@@ -208,7 +208,7 @@ job_copy(job j)
 }
 
 const char *
-job_state(job j)
+job_state(Job *j)
 {
     if (j->r.state == Ready) return "ready";
     if (j->r.state == Reserved) return "reserved";
@@ -218,13 +218,13 @@ job_state(job j)
 }
 
 int
-job_list_any_p(job head)
+job_list_any_p(Job *head)
 {
     return head->next != head || head->prev != head;
 }
 
-job
-job_remove(job j)
+Job *
+job_remove(Job *j)
 {
     if (!j) return NULL;
     if (!job_list_any_p(j)) return NULL; /* not in a doubly-linked list */
@@ -238,7 +238,7 @@ job_remove(job j)
 }
 
 void
-job_insert(job head, job j)
+job_insert(Job *head, Job *j)
 {
     if (job_list_any_p(j)) return; /* already in a linked list */
 

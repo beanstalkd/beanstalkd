@@ -276,7 +276,7 @@ static const char * op_names[] = {
     CMD_KICKJOB,
 };
 
-static job remove_buried_job(job j);
+static Job *remove_buried_job(Job *j);
 
 static int
 buried_job_p(tube t)
@@ -347,7 +347,7 @@ reply_line(Conn *c, int state, const char *fmt, ...)
 }
 
 static void
-reply_job(Conn *c, job j, const char *word)
+reply_job(Conn *c, Job *j, const char *word)
 {
     /* tell this connection which job to send */
     c->out_job = j;
@@ -376,7 +376,7 @@ remove_waiting_conn(Conn *c)
 }
 
 static void
-reserve_job(Conn *c, job j)
+reserve_job(Conn *c, Job *j)
 {
     j->r.deadline_at = nanoseconds() + j->r.ttr;
     global_stat.reserved_ct++; /* stats */
@@ -392,12 +392,13 @@ reserve_job(Conn *c, job j)
     return reply_job(c, j, MSG_RESERVED);
 }
 
-static job
+static Job *
 next_eligible_job(int64 now)
 {
     tube t;
     size_t i;
-    job j = NULL, candidate;
+    Job *j = NULL;
+    Job *candidate;
 
     for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
@@ -419,7 +420,7 @@ next_eligible_job(int64 now)
 static void
 process_queue()
 {
-    job j;
+    Job *j;
     int64 now = nanoseconds();
 
     while ((j = next_eligible_job(now))) {
@@ -433,12 +434,13 @@ process_queue()
     }
 }
 
-static job
+static Job *
 delay_q_peek()
 {
     size_t i;
     tube t;
-    job j = NULL, nj;
+    Job *j = NULL;
+    Job *nj;
 
     for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
@@ -454,7 +456,7 @@ delay_q_peek()
 
 /* Inserts job j in the tube, returns 1 on success, otherwise 0 */
 static int
-enqueue_job(Server *s, job j, int64 delay, char update_store)
+enqueue_job(Server *s, Job *j, int64 delay, char update_store)
 {
     int r;
 
@@ -487,7 +489,7 @@ enqueue_job(Server *s, job j, int64 delay, char update_store)
 }
 
 static int
-bury_job(Server *s, job j, char update_store)
+bury_job(Server *s, Job *j, char update_store)
 {
     if (update_store) {
         int z = walresvupdate(&s->wal);
@@ -516,7 +518,7 @@ void
 enqueue_reserved_jobs(Conn *c)
 {
     int r;
-    job j;
+    Job *j;
 
     while (job_list_any_p(&c->reserved_jobs)) {
         j = job_remove(c->reserved_jobs.next);
@@ -528,10 +530,10 @@ enqueue_reserved_jobs(Conn *c)
     }
 }
 
-static job
+static Job *
 delay_q_take()
 {
-    job j = delay_q_peek();
+    Job *j = delay_q_peek();
     if (!j) {
         return 0;
     }
@@ -540,7 +542,7 @@ delay_q_take()
 }
 
 static int
-kick_buried_job(Server *s, job j)
+kick_buried_job(Server *s, Job *j)
 {
     int r;
     int z;
@@ -575,7 +577,7 @@ get_delayed_job_ct()
 }
 
 static int
-kick_delayed_job(Server *s, job j)
+kick_delayed_job(Server *s, Job *j)
 {
     int r;
     int z;
@@ -616,7 +618,7 @@ kick_delayed_jobs(Server *s, tube t, uint n)
 {
     uint i;
     for (i = 0; (i < n) && (t->delay.len > 0); ++i) {
-        kick_delayed_job(s, (job)t->delay.data[0]);
+        kick_delayed_job(s, (Job *)t->delay.data[0]);
     }
     return i;
 }
@@ -628,8 +630,8 @@ kick_jobs(Server *s, tube t, uint n)
     return kick_delayed_jobs(s, t, n);
 }
 
-static job
-remove_buried_job(job j)
+static Job *
+remove_buried_job(Job *j)
 {
     if (!j || j->r.state != Buried) return NULL;
     j = job_remove(j);
@@ -640,8 +642,8 @@ remove_buried_job(job j)
     return j;
 }
 
-static job
-remove_delayed_job(job j)
+static Job *
+remove_delayed_job(Job *j)
 {
     if (!j || j->r.state != Delayed) return NULL;
     heapremove(&j->tube->delay, j->heap_index);
@@ -649,8 +651,8 @@ remove_delayed_job(job j)
     return j;
 }
 
-static job
-remove_ready_job(job j)
+static Job *
+remove_ready_job(Job *j)
 {
     if (!j || j->r.state != Ready) return NULL;
     heapremove(&j->tube->ready, j->heap_index);
@@ -677,14 +679,14 @@ enqueue_waiting_conn(Conn *c)
     }
 }
 
-static job
-find_reserved_job_in_conn(Conn *c, job j)
+static Job *
+find_reserved_job_in_conn(Conn *c, Job *j)
 {
     return (j && j->reserver == c && j->r.state == Reserved) ? j : NULL;
 }
 
-static job
-touch_job(Conn *c, job j)
+static Job *
+touch_job(Conn *c, Job *j)
 {
     j = find_reserved_job_in_conn(c, j);
     if (j) {
@@ -694,7 +696,7 @@ touch_job(Conn *c, job j)
     return j;
 }
 
-static job
+static Job *
 peek_job(uint64 id)
 {
     return job_find(id);
@@ -824,7 +826,7 @@ static void
 enqueue_incoming_job(Conn *c)
 {
     int r;
-    job j = c->in_job;
+    Job *j = c->in_job;
 
     c->in_job = NULL; /* the connection no longer owns this job */
     c->in_job_read = 0;
@@ -1106,7 +1108,7 @@ do_list_tubes(Conn *c, Ms *l)
 }
 
 static int
-fmt_job_stats(char *buf, size_t size, job j)
+fmt_job_stats(char *buf, size_t size, Job *j)
 {
     int64 t;
     int64 time_left;
@@ -1168,7 +1170,7 @@ fmt_stats_tube(char *buf, size_t size, tube t)
 static void
 maybe_enqueue_incoming_job(Conn *c)
 {
-    job j = c->in_job;
+    Job *j = c->in_job;
 
     /* do we have a complete job? */
     if (c->in_job_read == j->r.body_size) return enqueue_incoming_job(c);
@@ -1178,8 +1180,8 @@ maybe_enqueue_incoming_job(Conn *c)
 }
 
 /* j can be NULL */
-static job
-remove_this_reserved_job(Conn *c, job j)
+static Job *
+remove_this_reserved_job(Conn *c, Job *j)
 {
     j = job_remove(j);
     if (j) {
@@ -1191,8 +1193,8 @@ remove_this_reserved_job(Conn *c, job j)
     return j;
 }
 
-static job
-remove_reserved_job(Conn *c, job j)
+static Job *
+remove_reserved_job(Conn *c, Job *j)
 {
     return remove_this_reserved_job(c, find_reserved_job_in_conn(c, j));
 }
@@ -1217,7 +1219,7 @@ dispatch_cmd(Conn *c)
     int r, timeout = -1;
     uint i;
     uint count;
-    job j = 0;
+    Job *j = 0;
     byte type;
     char *size_buf, *delay_buf, *ttr_buf, *pri_buf, *end_buf, *name;
     uint32 pri;
@@ -1653,7 +1655,7 @@ static void
 conn_timeout(Conn *c)
 {
     int r, should_timeout = 0;
-    job j;
+    Job *j;
 
     /* Check if the client was trying to reserve a job. */
     if (conn_waiting(c) && conndeadlinesoon(c)) should_timeout = 1;
@@ -1712,7 +1714,7 @@ static void
 conn_data(Conn *c)
 {
     int r, to_read;
-    job j;
+    Job *j;
     struct iovec iov[2];
 
     switch (c->state) {
@@ -1901,7 +1903,7 @@ prothandle(Conn *c, int ev)
 int64
 prottick(Server *s)
 {
-    job j;
+    Job *j;
     int64 now;
     tube t;
     int64 period = 0x34630B8A000LL; /* 1 hour in nanoseconds */
@@ -2060,9 +2062,9 @@ prot_init()
 //
 // Returns 1 on success, 0 on failure.
 int
-prot_replay(Server *s, job list)
+prot_replay(Server *s, Job *list)
 {
-    job j, nj;
+    Job *j, *nj;
     int64 t, delay;
     int r, z;
 

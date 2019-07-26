@@ -99,7 +99,7 @@ main(int argc, char **argv)
             exit(10);
         }
 
-        struct job list = {.prev=NULL, .next=NULL};
+        Job list = {.prev=NULL, .next=NULL};
         list.prev = list.next = &list;
         walinit(&srv.wal, &list);
         r = prot_replay(&srv, &list);

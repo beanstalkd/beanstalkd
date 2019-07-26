@@ -22,7 +22,7 @@ make_tube(const char *name)
     t->ready.setpos = job_setpos;
     t->delay.setpos = job_setpos;
 
-    struct job j = {.tube = NULL};
+    Job j = {.tube = NULL};
     t->buried = j;
     t->buried.prev = t->buried.next = &t->buried;
     ms_init(&t->waiting, NULL, NULL);

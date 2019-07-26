@@ -12,8 +12,8 @@
 #include <errno.h>
 #include <string.h>
 
-static int  readrec(File*, job, int*);
-static int  readrec5(File*, job, int*);
+static int  readrec(File*, Job *, int*);
+static int  readrec5(File*, Job *, int*);
 static int  readfull(File*, void*, int, int*, char*);
 static void warnpos(File*, int, char*, ...)
 __attribute__((format(printf, 3, 4)));
@@ -70,9 +70,9 @@ filedecref(File *f)
 
 
 void
-fileaddjob(File *f, job j)
+fileaddjob(File *f, Job *j)
 {
-    job h;
+    Job *h;
 
     h = &f->jlist;
     if (!h->fprev) h->fprev = h;
@@ -86,7 +86,7 @@ fileaddjob(File *f, job j)
 
 
 void
-filermjob(File *f, job j)
+filermjob(File *f, Job *j)
 {
     if (!f) return;
     if (f != j->file) return;
@@ -104,7 +104,7 @@ filermjob(File *f, job j)
 // Fileread reads jobs from f->path into list.
 // It returns 0 on success, or 1 if any errors occurred.
 int
-fileread(File *f, job list)
+fileread(File *f, Job *list)
 {
     int err = 0, v;
 
@@ -133,12 +133,12 @@ fileread(File *f, job list)
 // If an error occurs, it sets *err to 1.
 // Readrec returns the number of records read, either 1 or 0.
 static int
-readrec(File *f, job l, int *err)
+readrec(File *f, Job *l, int *err)
 {
     int r, sz = 0;
     int namelen;
     Jobrec jr;
-    job j;
+    Job *j;
     tube t;
     char tubename[MAX_TUBE_NAME_LEN];
 
@@ -263,12 +263,12 @@ Error:
 // Readrec5 is like readrec, but it reads a record in "version 5"
 // of the log format.
 static int
-readrec5(File *f, job l, int *err)
+readrec5(File *f, Job *l, int *err)
 {
     int r, sz = 0;
     size_t namelen;
     Jobrec5 jr;
-    job j;
+    Job *j;
     tube t;
     char tubename[MAX_TUBE_NAME_LEN];
 
@@ -475,7 +475,7 @@ filewopen(File *f)
 
 
 static int
-filewrite(File *f, job j, void *buf, int len)
+filewrite(File *f, Job *j, void *buf, int len)
 {
     int r;
 
@@ -495,7 +495,7 @@ filewrite(File *f, job j, void *buf, int len)
 
 
 int
-filewrjobshort(File *f, job j)
+filewrjobshort(File *f, Job *j)
 {
     int r, nl;
 
@@ -513,7 +513,7 @@ filewrjobshort(File *f, job j)
 
 
 int
-filewrjobfull(File *f, job j)
+filewrjobfull(File *f, Job *j)
 {
     int nl;
 
