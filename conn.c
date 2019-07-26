@@ -14,7 +14,7 @@ static uint tot_conn_ct = 0;
 int verbose = 0;
 
 static void
-on_watch(ms a, tube t, size_t i)
+on_watch(Ms *a, tube t, size_t i)
 {
     UNUSED_PARAMETER(a);
     UNUSED_PARAMETER(i);
@@ -23,7 +23,7 @@ on_watch(ms a, tube t, size_t i)
 }
 
 static void
-on_ignore(ms a, tube t, size_t i)
+on_ignore(Ms *a, tube t, size_t i)
 {
     UNUSED_PARAMETER(a);
     UNUSED_PARAMETER(i);

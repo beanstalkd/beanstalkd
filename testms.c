@@ -10,7 +10,7 @@
 void
 cttest_ms_append()
 {
-    ms a = new(struct ms);
+    Ms *a = new(struct Ms);
     ms_init(a, NULL, NULL);
 
     int i = 10;
@@ -33,7 +33,7 @@ void
 cttest_ms_remove()
 {
 
-    ms a = new(struct ms);
+    Ms *a = new(struct Ms);
     ms_init(a, NULL, NULL);
 
     int i = 1;
@@ -58,7 +58,7 @@ void
 cttest_ms_contains()
 {
 
-    ms a = new(struct ms);
+    Ms *a = new(struct Ms);
     ms_init(a, NULL, NULL);
 
     int i = 1;
@@ -79,7 +79,7 @@ void
 cttest_ms_clear_empty()
 {
 
-    ms a = new(struct ms);
+    Ms *a = new(struct Ms);
     ms_init(a, NULL, NULL);
 
     ms_clear(a);
@@ -91,7 +91,7 @@ cttest_ms_clear_empty()
 void
 cttest_ms_take()
 {
-    ms a = new(struct ms);
+    Ms *a = new(struct Ms);
     ms_init(a, NULL, NULL);
 
     int i = 10;
@@ -121,7 +121,7 @@ cttest_ms_take_sequence()
     int s[] = {1, 2, 3, 4, 5, 6};
     int e[] = {1, 2, 3, 6, 5, 4};
 
-    ms a = new(struct ms);
+    Ms *a = new(struct Ms);
     ms_init(a, NULL, NULL);
 
     size_t n = sizeof(s)/sizeof(s[0]);

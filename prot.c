@@ -1072,7 +1072,7 @@ do_stats(Conn *c, fmt_fn fmt, void *data)
 }
 
 static void
-do_list_tubes(Conn *c, ms l)
+do_list_tubes(Conn *c, Ms *l)
 {
     char *buf;
     tube t;

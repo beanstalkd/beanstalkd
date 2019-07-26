@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 void
-ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove)
+ms_init(Ms *a, ms_event_fn oninsert, ms_event_fn onremove)
 {
     a->len = a->cap = a->last = 0;
     a->items = NULL;
@@ -13,7 +13,7 @@ ms_init(ms a, ms_event_fn oninsert, ms_event_fn onremove)
 }
 
 static void
-grow(ms a)
+grow(Ms *a)
 {
     void **nitems;
     size_t ncap = (a->cap << 1) ? : 1;
@@ -29,7 +29,7 @@ grow(ms a)
 }
 
 int
-ms_append(ms a, void *item)
+ms_append(Ms *a, void *item)
 {
     if (a->len >= a->cap)
         grow(a);
@@ -43,7 +43,7 @@ ms_append(ms a, void *item)
 }
 
 static int
-ms_delete(ms a, size_t i)
+ms_delete(Ms *a, size_t i)
 {
     void *item;
 
@@ -59,7 +59,7 @@ ms_delete(ms a, size_t i)
 }
 
 void
-ms_clear(ms a)
+ms_clear(Ms *a)
 {
     while (ms_delete(a, 0));
     free(a->items);
@@ -67,7 +67,7 @@ ms_clear(ms a)
 }
 
 int
-ms_remove(ms a, void *item)
+ms_remove(Ms *a, void *item)
 {
     size_t i;
 
@@ -79,7 +79,7 @@ ms_remove(ms a, void *item)
 }
 
 int
-ms_contains(ms a, void *item)
+ms_contains(Ms *a, void *item)
 {
     size_t i;
 
@@ -91,7 +91,7 @@ ms_contains(ms a, void *item)
 }
 
 void *
-ms_take(ms a)
+ms_take(Ms *a)
 {
     void *item;
 
