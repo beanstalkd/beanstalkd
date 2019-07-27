@@ -106,7 +106,7 @@ allocate_job(int body_size)
 
 Job *
 make_job_with_id(uint32 pri, int64 delay, int64 ttr,
-                 int body_size, tube tube, uint64 id)
+                 int body_size, Tube *tube, uint64 id)
 {
     Job *j;
 

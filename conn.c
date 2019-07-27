@@ -14,7 +14,7 @@ static uint tot_conn_ct = 0;
 int verbose = 0;
 
 static void
-on_watch(Ms *a, tube t, size_t i)
+on_watch(Ms *a, Tube *t, size_t i)
 {
     UNUSED_PARAMETER(a);
     UNUSED_PARAMETER(i);
@@ -23,7 +23,7 @@ on_watch(Ms *a, tube t, size_t i)
 }
 
 static void
-on_ignore(Ms *a, tube t, size_t i)
+on_ignore(Ms *a, Tube *t, size_t i)
 {
     UNUSED_PARAMETER(a);
     UNUSED_PARAMETER(i);
@@ -32,7 +32,7 @@ on_ignore(Ms *a, tube t, size_t i)
 }
 
 Conn *
-make_conn(int fd, char start_state, tube use, tube watch)
+make_conn(int fd, char start_state, Tube *use, Tube *watch)
 {
     Job *j;
     Conn *c;
@@ -201,7 +201,7 @@ conn_ready(Conn *c)
     size_t i;
 
     for (i = 0; i < c->watch.len; i++) {
-        if (((tube) c->watch.items[i])->ready.len)
+        if (((Tube *) c->watch.items[i])->ready.len)
             return 1;
     }
     return 0;

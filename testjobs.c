@@ -6,7 +6,7 @@
 #include <string.h>
 #include <sys/time.h>
 
-static tube default_tube;
+static Tube *default_tube;
 
 void
 cttest_job_creation()
