@@ -525,7 +525,10 @@ readtokens()
 {
     int n = 1;
     char c, *s;
-    if ((s = strstr(getenv("MAKEFLAGS"), " --jobserver-fds="))) {
+    char *v = getenv("MAKEFLAGS");
+    if (v == NULL)
+        return n;
+    if ((s = strstr(v, " --jobserver-fds="))) {
         rjobfd = (int)strtol(s+17, &s, 10);  /* skip " --jobserver-fds=" */
         wjobfd = (int)strtol(s+1, NULL, 10); /* skip comma */
     }
