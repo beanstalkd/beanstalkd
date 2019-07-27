@@ -102,7 +102,7 @@ ratio(Wal *w)
 
 // Returns the number of bytes reserved or 0 on error.
 static int
-walresvmigrate(Wal *w, job j)
+walresvmigrate(Wal *w, Job *j)
 {
     int z = 0;
 
@@ -120,7 +120,7 @@ walresvmigrate(Wal *w, job j)
 static void
 moveone(Wal *w)
 {
-    job j;
+    Job *j;
 
     if (w->head == w->cur || w->head->next == w->cur) {
         // no point in moving a job
@@ -176,7 +176,7 @@ walsync(Wal *w)
 // Unlke walresv*, walwrite should never fail because of a full disk.
 // If w is disabled, then walwrite takes no action and returns 1.
 int
-walwrite(Wal *w, job j)
+walwrite(Wal *w, Job *j)
 {
     int r = 0;
 
@@ -368,7 +368,7 @@ reserve(Wal *w, int n)
 
 // Returns the number of bytes reserved or 0 on error.
 int
-walresvput(Wal *w, job j)
+walresvput(Wal *w, Job *j)
 {
     int z = 0;
 
@@ -438,7 +438,7 @@ waldirlock(Wal *w)
 
 
 void
-walread(Wal *w, job list, int min)
+walread(Wal *w, Job *list, int min)
 {
     File *f;
     int i, fd;
@@ -479,7 +479,7 @@ walread(Wal *w, job list, int min)
 
 
 void
-walinit(Wal *w, job list)
+walinit(Wal *w, Job *list)
 {
     int min;
 

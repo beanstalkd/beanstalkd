@@ -15,7 +15,7 @@ cttest_heap_insert_one()
         .setpos = job_setpos,
     };
 
-    job j = make_job(1, 0, 1, 0, 0);
+    Job *j = make_job(1, 0, 1, 0, 0);
     assertf(j, "allocate job");
 
     heapinsert(&h, j);
@@ -35,13 +35,13 @@ cttest_heap_insert_and_remove_one()
         .setpos = job_setpos,
     };
 
-    job j1 = make_job(1, 0, 1, 0, 0);
+    Job *j1 = make_job(1, 0, 1, 0, 0);
     assertf(j1, "allocate job");
 
     int r = heapinsert(&h, j1);
     assertf(r, "insert should succeed");
 
-    job got = heapremove(&h, 0);
+    Job *got = heapremove(&h, 0);
     assertf(got == j1, "j1 should come back out");
     assertf(h.len == 0, "h should be empty.");
 
@@ -56,7 +56,7 @@ cttest_heap_priority()
         .less = job_pri_less,
         .setpos = job_setpos,
     };
-    job j, j1, j2, j3;
+    Job *j, *j1, *j2, *j3;
 
     j1 = make_job(1, 0, 1, 0, 0);
     j2 = make_job(2, 0, 1, 0, 0);
@@ -105,7 +105,7 @@ cttest_heap_fifo_property()
         .less = job_pri_less,
         .setpos = job_setpos,
     };
-    job j, j3a, j3b, j3c;
+    Job *j, *j3a, *j3b, *j3c;
 
     j3a = make_job(3, 0, 1, 0, 0);
     j3b = make_job(3, 0, 1, 0, 0);
@@ -158,7 +158,7 @@ cttest_heap_many_jobs()
         .setpos = job_setpos,
     };
     const int n = 20;
-    job j;
+    Job *j;
 
     int i;
     for (i = 0; i < n; i++) {
@@ -192,21 +192,21 @@ cttest_heap_remove_k()
     int c, i;
     for (c = 0; c < 50; c++) {
         for (i = 0; i < n; i++) {
-            job j = make_job(1 + rand() % 8192, 0, 1, 0, 0);
+            Job *j = make_job(1 + rand() % 8192, 0, 1, 0, 0);
             assertf(j, "allocation");
             int r = heapinsert(&h, j);
             assertf(r, "heapinsert");
         }
 
         /* remove one from the middle */
-        job j0 = heapremove(&h, mid);
+        Job *j0 = heapremove(&h, mid);
         assertf(j0, "j0 should not be NULL");
         job_free(j0);
 
         /* now make sure the rest are still a valid heap */
         uint last_pri = 0;
         for (i = 1; i < n; i++) {
-            job j = heapremove(&h, 0);
+            Job *j = heapremove(&h, 0);
             assertf(j->r.pri >= last_pri, "should come out in order");
             last_pri = j->r.pri;
             assertf(j, "j should not be NULL");
@@ -219,7 +219,7 @@ cttest_heap_remove_k()
 void
 ctbench_heap_insert(int n)
 {
-    job *j = calloc(n, sizeof *j);
+    Job **j = calloc(n, sizeof *j);
     int i;
     for (i = 0; i < n; i++) {
         j[i] = make_job(1, 0, 1, 0, 0);
@@ -252,11 +252,11 @@ ctbench_heap_remove(int n)
     };
     int i;
     for (i = 0; i < n; i++) {
-        job j = make_job(1, 0, 1, 0, 0);
+        Job *j = make_job(1, 0, 1, 0, 0);
         assertf(j, "allocate job");
         heapinsert(&h, j);
     }
-    job t[n];   // temp storage to deallocate jobs later
+    Job *t[n];   // temp storage to deallocate jobs later
 
     ctresettimer();
     for (i = 0; i < n; i++) {

@@ -9,11 +9,8 @@ typedef uint32_t      uint32;
 typedef int64_t       int64;
 typedef uint64_t      uint64;
 
-/* TODO: typedefs of job and tube should not hide the pointer.
-   Make them similar to other typedefs (Conn, Heap).
-   See issue #458. */
 typedef struct Ms     Ms;
-typedef struct job    *job;
+typedef struct Job    Job;
 typedef struct tube   *tube;
 typedef struct Conn   Conn;
 typedef struct Heap   Heap;
@@ -199,19 +196,19 @@ struct Jobrec {
     byte   state;
 };
 
-struct job {
+struct Job {
      // persistent fields; these get written to the wal
     Jobrec r;
 
     // bookeeping fields; these are in-memory only
     char pad[6];
     tube tube;
-    job prev, next;             // linked list of jobs
-    job ht_next;                // Next job in a hash table list
+    Job *prev, *next;           // linked list of jobs
+    Job *ht_next;               // Next job in a hash table list
     size_t heap_index;          // where is this job in its current heap
     File *file;
-    job  fnext;
-    job  fprev;
+    Job  *fnext;
+    Job  *fprev;
     void *reserver;
     int walresv;
     int walused;
@@ -224,13 +221,13 @@ struct tube {
     char name[MAX_TUBE_NAME_LEN];
     Heap ready;
     Heap delay;
-    struct Ms waiting; /* set of conns */
+    Ms waiting; /* set of conns */
     struct stats stat;
     uint using_ct;
     uint watching_ct;
     int64 pause;
     int64 deadline_at;
-    struct job buried;
+    Job buried;
 };
 
 
@@ -253,26 +250,26 @@ int   rawfalloc(int fd, int len);
 
 #define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
 
-job allocate_job(int body_size);
-job make_job_with_id(uint pri, int64 delay, int64 ttr,
+Job *allocate_job(int body_size);
+Job *make_job_with_id(uint pri, int64 delay, int64 ttr,
              int body_size, tube tube, uint64 id);
-void job_free(job j);
+void job_free(Job *j);
 
 /* Lookup a job by job ID */
-job job_find(uint64 job_id);
+Job *job_find(uint64 job_id);
 
 /* the void* parameters are really job pointers */
 void job_setpos(void *j, size_t i);
 int job_pri_less(void *ja, void *jb);
 int job_delay_less(void *ja, void *jb);
 
-job job_copy(job j);
+Job *job_copy(Job *j);
 
-const char * job_state(job j);
+const char * job_state(Job *j);
 
-int job_list_any_p(job head);
-job job_remove(job j);
-void job_insert(job head, job j);
+int job_list_any_p(Job *head);
+Job *job_remove(Job *j);
+void job_insert(Job *head, Job *j);
 
 /* for unit tests */
 size_t get_all_jobs_used(void);
@@ -311,7 +308,7 @@ void enqueue_reserved_jobs(Conn *c);
 void enter_drain_mode(int sig);
 void h_accept(const int fd, const short which, Server* srv);
 void prot_remove_tube(tube t);
-int  prot_replay(Server *s, job list);
+int  prot_replay(Server *s, Job *list);
 
 
 int make_server_socket(char *host_addr, char *port);
@@ -327,12 +324,12 @@ struct Conn {
     int64  tickat;      // time at which to do more work; determines pos in heap
     size_t tickpos;     // position in srv->conns, stale when in_conns=0
     byte   in_conns;    // 1 if the conn is in srv->conns heap, 0 otherwise
-    job    soonest_job; // memoization of the soonest job
+    Job    *soonest_job;// memoization of the soonest job
     int    rw;          // currently want: 'r', 'w', or 'h'
     int    pending_timeout;
     char   halfclosed;
 
-    char   cmd[LINE_BUF_SIZE];  // this string is NOT NUL-terminated
+    char   cmd[LINE_BUF_SIZE];     // this string is NOT NUL-terminated
     size_t cmd_len;
     int    cmd_read;
 
@@ -346,13 +343,13 @@ struct Conn {
     // in_job_read's meaning is inverted -- then it counts the bytes that
     // remain to be thrown away.
     int32 in_job_read;
-    job   in_job;               // a job to be read from the client
+    Job   *in_job;                 // a job to be read from the client
 
-    job out_job;
+    Job *out_job;
     int out_job_sent;
 
-    struct Ms  watch;
-    struct job reserved_jobs; // linked list header
+    Ms  watch;
+    Job reserved_jobs;             // linked list header
 };
 int  conn_less(void *ax, void *bx);
 void conn_setpos(void *cx, size_t i);
@@ -361,7 +358,7 @@ void connsched(Conn *c);
 void connclose(Conn *c);
 void connsetproducer(Conn *c);
 void connsetworker(Conn *c);
-job  connsoonestjob(Conn *c);
+Job *connsoonestjob(Conn *c);
 int  conndeadlinesoon(Conn *c);
 int conn_ready(Conn *c);
 #define conn_waiting(c) ((c)->type & CONN_TYPE_WAITING)
@@ -393,10 +390,10 @@ struct Wal {
     int    nocomp; // disable binlog compaction?
 };
 int  waldirlock(Wal*);
-void walinit(Wal*, job list);
-int  walwrite(Wal*, job);
+void walinit(Wal*, Job *list);
+int  walwrite(Wal*, Job*);
 void walmaint(Wal*);
-int  walresvput(Wal*, job);
+int  walresvput(Wal*, Job*);
 int  walresvupdate(Wal*);
 void walgc(Wal*);
 
@@ -412,19 +409,19 @@ struct File {
     char *path;
     Wal  *w;
 
-    struct job jlist; // jobs written in this file
+    Job jlist;    // jobs written in this file
 };
 int  fileinit(File*, Wal*, int);
 Wal* fileadd(File*, Wal*);
 void fileincref(File*);
 void filedecref(File*);
-void fileaddjob(File*, job);
-void filermjob(File*, job);
-int  fileread(File*, job list);
+void fileaddjob(File*, Job*);
+void filermjob(File*, Job*);
+int  fileread(File*, Job *list);
 void filewopen(File*);
 void filewclose(File*);
-int  filewrjobshort(File*, job);
-int  filewrjobfull(File*, job);
+int  filewrjobshort(File*, Job*);
+int  filewrjobfull(File*, Job*);
 
 
 #define Portdef "11300"

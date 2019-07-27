@@ -34,7 +34,7 @@ on_ignore(Ms *a, tube t, size_t i)
 Conn *
 make_conn(int fd, char start_state, tube use, tube watch)
 {
-    job j;
+    Job *j;
     Conn *c;
 
     c = new(Conn);
@@ -167,11 +167,11 @@ connsched(Conn *c)
 
 // Return the reserved job with the earliest deadline,
 // or NULL if there's no reserved job
-job
+Job *
 connsoonestjob(Conn *c)
 {
-    job j = NULL;
-    job soonest = c->soonest_job;
+    Job *j = NULL;
+    Job *soonest = c->soonest_job;
 
     if (soonest == NULL) {
         for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
@@ -190,7 +190,7 @@ int
 conndeadlinesoon(Conn *c)
 {
     int64 t = nanoseconds();
-    job j = connsoonestjob(c);
+    Job *j = connsoonestjob(c);
 
     return j && t >= j->r.deadline_at - SAFETY_MARGIN;
 }

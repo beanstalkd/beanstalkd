@@ -192,7 +192,7 @@ mustforksrv(void)
             exit(10);
         }
 
-        struct job list = {
+        Job list = {
             .prev = NULL,
             .next = NULL,
         };
