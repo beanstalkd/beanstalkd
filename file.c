@@ -139,7 +139,7 @@ readrec(File *f, Job *l, int *err)
     int namelen;
     Jobrec jr;
     Job *j;
-    tube t;
+    Tube *t;
     char tubename[MAX_TUBE_NAME_LEN];
 
     r = read(f->fd, &namelen, sizeof(int));
@@ -269,7 +269,7 @@ readrec5(File *f, Job *l, int *err)
     size_t namelen;
     Jobrec5 jr;
     Job *j;
-    tube t;
+    Tube *t;
     char tubename[MAX_TUBE_NAME_LEN];
 
     r = read(f->fd, &namelen, sizeof(namelen));

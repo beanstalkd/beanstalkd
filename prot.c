@@ -232,7 +232,7 @@ static char bucket[BUCKET_BUF_SIZE];
 static uint ready_ct = 0;
 static struct stats global_stat = {0, 0, 0, 0, 0, 0, 0};
 
-static tube default_tube;
+static Tube *default_tube;
 
 static int drain_mode = 0;
 static int64 started_at;
@@ -279,7 +279,7 @@ static const char * op_names[] = {
 static Job *remove_buried_job(Job *j);
 
 static int
-buried_job_p(tube t)
+buried_job_p(Tube *t)
 {
     return job_list_any_p(&t->buried);
 }
@@ -360,7 +360,7 @@ reply_job(Conn *c, Job *j, const char *word)
 Conn *
 remove_waiting_conn(Conn *c)
 {
-    tube t;
+    Tube *t;
     size_t i;
 
     if (!conn_waiting(c)) return NULL;
@@ -395,7 +395,7 @@ reserve_job(Conn *c, Job *j)
 static Job *
 next_eligible_job(int64 now)
 {
-    tube t;
+    Tube *t;
     size_t i;
     Job *j = NULL;
     Job *candidate;
@@ -438,7 +438,7 @@ static Job *
 delay_q_peek()
 {
     size_t i;
-    tube t;
+    Tube *t;
     Job *j = NULL;
     Job *nj;
 
@@ -565,7 +565,7 @@ kick_buried_job(Server *s, Job *j)
 static uint
 get_delayed_job_ct()
 {
-    tube t;
+    Tube *t;
     size_t i;
     uint count = 0;
 
@@ -603,7 +603,7 @@ kick_delayed_job(Server *s, Job *j)
 
 /* return the number of jobs successfully kicked */
 static uint
-kick_buried_jobs(Server *s, tube t, uint n)
+kick_buried_jobs(Server *s, Tube *t, uint n)
 {
     uint i;
     for (i = 0; (i < n) && buried_job_p(t); ++i) {
@@ -614,7 +614,7 @@ kick_buried_jobs(Server *s, tube t, uint n)
 
 /* return the number of jobs successfully kicked */
 static uint
-kick_delayed_jobs(Server *s, tube t, uint n)
+kick_delayed_jobs(Server *s, Tube *t, uint n)
 {
     uint i;
     for (i = 0; (i < n) && (t->delay.len > 0); ++i) {
@@ -624,7 +624,7 @@ kick_delayed_jobs(Server *s, tube t, uint n)
 }
 
 static uint
-kick_jobs(Server *s, tube t, uint n)
+kick_jobs(Server *s, Tube *t, uint n)
 {
     if (buried_job_p(t)) return kick_buried_jobs(s, t, n);
     return kick_delayed_jobs(s, t, n);
@@ -667,7 +667,7 @@ remove_ready_job(Job *j)
 static void
 enqueue_waiting_conn(Conn *c)
 {
-    tube t;
+    Tube *t;
     size_t i;
 
     global_stat.waiting_ct++;
@@ -1077,7 +1077,7 @@ static void
 do_list_tubes(Conn *c, Ms *l)
 {
     char *buf;
-    tube t;
+    Tube *t;
     size_t i, resp_z;
 
     /* first, measure how big a buffer we will need */
@@ -1141,7 +1141,7 @@ fmt_job_stats(char *buf, size_t size, Job *j)
 }
 
 static int
-fmt_stats_tube(char *buf, size_t size, tube t)
+fmt_stats_tube(char *buf, size_t size, Tube *t)
 {
     uint64 time_left;
 
@@ -1208,7 +1208,7 @@ name_is_ok(const char *name, size_t max)
 }
 
 void
-prot_remove_tube(tube t)
+prot_remove_tube(Tube *t)
 {
     ms_remove(&tubes, t);
 }
@@ -1226,7 +1226,7 @@ dispatch_cmd(Conn *c)
     uint32 body_size;
     int64 delay, ttr;
     uint64 id;
-    tube t = NULL;
+    Tube *t = NULL;
 
     /* NUL-terminate this string so we can use strtol and friends */
     c->cmd[c->cmd_len - 2] = '\0';
@@ -1905,7 +1905,7 @@ prottick(Server *s)
 {
     Job *j;
     int64 now;
-    tube t;
+    Tube *t;
     int64 period = 0x34630B8A000LL; /* 1 hour in nanoseconds */
     int64 d;
 

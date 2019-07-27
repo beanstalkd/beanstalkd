@@ -11,7 +11,7 @@ typedef uint64_t      uint64;
 
 typedef struct Ms     Ms;
 typedef struct Job    Job;
-typedef struct tube   *tube;
+typedef struct Tube   Tube;
 typedef struct Conn   Conn;
 typedef struct Heap   Heap;
 typedef struct Jobrec Jobrec;
@@ -202,7 +202,7 @@ struct Job {
 
     // bookeeping fields; these are in-memory only
     char pad[6];
-    tube tube;
+    Tube *tube;
     Job *prev, *next;           // linked list of jobs
     Job *ht_next;               // Next job in a hash table list
     size_t heap_index;          // where is this job in its current heap
@@ -216,7 +216,7 @@ struct Job {
     char body[];                // written separately to the wal
 };
 
-struct tube {
+struct Tube {
     uint refs;
     char name[MAX_TUBE_NAME_LEN];
     Heap ready;
@@ -252,7 +252,7 @@ int   rawfalloc(int fd, int len);
 
 Job *allocate_job(int body_size);
 Job *make_job_with_id(uint pri, int64 delay, int64 ttr,
-             int body_size, tube tube, uint64 id);
+                      int body_size, Tube *tube, uint64 id);
 void job_free(Job *j);
 
 /* Lookup a job by job ID */
@@ -277,15 +277,15 @@ size_t get_all_jobs_used(void);
 
 extern struct Ms tubes;
 
-tube make_tube(const char *name);
-void tube_dref(tube t);
-void tube_iref(tube t);
-tube tube_find(const char *name);
-tube tube_find_or_make(const char *name);
+Tube *make_tube(const char *name);
+void  tube_dref(Tube *t);
+void  tube_iref(Tube *t);
+Tube *tube_find(const char *name);
+Tube *tube_find_or_make(const char *name);
 #define TUBE_ASSIGN(a,b) (tube_dref(a), (a) = (b), tube_iref(a))
 
 
-Conn *make_conn(int fd, char start_state, tube use, tube watch);
+Conn *make_conn(int fd, char start_state, Tube *use, Tube *watch);
 
 int count_cur_conns(void);
 uint count_tot_conns(void);
@@ -307,7 +307,7 @@ void enqueue_reserved_jobs(Conn *c);
 
 void enter_drain_mode(int sig);
 void h_accept(const int fd, const short which, Server* srv);
-void prot_remove_tube(tube t);
+void prot_remove_tube(Tube *t);
 int  prot_replay(Server *s, Job *list);
 
 
@@ -320,7 +320,7 @@ struct Conn {
     char   state;
     char   type;
     Conn   *next;
-    tube   use;         // tube currently in use
+    Tube   *use;        // tube currently in use
     int64  tickat;      // time at which to do more work; determines pos in heap
     size_t tickpos;     // position in srv->conns, stale when in_conns=0
     byte   in_conns;    // 1 if the conn is in srv->conns heap, 0 otherwise
