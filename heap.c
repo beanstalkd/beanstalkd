@@ -30,7 +30,7 @@ less(Heap *h, size_t a, size_t b)
 }
 
 
-static void
+void
 siftdown(Heap *h, size_t k)
 {
     for (;;) {
@@ -46,7 +46,7 @@ siftdown(Heap *h, size_t k)
 }
 
 
-static void
+void
 siftup(Heap *h, size_t k)
 {
     for (;;) {

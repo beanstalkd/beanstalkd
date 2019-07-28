@@ -588,6 +588,96 @@ cttest_pause()
 }
 
 void
+cttest_reprioritize_ok()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+
+    mustsend(fd, "put 1 0 1 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "put 2 0 1 1\r\n");
+    mustsend(fd, "b\r\n");
+    ckresp(fd, "INSERTED 2\r\n");
+
+    mustsend(fd, "put 3 0 1 1\r\n");
+    mustsend(fd, "c\r\n");
+    ckresp(fd, "INSERTED 3\r\n");
+
+    mustsend(fd, "put 4 0 1 1\r\n");
+    mustsend(fd, "d\r\n");
+    ckresp(fd, "INSERTED 4\r\n");
+
+    mustsend(fd, "put 5 0 1 1\r\n");
+    mustsend(fd, "e\r\n");
+    ckresp(fd, "INSERTED 5\r\n");
+
+    mustsend(fd, "reprioritize 1 6\r\n");
+    ckresp(fd, "REPRIORITIZED\r\n");
+
+    mustsend(fd, "reserve\r\n");
+    ckresp(fd, "RESERVED 2 1\r\n");
+    ckresp(fd, "b\r\n");
+
+    mustsend(fd, "reprioritize 1 1\r\n");
+    ckresp(fd, "REPRIORITIZED\r\n");
+
+    mustsend(fd, "reserve\r\n");
+    ckresp(fd, "RESERVED 1 1\r\n");
+    ckresp(fd, "a\r\n");
+}
+
+void
+cttest_reprioritize_reserved_job()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "reserve\r\n");
+    ckresp(fd, "RESERVED 1 1\r\n");
+    ckresp(fd, "a\r\n");
+
+    mustsend(fd, "reprioritize 1 999\r\n");
+    ckresp(fd, "ALREADY_RESERVED\r\n");
+}
+
+void
+cttest_reprioritize_noop()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+
+    mustsend(fd, "put 1 0 1 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "reprioritize 1 1\r\n");
+    ckresp(fd, "NOOP\r\n");
+}
+
+void
+cttest_reprioritize_not_found()
+{
+    port = SERVER();
+    fd = mustdiallocal(port);
+
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "reprioritize 2 1\r\n");
+    ckresp(fd, "NOT_FOUND\r\n");
+
+    mustsend(fd, "reprioritize 18446744073709551615 1\r\n");  // UINT64_MAX
+    ckresp(fd, "NOT_FOUND\r\n");
+}
+
+void
 cttest_underscore()
 {
     port = SERVER();

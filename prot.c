@@ -47,6 +47,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_STATS_TUBE "stats-tube "
 #define CMD_QUIT "quit"
 #define CMD_PAUSE_TUBE "pause-tube"
+#define CMD_REPRIORITIZE "reprioritize "
 
 #define CONSTSTRLEN(m) (sizeof(m) - 1)
 
@@ -72,6 +73,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_LIST_TUBES_WATCHED_LEN CONSTSTRLEN(CMD_LIST_TUBES_WATCHED)
 #define CMD_STATS_TUBE_LEN CONSTSTRLEN(CMD_STATS_TUBE)
 #define CMD_PAUSE_TUBE_LEN CONSTSTRLEN(CMD_PAUSE_TUBE)
+#define CMD_REPRIORITIZE_LEN CONSTSTRLEN(CMD_REPRIORITIZE)
 
 #define MSG_FOUND "FOUND"
 #define MSG_NOTFOUND "NOT_FOUND\r\n"
@@ -86,6 +88,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_BURIED_FMT "BURIED %"PRIu64"\r\n"
 #define MSG_INSERTED_FMT "INSERTED %"PRIu64"\r\n"
 #define MSG_NOT_IGNORED "NOT_IGNORED\r\n"
+#define MSG_REPRIORITIZED "REPRIORITIZED\r\n"
 
 #define MSG_OUT_OF_MEMORY "OUT_OF_MEMORY\r\n"
 #define MSG_INTERNAL_ERROR "INTERNAL_ERROR\r\n"
@@ -94,6 +97,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_UNKNOWN_COMMAND "UNKNOWN_COMMAND\r\n"
 #define MSG_EXPECTED_CRLF "EXPECTED_CRLF\r\n"
 #define MSG_JOB_TOO_BIG "JOB_TOO_BIG\r\n"
+#define MSG_ALREADY_RESERVED "ALREADY_RESERVED\r\n"
+#define MSG_NOOP "NOOP\r\n"
 
 #define STATE_WANTCOMMAND 0
 #define STATE_WANTDATA 1
@@ -128,7 +133,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_QUIT 22
 #define OP_PAUSE_TUBE 23
 #define OP_KICKJOB 24
-#define TOTAL_OPS 25
+#define OP_REPRIORITIZE 25
+#define TOTAL_OPS 26
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %u\n" \
@@ -158,6 +164,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "cmd-list-tube-used: %" PRIu64 "\n" \
     "cmd-list-tubes-watched: %" PRIu64 "\n" \
     "cmd-pause-tube: %" PRIu64 "\n" \
+    "cmd-reprioritize: %" PRIu64 "\n" \
     "job-timeouts: %" PRIu64 "\n" \
     "total-jobs: %" PRIu64 "\n" \
     "max-job-size: %zu\n" \
@@ -266,6 +273,7 @@ static const char * op_names[] = {
     CMD_QUIT,
     CMD_PAUSE_TUBE,
     CMD_KICKJOB,
+    CMD_REPRIORITIZE,
 };
 
 static Job *remove_buried_job(Job *j);
@@ -694,6 +702,33 @@ peek_job(uint64 id)
     return job_find(id);
 }
 
+static int
+reprioritize_job(Conn *c, Job *j, uint32 pri)
+{
+    uint32 cur_pri = j->r.pri;
+
+    if (cur_pri == pri) {
+        return 0;
+    }
+
+    j->r.pri = pri;
+
+    if (j->r.state == Ready) {
+        if (pri > cur_pri) {
+            siftup(&j->tube->ready, j->heap_index);
+        } else if (pri < cur_pri) {
+            siftdown(&j->tube->ready, j->heap_index);
+        }
+    }
+
+    if (!walwrite(&c->srv->wal, j)) {
+        return 0;
+    }
+    walmaint(&c->srv->wal);
+
+    return 1;
+}
+
 static void
 check_err(Conn *c, const char *s)
 {
@@ -759,6 +794,7 @@ which_cmd(Conn *c)
     TEST_CMD(c->cmd, CMD_LIST_TUBES, OP_LIST_TUBES);
     TEST_CMD(c->cmd, CMD_QUIT, OP_QUIT);
     TEST_CMD(c->cmd, CMD_PAUSE_TUBE, OP_PAUSE_TUBE);
+    TEST_CMD(c->cmd, CMD_REPRIORITIZE, OP_REPRIORITIZE);
     return OP_UNKNOWN;
 }
 
@@ -908,6 +944,7 @@ fmt_stats(char *buf, size_t size, void *x)
             op_ct[OP_LIST_TUBE_USED],
             op_ct[OP_LIST_TUBES_WATCHED],
             op_ct[OP_PAUSE_TUBE],
+            op_ct[OP_REPRIORITIZE],
             timeout_ct,
             global_stat.total_jobs_ct,
             job_data_size_limit,
@@ -1424,6 +1461,29 @@ dispatch_cmd(Conn *c)
         /* out of memory trying to grow the queue, so it gets buried */
         bury_job(c->srv, j, 0);
         reply_msg(c, MSG_BURIED);
+        break;
+    case OP_REPRIORITIZE:
+        if (read_u64(&id, c->cmd + CMD_REPRIORITIZE_LEN, &pri_buf) || read_u32(&pri, pri_buf, &delay_buf)) {
+            return reply_msg(c, MSG_BAD_FORMAT);
+        }
+
+        op_ct[type]++;
+
+        j = job_find(id);
+
+        if (!j) {
+            return reply_msg(c, MSG_NOTFOUND);
+        }
+
+        if (j->r.state == Reserved) {
+            return reply_msg(c, MSG_ALREADY_RESERVED);
+        }
+
+        if (!reprioritize_job(c, j, pri)) {
+            return reply_msg(c, MSG_NOOP);
+        }
+
+        reply_msg(c, MSG_REPRIORITIZED);
         break;
     case OP_BURY:
         if (read_u64(&id, c->cmd + CMD_BURY_LEN, &pri_buf))

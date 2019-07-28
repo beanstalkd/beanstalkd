@@ -111,6 +111,8 @@ struct Heap {
 int   heapinsert(Heap *h, void *x);
 void* heapremove(Heap *h, size_t k);
 
+void siftdown(Heap *h, size_t k);
+void siftup(Heap *h, size_t k);
 
 struct Socket {
     int    fd;
