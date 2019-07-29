@@ -45,8 +45,10 @@ void
 tube_dref(Tube *t)
 {
     if (!t) return;
-    if (t->refs < 1)
-        return twarnx("refs is zero for tube: %s", t->name);
+    if (t->refs < 1) {
+        twarnx("refs is zero for tube: %s", t->name);
+        return;
+    }
 
     --t->refs;
     if (t->refs < 1)
