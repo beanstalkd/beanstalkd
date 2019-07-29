@@ -98,7 +98,6 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_EXPECTED_CRLF "EXPECTED_CRLF\r\n"
 #define MSG_JOB_TOO_BIG "JOB_TOO_BIG\r\n"
 #define MSG_ALREADY_RESERVED "ALREADY_RESERVED\r\n"
-#define MSG_NOOP "NOOP\r\n"
 
 #define STATE_WANTCOMMAND 0
 #define STATE_WANTDATA 1
@@ -707,8 +706,9 @@ reprioritize_job(Conn *c, Job *j, uint32 pri)
 {
     uint32 cur_pri = j->r.pri;
 
+    // noop
     if (cur_pri == pri) {
-        return 0;
+        return 1;
     }
 
     j->r.pri = pri;
@@ -1479,9 +1479,7 @@ dispatch_cmd(Conn *c)
             return reply_msg(c, MSG_ALREADY_RESERVED);
         }
 
-        if (!reprioritize_job(c, j, pri)) {
-            return reply_msg(c, MSG_NOOP);
-        }
+        reprioritize_job(c, j, pri);
 
         reply_msg(c, MSG_REPRIORITIZED);
         break;

@@ -657,7 +657,7 @@ cttest_reprioritize_noop()
     ckresp(fd, "INSERTED 1\r\n");
 
     mustsend(fd, "reprioritize 1 1\r\n");
-    ckresp(fd, "NOOP\r\n");
+    ckresp(fd, "REPRIORITIZED\r\n");
 }
 
 void
