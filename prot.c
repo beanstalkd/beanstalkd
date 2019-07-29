@@ -315,7 +315,7 @@ protrmdirty(Conn *c)
 
 #define reply_msg(c,m) reply((c),(m),CONSTSTRLEN(m),STATE_SENDWORD)
 
-#define reply_serr(c,e) (twarn("server error: %s",(e)),\
+#define reply_serr(c,e) (twarnx("server error: %s",(e)),\
                          reply_msg((c),(e)))
 
 static void
@@ -701,7 +701,7 @@ check_err(Conn *c, const char *s)
     if (errno == EINTR) return;
     if (errno == EWOULDBLOCK) return;
 
-    twarnerr("%s", s);
+    twarn("%s", s);
     c->state = STATE_CLOSE;
     return;
 }
@@ -1269,7 +1269,7 @@ dispatch_cmd(Conn *c)
         /* OOM? */
         if (!c->in_job) {
             /* throw away the job body and respond with OUT_OF_MEMORY */
-            twarn("server error: " MSG_OUT_OF_MEMORY);
+            twarnx("server error: " MSG_OUT_OF_MEMORY);
             return skip(c, body_size + 2, MSG_OUT_OF_MEMORY);
         }
 
@@ -1852,7 +1852,7 @@ update_conns()
         c->next = NULL;
         r = sockwant(&c->sock, c->rw);
         if (r == -1) {
-            twarnerr("sockwant");
+            twarn("sockwant");
             connclose(c);
         }
     }
@@ -1862,7 +1862,7 @@ static void
 h_conn(const int fd, const short which, Conn *c)
 {
     if (fd != c->sock.fd) {
-        twarn("Argh! event fd doesn't match conn fd.");
+        twarnx("Argh! event fd doesn't match conn fd.");
         close(fd);
         connclose(c);
         update_conns();
@@ -1956,7 +1956,7 @@ h_accept(const int fd, const short which, Server *s)
     socklen_t addrlen = sizeof addr;
     int cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) twarnerr("accept()");
+        if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
         update_conns();
         return;
     }
@@ -1966,7 +1966,7 @@ h_accept(const int fd, const short which, Server *s)
 
     int flags = fcntl(cfd, F_GETFL, 0);
     if (flags < 0) {
-        twarnerr("getting flags");
+        twarn("getting flags");
         close(cfd);
         if (verbose) {
             printf("close %d\n", cfd);
@@ -1977,7 +1977,7 @@ h_accept(const int fd, const short which, Server *s)
 
     int r = fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
     if (r < 0) {
-        twarnerr("setting O_NONBLOCK");
+        twarn("setting O_NONBLOCK");
         close(cfd);
         if (verbose) {
             printf("close %d\n", cfd);
@@ -1988,7 +1988,7 @@ h_accept(const int fd, const short which, Server *s)
 
     Conn *c = make_conn(cfd, STATE_WANTCOMMAND, default_tube, default_tube);
     if (!c) {
-        twarn("make_conn() failed");
+        twarnx("make_conn() failed");
         close(cfd);
         if (verbose) {
             printf("close %d\n", cfd);
@@ -2003,7 +2003,7 @@ h_accept(const int fd, const short which, Server *s)
 
     r = sockwant(&c->sock, 'r');
     if (r == -1) {
-        twarnerr("sockwant");
+        twarn("sockwant");
         close(cfd);
         if (verbose) {
             printf("close %d\n", cfd);
@@ -2022,7 +2022,7 @@ prot_init()
 
     int dev_random = open("/dev/urandom", O_RDONLY);
     if (dev_random < 0) {
-        twarnerr("open /dev/urandom");
+        twarn("open /dev/urandom");
         exit(50);
     }
 
@@ -2030,7 +2030,7 @@ prot_init()
     byte rand_data[NumIdBytes];
     r = read(dev_random, &rand_data, NumIdBytes);
     if (r != NumIdBytes) {
-        twarnerr("read /dev/urandom");
+        twarn("read /dev/urandom");
         exit(50);
     }
     for (i = 0; i < NumIdBytes; i++) {
@@ -2039,14 +2039,14 @@ prot_init()
     close(dev_random);
 
     if (uname(&node_info) == -1) {
-        twarn("uname");
+        warn("uname");
         exit(50);
     }
 
     ms_init(&tubes, NULL, NULL);
 
     TUBE_ASSIGN(default_tube, tube_find_or_make("default"));
-    if (!default_tube) twarn("Out of memory during startup!");
+    if (!default_tube) twarnx("Out of memory during startup!");
 }
 
 // For each job in list, inserts the job into the appropriate data
@@ -2065,7 +2065,7 @@ prot_replay(Server *s, Job *list)
         job_remove(j);
         z = walresvupdate(&s->wal);
         if (!z) {
-            twarn("failed to reserve space");
+            twarnx("failed to reserve space");
             return 0;
         }
         delay = 0;
@@ -2081,7 +2081,7 @@ prot_replay(Server *s, Job *list)
             /* fall through */
         default:
             r = enqueue_job(s, j, delay, 0);
-            if (r < 1) twarn("error recovering job %"PRIu64, j->r.id);
+            if (r < 1) twarnx("error recovering job %"PRIu64, j->r.id);
         }
     }
     return 1;
