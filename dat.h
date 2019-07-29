@@ -231,13 +231,19 @@ struct Tube {
 };
 
 
-#define twarn(fmt, args...) warn("%s:%d in %s: " fmt, \
-                                 __FILE__, __LINE__, __func__, ##args)
-#define twarnx(fmt, args...) warnx("%s:%d in %s: " fmt, \
-                                   __FILE__, __LINE__, __func__, ##args)
+#define twarnerr(fmt, args...) \
+    warnerr("%s:%d in %s: " fmt, __FILE__, __LINE__, __func__, ##args)
+#define twarn(fmt, args...) \
+    warn("%s:%d in %s: " fmt, __FILE__, __LINE__, __func__, ##args)
 
+// warnerr prints fmt and the error message based on errno into stderr:
+// "progname: fmt: error message"
+void warnerr(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+
+// warn prints fmt into stderr:
+// "progname: fmt"
 void warn(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-void warnx(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+
 char* fmtalloc(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void* zalloc(int n);
 #define new(T) zalloc(sizeof(T))
@@ -248,7 +254,8 @@ extern const char *progname;
 int64 nanoseconds(void);
 int   rawfalloc(int fd, int len);
 
-#define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
+#define make_job(pri,delay,ttr,body_size,tube) \
+    make_job_with_id(pri,delay,ttr,body_size,tube,0)
 
 Job *allocate_job(int body_size);
 Job *make_job_with_id(uint pri, int64 delay, int64 ttr,

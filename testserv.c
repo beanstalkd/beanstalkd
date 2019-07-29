@@ -47,7 +47,7 @@ muststart(char *a0, char *a1, char *a2, char *a3, char *a4)
 {
     srvpid = fork();
     if (srvpid < 0) {
-        twarn("fork");
+        twarnerr("fork");
         exit(1);
     }
 
@@ -74,26 +74,26 @@ mustdiallocal(int port)
     int r = inet_aton("127.0.0.1", &addr.sin_addr);
     if (!r) {
         errno = EINVAL;
-        twarn("inet_aton");
+        twarnerr("inet_aton");
         exit(1);
     }
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1) {
-        twarn("socket");
+        twarnerr("socket");
         exit(1);
     }
 
     // Fix of the benchmarking issue on Linux. See issue #430.
     int flags = 1;
     if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(int))) {
-        twarn("setting TCP_NODELAY on fd %d", fd);
+        twarnerr("setting TCP_NODELAY on fd %d", fd);
         exit(1);
     }
 
     r = connect(fd, (struct sockaddr *)&addr, sizeof addr);
     if (r == -1) {
-        twarn("connect");
+        twarnerr("connect");
         exit(1);
     }
 
@@ -115,7 +115,7 @@ set_sig_handler()
     sa.sa_flags = 0;
     int r = sigemptyset(&sa.sa_mask);
     if (r == -1) {
-        twarn("sigemptyset()");
+        twarnerr("sigemptyset()");
         exit(111);
     }
 
@@ -123,7 +123,7 @@ set_sig_handler()
     sa.sa_handler = exit_process;
     r = sigaction(SIGTERM, &sa, 0);
     if (r == -1) {
-        twarn("sigaction(SIGTERM)");
+        twarnerr("sigaction(SIGTERM)");
         exit(111);
     }
 }
@@ -167,7 +167,7 @@ mustforksrv(void)
     int port = ntohs(addr.sin_port);
     srvpid = fork();
     if (srvpid < 0) {
-        twarn("fork");
+        twarnerr("fork");
         exit(1);
     }
 
@@ -188,7 +188,7 @@ mustforksrv(void)
         // to use the wal directory at a time. So acquire a lock
         // now and never release it.
         if (!waldirlock(&srv.wal)) {
-            twarnx("failed to lock wal dir %s", srv.wal.dir);
+            twarn("failed to lock wal dir %s", srv.wal.dir);
             exit(10);
         }
 
@@ -200,7 +200,7 @@ mustforksrv(void)
         walinit(&srv.wal, &list);
         int ok = prot_replay(&srv, &list);
         if (!ok) {
-            twarnx("failed to replay log");
+            twarn("failed to replay log");
             exit(11);
         }
     }
@@ -307,7 +307,7 @@ filesize(char *path)
 
     int r = stat(path, &s);
     if (r == -1) {
-        twarn("stat");
+        twarnerr("stat");
         exit(1);
     }
     return s.st_size;

@@ -35,7 +35,7 @@ sockinit(void)
 {
     portfd = port_create();
     if (portfd == -1) {
-        twarn("port_create");
+        twarnerr("port_create");
         return -1;
     }
     return 0;
@@ -86,7 +86,7 @@ socknext(Socket **s, int64 timeout)
     ts.tv_nsec = timeout % 1000000000;
     r = port_getn(portfd, &pe, 1, &n, &ts);
     if (r == -1 && errno != ETIME && errno != EINTR) {
-        twarn("port_getn");
+        twarnerr("port_getn");
         return -1;
     }
 

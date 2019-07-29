@@ -22,22 +22,22 @@ make_server_socket(char *host, char *port)
      * return. */
     r = sd_listen_fds(1);
     if (r < 0) {
-        return twarn("sd_listen_fds"), -1;
+        return twarnerr("sd_listen_fds"), -1;
     }
     if (r > 0) {
         if (r > 1) {
-            twarnx("inherited more than one listen socket;"
+            twarn("inherited more than one listen socket;"
                    " ignoring all but the first");
         }
         fd = SD_LISTEN_FDS_START;
         r = sd_is_socket_inet(fd, 0, SOCK_STREAM, 1, 0);
         if (r < 0) {
             errno = -r;
-            twarn("sd_is_socket_inet");
+            twarnerr("sd_is_socket_inet");
             return -1;
         }
         if (!r) {
-            twarnx("inherited fd is not a TCP listen socket");
+            twarn("inherited fd is not a TCP listen socket");
             return -1;
         }
         return fd;
@@ -49,27 +49,27 @@ make_server_socket(char *host, char *port)
     hints.ai_flags = AI_PASSIVE;
     r = getaddrinfo(host, port, &hints, &airoot);
     if (r != 0) {
-      twarnx("getaddrinfo(): %s", gai_strerror(r));
+      twarn("getaddrinfo(): %s", gai_strerror(r));
       return -1;
     }
 
     for(ai = airoot; ai; ai = ai->ai_next) {
       fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
       if (fd == -1) {
-        twarn("socket()");
+        twarnerr("socket()");
         continue;
       }
 
       flags = fcntl(fd, F_GETFL, 0);
       if (flags < 0) {
-        twarn("getting flags");
+        twarnerr("getting flags");
         close(fd);
         continue;
       }
 
       r = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
       if (r == -1) {
-        twarn("setting O_NONBLOCK");
+        twarnerr("setting O_NONBLOCK");
         close(fd);
         continue;
       }
@@ -77,32 +77,32 @@ make_server_socket(char *host, char *port)
       flags = 1;
       r = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof flags);
       if (r == -1) {
-        twarn("setting SO_REUSEADDR on fd %d", fd);
+        twarnerr("setting SO_REUSEADDR on fd %d", fd);
         close(fd);
         continue;
       }
       r = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &flags, sizeof flags);
       if (r == -1) {
-        twarn("setting SO_KEEPALIVE on fd %d", fd);
+        twarnerr("setting SO_KEEPALIVE on fd %d", fd);
         close(fd);
         continue;
       }
       r = setsockopt(fd, SOL_SOCKET, SO_LINGER, &linger, sizeof linger);
       if (r == -1) {
-        twarn("setting SO_LINGER on fd %d", fd);
+        twarnerr("setting SO_LINGER on fd %d", fd);
         close(fd);
         continue;
       }
       r = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof flags);
       if (r == -1) {
-        twarn("setting TCP_NODELAY on fd %d", fd);
+        twarnerr("setting TCP_NODELAY on fd %d", fd);
         close(fd);
         continue;
       }
 
       r = bind(fd, ai->ai_addr, ai->ai_addrlen);
       if (r == -1) {
-        twarn("bind()");
+        twarnerr("bind()");
         close(fd);
         continue;
       }
@@ -132,7 +132,7 @@ make_server_socket(char *host, char *port)
 
       r = listen(fd, 1024);
       if (r == -1) {
-        twarn("listen()");
+        twarnerr("listen()");
         close(fd);
         continue;
       }
