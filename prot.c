@@ -87,14 +87,6 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_INSERTED_FMT "INSERTED %"PRIu64"\r\n"
 #define MSG_NOT_IGNORED "NOT_IGNORED\r\n"
 
-#define MSG_NOTFOUND_LEN CONSTSTRLEN(MSG_NOTFOUND)
-#define MSG_DELETED_LEN CONSTSTRLEN(MSG_DELETED)
-#define MSG_TOUCHED_LEN CONSTSTRLEN(MSG_TOUCHED)
-#define MSG_RELEASED_LEN CONSTSTRLEN(MSG_RELEASED)
-#define MSG_BURIED_LEN CONSTSTRLEN(MSG_BURIED)
-#define MSG_KICKED_LEN CONSTSTRLEN(MSG_KICKED)
-#define MSG_NOT_IGNORED_LEN CONSTSTRLEN(MSG_NOT_IGNORED)
-
 #define MSG_OUT_OF_MEMORY "OUT_OF_MEMORY\r\n"
 #define MSG_INTERNAL_ERROR "INTERNAL_ERROR\r\n"
 #define MSG_DRAINING "DRAINING\r\n"
@@ -1298,7 +1290,7 @@ dispatch_cmd(Conn *c)
             j = job_copy(c->use->ready.data[0]);
         }
 
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j) return reply_msg(c, MSG_NOTFOUND);
 
         reply_job(c, j, MSG_FOUND);
         break;
@@ -1313,7 +1305,7 @@ dispatch_cmd(Conn *c)
             j = job_copy(c->use->delay.data[0]);
         }
 
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j) return reply_msg(c, MSG_NOTFOUND);
 
         reply_job(c, j, MSG_FOUND);
         break;
@@ -1326,7 +1318,7 @@ dispatch_cmd(Conn *c)
 
         j = job_copy(buried_job_p(c->use)? j = c->use->buried.next : NULL);
 
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j) return reply_msg(c, MSG_NOTFOUND);
 
         reply_job(c, j, MSG_FOUND);
         break;
@@ -1341,7 +1333,7 @@ dispatch_cmd(Conn *c)
          * free the copy when it's done sending, in the "reset_conn" function. */
         j = job_copy(peek_job(id));
 
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j) return reply_msg(c, MSG_NOTFOUND);
 
         reply_job(c, j, MSG_FOUND);
         break;
@@ -1379,7 +1371,7 @@ dispatch_cmd(Conn *c)
             remove_delayed_job(j);
 
         if (!j)
-            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+            return reply_msg(c, MSG_NOTFOUND);
 
         j->tube->stat.total_delete_ct++;
 
@@ -1391,7 +1383,7 @@ dispatch_cmd(Conn *c)
         if (!r)
             return reply_serr(c, MSG_INTERNAL_ERROR);
 
-        reply(c, MSG_DELETED, MSG_DELETED_LEN, STATE_SENDWORD);
+        reply_msg(c, MSG_DELETED);
         break;
     case OP_RELEASE:
         if (read_u64(&id, c->cmd + CMD_RELEASE_LEN, &pri_buf))
@@ -1407,7 +1399,7 @@ dispatch_cmd(Conn *c)
         j = remove_reserved_job(c, job_find(id));
 
         if (!j)
-            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+            return reply_msg(c, MSG_NOTFOUND);
 
         /* We want to update the delay deadline on disk, so reserve space for
          * that. */
@@ -1426,12 +1418,12 @@ dispatch_cmd(Conn *c)
         if (r < 0)
             return reply_serr(c, MSG_INTERNAL_ERROR);
         if (r == 1) {
-            return reply(c, MSG_RELEASED, MSG_RELEASED_LEN, STATE_SENDWORD);
+            return reply_msg(c, MSG_RELEASED);
         }
 
         /* out of memory trying to grow the queue, so it gets buried */
         bury_job(c->srv, j, 0);
-        reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
+        reply_msg(c, MSG_BURIED);
         break;
     case OP_BURY:
         if (read_u64(&id, c->cmd + CMD_BURY_LEN, &pri_buf))
@@ -1445,13 +1437,13 @@ dispatch_cmd(Conn *c)
         j = remove_reserved_job(c, job_find(id));
 
         if (!j)
-            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+            return reply_msg(c, MSG_NOTFOUND);
 
         j->r.pri = pri;
         r = bury_job(c->srv, j, 1);
         if (!r)
             return reply_serr(c, MSG_INTERNAL_ERROR);
-        reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
+        reply_msg(c, MSG_BURIED);
         break;
     case OP_KICK:
         errno = 0;
@@ -1474,13 +1466,13 @@ dispatch_cmd(Conn *c)
 
         j = job_find(id);
         if (!j)
-            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+            return reply_msg(c, MSG_NOTFOUND);
 
         if ((j->r.state == Buried && kick_buried_job(c->srv, j)) ||
             (j->r.state == Delayed && kick_delayed_job(c->srv, j))) {
-            reply(c, MSG_KICKED, MSG_KICKED_LEN, STATE_SENDWORD);
+            reply_msg(c, MSG_KICKED);
         } else {
-            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+            return reply_msg(c, MSG_NOTFOUND);
         }
         break;
     case OP_TOUCH:
@@ -1492,9 +1484,9 @@ dispatch_cmd(Conn *c)
         j = touch_job(c, job_find(id));
 
         if (j) {
-            reply(c, MSG_TOUCHED, MSG_TOUCHED_LEN, STATE_SENDWORD);
+            reply_msg(c, MSG_TOUCHED);
         } else {
-            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+            return reply_msg(c, MSG_NOTFOUND);
         }
         break;
     case OP_STATS:
@@ -1515,7 +1507,7 @@ dispatch_cmd(Conn *c)
 
         j = peek_job(id);
         if (!j)
-            return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+            return reply_msg(c, MSG_NOTFOUND);
 
         if (!j->tube)
             return reply_serr(c, MSG_INTERNAL_ERROR);
