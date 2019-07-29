@@ -10,7 +10,7 @@ nanoseconds(void)
     struct timeval tv;
 
     r = gettimeofday(&tv, 0);
-    if (r != 0) return warnx("gettimeofday"), -1; // can't happen
+    if (r != 0) return warn("gettimeofday"), -1; // can't happen
 
     return ((int64)tv.tv_sec)*1000000000 + ((int64)tv.tv_usec)*1000;
 }

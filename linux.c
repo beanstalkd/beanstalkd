@@ -31,7 +31,7 @@ sockinit(void)
 {
     epfd = epoll_create(1);
     if (epfd == -1) {
-        twarn("epoll_create");
+        twarnerr("epoll_create");
         return -1;
     }
     return 0;
@@ -78,7 +78,7 @@ socknext(Socket **s, int64 timeout)
 
     r = epoll_wait(epfd, &ev, 1, (int)(timeout/1000000));
     if (r == -1 && errno != EINTR) {
-        twarn("epoll_wait");
+        twarnerr("epoll_wait");
         exit(1);
     }
 
