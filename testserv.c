@@ -87,7 +87,7 @@ mustdiallocal(int port)
     // Fix of the benchmarking issue on Linux. See issue #430.
     int flags = 1;
     if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof(int))) {
-        twarnerr("setting TCP_NODELAY on fd %d", fd);
+        twarnerrf("setting TCP_NODELAY on fd %d", fd);
         exit(1);
     }
 
@@ -188,7 +188,7 @@ mustforksrv(void)
         // to use the wal directory at a time. So acquire a lock
         // now and never release it.
         if (!waldirlock(&srv.wal)) {
-            twarn("failed to lock wal dir %s", srv.wal.dir);
+            twarnf("failed to lock wal dir %s", srv.wal.dir);
             exit(10);
         }
 

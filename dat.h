@@ -231,10 +231,15 @@ struct Tube {
 };
 
 
-#define twarnerr(fmt, args...) \
-    warnerr("%s:%d in %s: " fmt, __FILE__, __LINE__, __func__, ##args)
-#define twarn(fmt, args...) \
-    warn("%s:%d in %s: " fmt, __FILE__, __LINE__, __func__, ##args)
+#define twarnerr(fmt) \
+    warnerr("%s:%d in %s: " fmt, __FILE__, __LINE__, __func__)
+#define twarnerrf(fmt, ...) \
+    warnerr("%s:%d in %s: " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__)
+
+#define twarn(fmt)  \
+    warn("%s:%d in %s: " fmt, __FILE__, __LINE__, __func__)
+#define twarnf(fmt, ...) \
+    warn("%s:%d in %s: " fmt, __FILE__, __LINE__, __func__,  __VA_ARGS__)
 
 // warnerr prints fmt and the error message based on errno into stderr:
 // "progname: fmt: error message"

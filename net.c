@@ -22,7 +22,8 @@ make_server_socket(char *host, char *port)
      * return. */
     r = sd_listen_fds(1);
     if (r < 0) {
-        return twarnerr("sd_listen_fds"), -1;
+        twarnerr("sd_listen_fds");
+        return -1;
     }
     if (r > 0) {
         if (r > 1) {
@@ -49,7 +50,7 @@ make_server_socket(char *host, char *port)
     hints.ai_flags = AI_PASSIVE;
     r = getaddrinfo(host, port, &hints, &airoot);
     if (r != 0) {
-      twarn("getaddrinfo(): %s", gai_strerror(r));
+      twarnf("getaddrinfo(): %s", gai_strerror(r));
       return -1;
     }
 
@@ -77,25 +78,25 @@ make_server_socket(char *host, char *port)
       flags = 1;
       r = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof flags);
       if (r == -1) {
-        twarnerr("setting SO_REUSEADDR on fd %d", fd);
+        twarnerrf("setting SO_REUSEADDR on fd %d", fd);
         close(fd);
         continue;
       }
       r = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &flags, sizeof flags);
       if (r == -1) {
-        twarnerr("setting SO_KEEPALIVE on fd %d", fd);
+        twarnerrf("setting SO_KEEPALIVE on fd %d", fd);
         close(fd);
         continue;
       }
       r = setsockopt(fd, SOL_SOCKET, SO_LINGER, &linger, sizeof linger);
       if (r == -1) {
-        twarnerr("setting SO_LINGER on fd %d", fd);
+        twarnerrf("setting SO_LINGER on fd %d", fd);
         close(fd);
         continue;
       }
       r = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof flags);
       if (r == -1) {
-        twarnerr("setting TCP_NODELAY on fd %d", fd);
+        twarnerrf("setting TCP_NODELAY on fd %d", fd);
         close(fd);
         continue;
       }

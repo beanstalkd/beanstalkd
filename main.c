@@ -15,23 +15,23 @@ su(const char *user)
     errno = 0;
     struct passwd *pwent = getpwnam(user);
     if (errno) {
-        twarnerr("getpwnam(\"%s\")", user);
+        twarnerrf("getpwnam(\"%s\")", user);
         exit(32);
     }
     if (!pwent) {
-        twarn("getpwnam(\"%s\"): no such user", user);
+        twarnf("getpwnam(\"%s\"): no such user", user);
         exit(33);
     }
 
     int r = setgid(pwent->pw_gid);
     if (r == -1) {
-        twarnerr("setgid(%d \"%s\")", pwent->pw_gid, user);
+        twarnerrf("setgid(%d \"%s\")", pwent->pw_gid, user);
         exit(34);
     }
 
     r = setuid(pwent->pw_uid);
     if (r == -1) {
-        twarnerr("setuid(%d \"%s\")", pwent->pw_uid, user);
+        twarnerrf("setuid(%d \"%s\")", pwent->pw_uid, user);
         exit(34);
     }
 }
@@ -95,7 +95,7 @@ main(int argc, char **argv)
         // to use the wal directory at a time. So acquire a lock
         // now and never release it.
         if (!waldirlock(&srv.wal)) {
-            twarn("failed to lock wal dir %s", srv.wal.dir);
+            twarnf("failed to lock wal dir %s", srv.wal.dir);
             exit(10);
         }
 

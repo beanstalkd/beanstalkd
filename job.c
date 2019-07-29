@@ -54,7 +54,7 @@ rehash(int is_upscaling)
     all_jobs_cap = primes[cur_prime];
     all_jobs = calloc(all_jobs_cap, sizeof(Job *));
     if (!all_jobs) {
-        twarn("Failed to allocate %zu new hash buckets", all_jobs_cap);
+        twarnf("Failed to allocate %zu new hash buckets", all_jobs_cap);
         hash_table_was_oom = 1;
         cur_prime = old_prime;
         all_jobs = old;
@@ -115,7 +115,10 @@ make_job_with_id(uint32 pri, int64 delay, int64 ttr,
     Job *j;
 
     j = allocate_job(body_size);
-    if (!j) return twarn("OOM"), (Job *) 0;
+    if (!j) {
+        twarn("OOM");
+        return (Job *) 0;
+    }
 
     if (id) {
         j->r.id = id;
@@ -195,7 +198,10 @@ job_copy(Job *j)
     if (!j) return NULL;
 
     n = malloc(sizeof(Job) + j->r.body_size);
-    if (!n) return twarn("OOM"), (Job *) 0;
+    if (!n) {
+        twarn("OOM");
+        return (Job *) 0;
+    }
 
     memcpy(n, j, sizeof(Job) + j->r.body_size);
     n->next = n->prev = n; /* not in a linked list */

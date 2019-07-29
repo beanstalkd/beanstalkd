@@ -46,7 +46,7 @@ tube_dref(Tube *t)
 {
     if (!t) return;
     if (t->refs < 1)
-        return twarn("refs is zero for tube: %s", t->name);
+        return twarnf("refs is zero for tube: %s", t->name);
 
     --t->refs;
     if (t->refs < 1)

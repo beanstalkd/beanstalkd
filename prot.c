@@ -315,7 +315,7 @@ protrmdirty(Conn *c)
 
 #define reply_msg(c,m) reply((c),(m),CONSTSTRLEN(m),STATE_SENDWORD)
 
-#define reply_serr(c,e) (twarn("server error: %s",(e)),\
+#define reply_serr(c,e) (twarnf("server error: %s",(e)),\
                          reply_msg((c),(e)))
 
 static void
@@ -701,7 +701,7 @@ check_err(Conn *c, const char *s)
     if (errno == EINTR) return;
     if (errno == EWOULDBLOCK) return;
 
-    twarnerr("%s", s);
+    twarnerrf("%s", s);
     c->state = STATE_CLOSE;
     return;
 }
@@ -2046,7 +2046,8 @@ prot_init()
     ms_init(&tubes, NULL, NULL);
 
     TUBE_ASSIGN(default_tube, tube_find_or_make("default"));
-    if (!default_tube) twarn("Out of memory during startup!");
+    if (!default_tube)
+        twarn("Out of memory during startup!");
 }
 
 // For each job in list, inserts the job into the appropriate data
@@ -2081,7 +2082,8 @@ prot_replay(Server *s, Job *list)
             /* fall through */
         default:
             r = enqueue_job(s, j, delay, 0);
-            if (r < 1) twarn("error recovering job %"PRIu64, j->r.id);
+            if (r < 1)
+                twarnf("error recovering job %"PRIu64, j->r.id);
         }
     }
     return 1;

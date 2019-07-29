@@ -443,7 +443,7 @@ filewopen(File *f)
 
     fd = open(f->path, O_WRONLY|O_CREAT, 0400);
     if (fd < 0) {
-        twarnerr("open %s", f->path);
+        twarnerrf("open %s", f->path);
         return;
     }
 
@@ -451,17 +451,17 @@ filewopen(File *f)
     if (r) {
         close(fd);
         errno = r;
-        twarnerr("falloc %s", f->path);
+        twarnerrf("falloc %s", f->path);
         r = unlink(f->path);
         if (r) {
-            twarnerr("unlink %s", f->path);
+            twarnerrf("unlink %s", f->path);
         }
         return;
     }
 
     n = write(fd, &ver, sizeof(int));
     if (n < 0 || (size_t)n < sizeof(int)) {
-        twarnerr("write %s", f->path);
+        twarnerrf("write %s", f->path);
         close(fd);
         return;
     }

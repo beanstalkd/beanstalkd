@@ -38,12 +38,16 @@ make_conn(int fd, char start_state, Tube *use, Tube *watch)
     Conn *c;
 
     c = new(Conn);
-    if (!c) return twarnerr("OOM"), NULL;
+    if (!c) {
+        twarnerr("OOM");
+        return NULL;
+    }
 
     ms_init(&c->watch, (ms_event_fn) on_watch, (ms_event_fn) on_ignore);
     if (!ms_append(&c->watch, watch)) {
         free(c);
-        return twarnerr("OOM"), NULL;
+        twarnerr("OOM");
+        return NULL;
     }
 
     TUBE_ASSIGN(c->use, use);
