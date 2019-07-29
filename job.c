@@ -95,12 +95,16 @@ allocate_job(int body_size)
     Job *j;
 
     j = malloc(sizeof(Job) + body_size);
-    if (!j) return twarnx("OOM"), (Job *) 0;
+    if (!j) {
+        twarnx("OOM");
+        return (Job *) 0;
+    }
 
     memset(j, 0, sizeof(Job));
     j->r.created_at = nanoseconds();
     j->r.body_size = body_size;
-    j->next = j->prev = j; /* not in a linked list */
+    j->body = (char *)j + sizeof(Job);
+    j->next = j->prev = j;      // not in a linked list
     return j;
 }
 

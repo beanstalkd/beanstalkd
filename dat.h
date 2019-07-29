@@ -213,7 +213,7 @@ struct Job {
     int walresv;
     int walused;
 
-    char body[];                // written separately to the wal
+    char *body;                 // written separately to the wal
 };
 
 struct Tube {
@@ -221,13 +221,13 @@ struct Tube {
     char name[MAX_TUBE_NAME_LEN];
     Heap ready;
     Heap delay;
-    Ms waiting; /* set of conns */
+    Ms waiting;                 // set of conns
     struct stats stat;
     uint using_ct;
     uint watching_ct;
     int64 pause;
     int64 deadline_at;
-    Job buried;
+    Job buried;                 // linked list header
 };
 
 
