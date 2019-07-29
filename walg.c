@@ -78,7 +78,7 @@ usenext(Wal *w)
 
     f = w->cur;
     if (!f->next) {
-        twarn("there is no next wal file");
+        twarnx("there is no next wal file");
         return 0;
     }
 
@@ -130,7 +130,7 @@ moveone(Wal *w)
     j = w->head->jlist.fnext;
     if (!j || j == &w->head->jlist) {
         // head holds no jlist; can't happen
-        twarn("head holds no jlist");
+        twarnx("head holds no jlist");
         return;
     }
 
@@ -165,7 +165,7 @@ walsync(Wal *w)
     if (w->wantsync && now >= w->lastsync+w->syncrate) {
         w->lastsync = now;
         if (fsync(w->cur->fd) == -1) {
-            twarnerr("fsync");
+            twarn("fsync");
         }
     }
 }
@@ -216,13 +216,13 @@ makenextfile(Wal *w)
 
     f = new(File);
     if (!f) {
-        twarn("OOM");
+        twarnx("OOM");
         return 0;
     }
 
     if (!fileinit(f, w, w->next)) {
         free(f);
-        twarn("OOM");
+        twarnx("OOM");
         return 0;
     }
 
@@ -286,7 +286,7 @@ balancerest(Wal *w, File *b, int n)
     }
 
     if (needfree(w, r) != r) {
-        twarn("needfree");
+        twarnx("needfree");
         return 0;
     }
     moveresv(w->tail, b, r);
@@ -316,7 +316,7 @@ balance(Wal *w, int n)
 
         r = needfree(w, m);
         if (r != m) {
-            twarn("needfree");
+            twarnx("needfree");
             return 0;
         }
 
@@ -347,7 +347,7 @@ reserve(Wal *w, int n)
 
     r = needfree(w, n);
     if (r != n) {
-        twarn("needfree");
+        twarnx("needfree");
         return 0;
     }
 
@@ -409,7 +409,7 @@ waldirlock(Wal *w)
 
     path_length = strlen(w->dir) + strlen("/lock") + 1;
     if ((path = malloc(path_length)) == NULL) {
-        twarnerr("malloc");
+        twarn("malloc");
         return 0;
     }
     r = snprintf(path, path_length, "%s/lock", w->dir);
@@ -417,7 +417,7 @@ waldirlock(Wal *w)
     fd = open(path, O_WRONLY|O_CREAT, 0600);
     free(path);
     if (fd == -1) {
-        twarnerr("open");
+        twarn("open");
         return 0;
     }
 
@@ -427,7 +427,7 @@ waldirlock(Wal *w)
     lk.l_len = 0;
     r = fcntl(fd, F_SETLK, &lk);
     if (r) {
-        twarnerr("fcntl");
+        twarn("fcntl");
         return 0;
     }
 
@@ -447,19 +447,19 @@ walread(Wal *w, Job *list, int min)
     for (i = min; i < w->next; i++) {
         f = new(File);
         if (!f) {
-            twarn("OOM");
+            twarnx("OOM");
             exit(1);
         }
 
         if (!fileinit(f, w, i)) {
             free(f);
-            twarn("OOM");
+            twarnx("OOM");
             exit(1);
         }
 
         fd = open(f->path, O_RDONLY);
         if (fd < 0) {
-            twarnerr("open %s", f->path);
+            twarn("open %s", f->path);
             free(f->path);
             free(f);
             continue;
@@ -472,8 +472,8 @@ walread(Wal *w, Job *list, int min)
     }
 
     if (err) {
-        warn("Errors reading one or more WAL files.");
-        warn("Continuing. You may be missing data.");
+        warnx("Errors reading one or more WAL files.");
+        warnx("Continuing. You may be missing data.");
     }
 }
 
@@ -488,7 +488,7 @@ walinit(Wal *w, Job *list)
 
     // first writable file
     if (!makenextfile(w)) {
-        twarn("makenextfile");
+        twarnx("makenextfile");
         exit(1);
     }
 

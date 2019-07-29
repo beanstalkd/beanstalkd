@@ -10,40 +10,37 @@
 const char *progname;
 
 static void
-_warnerr(const char *err, const char *fmt, va_list args)
+vwarnx(const char *err, const char *fmt, va_list args)
 __attribute__((format(printf, 2, 0)));
 
-// _warnerr prints formatted text prefixed by progname into stderr.
-// If err is not NULL, it is printed at last.
 static void
-_warnerr(const char *err, const char *fmt, va_list args)
+vwarnx(const char *err, const char *fmt, va_list args)
 {
     fprintf(stderr, "%s: ", progname);
     if (fmt) {
         vfprintf(stderr, fmt, args);
-        if (err)
-            fprintf(stderr, ": %s", err);
+        if (err) fprintf(stderr, ": %s", err);
     }
     fputc('\n', stderr);
 }
 
 void
-warnerr(const char *fmt, ...)
+warn(const char *fmt, ...)
 {
     char *err = strerror(errno); /* must be done first thing */
     va_list args;
 
     va_start(args, fmt);
-    _warnerr(err, fmt, args);
+    vwarnx(err, fmt, args);
     va_end(args);
 }
 
 void
-warn(const char *fmt, ...)
+warnx(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    _warnerr(NULL, fmt, args);
+    vwarnx(NULL, fmt, args);
     va_end(args);
 }
 
@@ -90,7 +87,7 @@ static void
 warn_systemd_ignored_option(char *opt, char *arg)
 {
     if (sd_listen_fds(0) > 0) {
-        warn("inherited listen fd; ignoring option: %s %s", opt, arg);
+        warnx("inherited listen fd; ignoring option: %s %s", opt, arg);
     }
 }
 
@@ -129,7 +126,7 @@ static char *flagusage(char *flag) __attribute__ ((noreturn));
 static char *
 flagusage(char *flag)
 {
-    warn("flag requires an argument: %s", flag);
+    warnx("flag requires an argument: %s", flag);
     usage(5);
 }
 
@@ -142,7 +139,7 @@ parse_size_t(char *str)
 
     r = sscanf(str, "%zu%c", &size, &x);
     if (1 != r) {
-        warn("invalid size: %s", str);
+        warnx("invalid size: %s", str);
         usage(5);
     }
     return size;
@@ -170,7 +167,7 @@ optparse(Server *s, char **argv)
                 case 'z':
                     job_data_size_limit = parse_size_t(EARGF(flagusage("-z")));
                     if (job_data_size_limit > JOB_DATA_SIZE_LIMIT_MAX) {
-                        warn("maximum job size was set to %d", JOB_DATA_SIZE_LIMIT_MAX);
+                        warnx("maximum job size was set to %d", JOB_DATA_SIZE_LIMIT_MAX);
                         job_data_size_limit = JOB_DATA_SIZE_LIMIT_MAX;
                     }
                     break;
@@ -207,13 +204,13 @@ optparse(Server *s, char **argv)
                     verbose++;
                     break;
                 default:
-                    warn("unknown flag: %s", arg-2);
+                    warnx("unknown flag: %s", arg-2);
                     usage(5);
             }
         }
     }
     if (arg) {
-        warn("unknown argument: %s", arg-1);
+        warnx("unknown argument: %s", arg-1);
         usage(5);
     }
 }

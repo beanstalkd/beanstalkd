@@ -16,7 +16,7 @@ make_tube(const char *name)
     t->name[MAX_TUBE_NAME_LEN - 1] = '\0';
     strncpy(t->name, name, MAX_TUBE_NAME_LEN - 1);
     if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0')
-        twarn("truncating tube name");
+        twarnx("truncating tube name");
 
     t->ready.less = job_pri_less;
     t->delay.less = job_delay_less;
@@ -46,7 +46,7 @@ tube_dref(Tube *t)
 {
     if (!t) return;
     if (t->refs < 1)
-        return twarn("refs is zero for tube: %s", t->name);
+        return twarnx("refs is zero for tube: %s", t->name);
 
     --t->refs;
     if (t->refs < 1)

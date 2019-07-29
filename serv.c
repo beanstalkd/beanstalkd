@@ -19,7 +19,7 @@ srvserve(Server *s)
     int64 period;
 
     if (sockinit() == -1) {
-        twarn("sockinit");
+        twarnx("sockinit");
         exit(1);
     }
 
@@ -30,13 +30,13 @@ srvserve(Server *s)
 
     r = listen(s->sock.fd, 1024);
     if (r == -1) {
-        twarnerr("listen");
+        twarn("listen");
         return;
     }
 
     r = sockwant(&s->sock, 'r');
     if (r == -1) {
-        twarnerr("sockwant");
+        twarn("sockwant");
         exit(2);
     }
 
@@ -46,7 +46,7 @@ srvserve(Server *s)
 
         int rw = socknext(&sock, period);
         if (rw == -1) {
-            twarn("socknext");
+            twarnx("socknext");
             exit(1);
         }
 

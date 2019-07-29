@@ -124,7 +124,7 @@ fileread(File *f, Job *list)
         return err;
     }
 
-    warn("%s: unknown version: %d", f->path, v);
+    warnx("%s: unknown version: %d", f->path, v);
     return 1;
 }
 
@@ -144,7 +144,7 @@ readrec(File *f, Job *l, int *err)
 
     r = read(f->fd, &namelen, sizeof(int));
     if (r == -1) {
-        twarnerr("read");
+        twarn("read");
         warnpos(f, 0, "error");
         *err = 1;
         return 0;
@@ -274,7 +274,7 @@ readrec5(File *f, Job *l, int *err)
 
     r = read(f->fd, &namelen, sizeof(namelen));
     if (r == -1) {
-        twarnerr("read");
+        twarn("read");
         warnpos(f, 0, "error");
         *err = 1;
         return 0;
@@ -403,7 +403,7 @@ readfull(File *f, void *c, int n, int *err, char *desc)
 
     r = read(f->fd, c, n);
     if (r == -1) {
-        twarnerr("read");
+        twarn("read");
         warnpos(f, 0, "error reading %s", desc);
         *err = 1;
         return 0;
@@ -443,7 +443,7 @@ filewopen(File *f)
 
     fd = open(f->path, O_WRONLY|O_CREAT, 0400);
     if (fd < 0) {
-        twarnerr("open %s", f->path);
+        twarn("open %s", f->path);
         return;
     }
 
@@ -451,17 +451,17 @@ filewopen(File *f)
     if (r) {
         close(fd);
         errno = r;
-        twarnerr("falloc %s", f->path);
+        twarn("falloc %s", f->path);
         r = unlink(f->path);
         if (r) {
-            twarnerr("unlink %s", f->path);
+            twarn("unlink %s", f->path);
         }
         return;
     }
 
     n = write(fd, &ver, sizeof(int));
     if (n < 0 || (size_t)n < sizeof(int)) {
-        twarnerr("write %s", f->path);
+        twarn("write %s", f->path);
         close(fd);
         return;
     }
@@ -481,7 +481,7 @@ filewrite(File *f, Job *j, void *buf, int len)
 
     r = write(f->fd, buf, len);
     if (r != len) {
-        twarnerr("write");
+        twarn("write");
         return 0;
     }
 
@@ -535,7 +535,7 @@ filewclose(File *f)
     if (f->free) {
         errno = 0;
         if (ftruncate(f->fd, f->w->filesize - f->free) != 0) {
-            twarnerr("ftruncate");
+            twarn("ftruncate");
         }
     }
     close(f->fd);
