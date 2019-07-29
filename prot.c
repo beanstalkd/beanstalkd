@@ -229,11 +229,8 @@ static Tube *default_tube;
 static int drain_mode = 0;
 static int64 started_at;
 
-enum {
-  NumIdBytes = 8
-};
-
-static char id[NumIdBytes * 2 + 1]; // hex-encoded len of NumIdBytes
+enum { instance_id_bytes = 8 };
+static char instance_hex[instance_id_bytes * 2 + 1]; // hex-encoded len of instance_id_bytes
 
 static struct utsname node_info;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
@@ -928,7 +925,7 @@ fmt_stats(char *buf, size_t size, void *x)
             srv->wal.nrec,
             srv->wal.filesize,
             drain_mode ? "true" : "false",
-            id,
+            instance_hex,
             node_info.nodename);
 }
 
@@ -2027,14 +2024,14 @@ prot_init()
     }
 
     int i, r;
-    byte rand_data[NumIdBytes];
-    r = read(dev_random, &rand_data, NumIdBytes);
-    if (r != NumIdBytes) {
+    byte rand_data[instance_id_bytes];
+    r = read(dev_random, &rand_data, instance_id_bytes);
+    if (r != instance_id_bytes) {
         twarn("read /dev/urandom");
         exit(50);
     }
-    for (i = 0; i < NumIdBytes; i++) {
-        sprintf(id + (i * 2), "%02x", rand_data[i]);
+    for (i = 0; i < instance_id_bytes; i++) {
+        sprintf(instance_hex + (i * 2), "%02x", rand_data[i]);
     }
     close(dev_random);
 
