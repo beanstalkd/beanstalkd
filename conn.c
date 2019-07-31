@@ -175,7 +175,7 @@ connsoonestjob(Conn *c)
 
     if (soonest == NULL) {
         for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
-            if (j->r.deadline_at <= (soonest ? : j)->r.deadline_at)
+            if (j->r.deadline_at <= (soonest ? soonest : j)->r.deadline_at)
                 soonest = j;
         }
     }
