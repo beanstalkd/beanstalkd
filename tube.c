@@ -95,6 +95,9 @@ tube_find(const char *name)
 Tube *
 tube_find_or_make(const char *name)
 {
-    return tube_find(name) ? : make_and_insert_tube(name);
+    Tube *t = tube_find(name);
+    if (t)
+        return t;
+    return make_and_insert_tube(name);
 }
 

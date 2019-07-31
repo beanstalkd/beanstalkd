@@ -1361,11 +1361,16 @@ dispatch_cmd(Conn *c)
             return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
-        j = job_find(id);
-        j = remove_reserved_job(c, j) ? :
-            remove_ready_job(j) ? :
-            remove_buried_job(j) ? :
-            remove_delayed_job(j);
+        {
+            Job *jf = job_find(id);
+            j = remove_reserved_job(c, jf);
+            if (!j)
+                j = remove_ready_job(jf);
+            if (!j)
+                j = remove_buried_job(jf);
+            if (!j)
+                j = remove_delayed_job(jf);
+        }
 
         if (!j)
             return reply_msg(c, MSG_NOTFOUND);
