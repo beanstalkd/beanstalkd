@@ -231,10 +231,23 @@ struct Tube {
 };
 
 
-#define twarn(fmt, args...) warn("%s:%d in %s: " fmt, \
-                                 __FILE__, __LINE__, __func__, ##args)
-#define twarnx(fmt, args...) warnx("%s:%d in %s: " fmt, \
-                                   __FILE__, __LINE__, __func__, ##args)
+// Prints warning message on stderr in the format:
+// <progname>: FILE:LINE in FUNC: <fmt>: <errno_msg>
+#define twarn(...) __twarn(__VA_ARGS__, "")
+
+// Hack to quiet the compiler. When VA_ARGS in twarn() has one element,
+// e.g. twarn("OOM"), its replaced with __twarn("OOM", ""),
+// thus VA_ARGS is expanded to at least one element in warn().
+#define __twarn(fmt, ...) \
+    warn("%s:%d in %s: " fmt "%s", __FILE__, __LINE__, __func__, __VA_ARGS__)
+
+// Prints warning message on stderr in the format:
+// <progname>: FILE:LINE in FUNC: <fmt>
+#define twarnx(...) __twarnx(__VA_ARGS__, "")
+
+// See __twarn macro.
+#define __twarnx(fmt, ...) \
+    warnx("%s:%d in %s: " fmt "%s", __FILE__, __LINE__, __func__, __VA_ARGS__)
 
 void warn(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void warnx(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
@@ -248,7 +261,9 @@ extern const char *progname;
 int64 nanoseconds(void);
 int   rawfalloc(int fd, int len);
 
-#define make_job(pri,delay,ttr,body_size,tube) make_job_with_id(pri,delay,ttr,body_size,tube,0)
+// Take ID for a jobs from next_id and allocate and store the job.
+#define make_job(pri,delay,ttr,body_size,tube) \
+    make_job_with_id(pri,delay,ttr,body_size,tube,0)
 
 Job *allocate_job(int body_size);
 Job *make_job_with_id(uint pri, int64 delay, int64 ttr,
