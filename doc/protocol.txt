@@ -654,7 +654,7 @@ they are not stored on disk with the -b flag.
  - "draining" is set to "true" if the server is in drain mode,
    "false" otherwise.
 
- - "id" is a random id string for this server process, generated when each
+ - "id" is a random id string for this server process, generated every time
    beanstalkd process starts.
 
  - "hostname" the hostname of the machine as determined by uname.
