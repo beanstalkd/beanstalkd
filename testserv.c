@@ -24,6 +24,9 @@ static int srvpid, port, fd, size;
 // Global timeout set for reading response in tests; 5sec.
 static int64 timeout = 5000000000LL;
 
+// The maximum size of line that can be read by ckresp* functions.
+#define MAXLINE 4096
+
 // Allocation pattern for wrapfalloc that replaces falloc in tests.
 // Zero value at N-th element means that N-th call to the falloc
 // should fail with ENOSPC result.
@@ -209,41 +212,69 @@ mustforksrv(void)
     exit(1); /* satisfy the compiler */
 }
 
+static void
+check_timeout(int fd) {
+    fd_set rfd;
+    struct timeval tv;
+    int r;
+
+    FD_ZERO(&rfd);
+    FD_SET(fd, &rfd);
+    tv.tv_sec = timeout / 1000000000;
+    tv.tv_usec = (timeout/1000) % 1000000;
+    r = select(fd+1, &rfd, NULL, NULL, &tv);
+    switch (r) {
+    case 1:
+        break;
+    case 0:
+        fputs("timeout", stderr);
+        exit(8);
+    case -1:
+        perror("select");
+        exit(1);
+    default:
+        fputs("unknown error", stderr);
+        exit(3);
+    }
+}
+
+static int
+buf_read(int fd, char *p) {
+    static int read_cnt = 0;
+    static char *read_p = NULL;
+    static char read_buf[MAXLINE];
+
+    if (read_cnt <= 0) {
+        check_timeout(fd);
+    again:
+        if ((read_cnt = read(fd, read_buf, sizeof(read_buf))) < 0) {
+            if (errno == EINTR)
+                goto again;
+            return -1;
+        } else if (read_cnt == 0) {
+            return 0;
+        }
+        read_p = read_buf;
+    }
+    read_cnt--;
+    *p = *read_p++;
+    return 1;
+}
+
 static char *
 readline(int fd)
 {
     char c = 0, p = 0;
-    static char buf[1024];
-    fd_set rfd;
-    struct timeval tv;
+    static char buf[MAXLINE];
 
+    // Printing and flushing degrades performance.
+    // TODO: disable them during benchmarks?
     printf("<%d ", fd);
     fflush(stdout);
 
     size_t i = 0;
     for (;;) {
-        FD_ZERO(&rfd);
-        FD_SET(fd, &rfd);
-        tv.tv_sec = timeout / 1000000000;
-        tv.tv_usec = (timeout/1000) % 1000000;
-        int r = select(fd+1, &rfd, NULL, NULL, &tv);
-        switch (r) {
-        case 1:
-            break;
-        case 0:
-            fputs("timeout", stderr);
-            exit(8);
-        case -1:
-            perror("select");
-            exit(1);
-        default:
-            fputs("unknown error", stderr);
-            exit(3);
-        }
-
-        // TODO: try reading into a buffer to improve performance.
-        // See related issue #430.
-        r = read(fd, &c, 1);
+        int r = buf_read(fd, &c);
         if (r == -1) {
             perror("write");
             exit(1);
