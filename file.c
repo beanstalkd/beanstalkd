@@ -197,6 +197,7 @@ readrec(File *f, Job *l, int *err)
     switch (jr.state) {
     case Reserved:
         jr.state = Ready;
+        /* Falls through */
     case Ready:
     case Buried:
     case Delayed:
@@ -321,6 +322,7 @@ readrec5(File *f, Job *l, int *err)
     switch (jr.state) {
     case Reserved:
         jr.state = Ready;
+        /* Falls through */
     case Ready:
     case Buried:
     case Delayed:

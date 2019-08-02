@@ -1386,7 +1386,7 @@ dispatch_cmd(Conn *c)
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
-        /* FALLTHROUGH */
+        /* Falls through */
 
     case OP_RESERVE:
         /* don't allow trailing garbage */
@@ -2223,7 +2223,7 @@ prot_replay(Server *s, Job *list)
             if (t < j->r.deadline_at) {
                 delay = j->r.deadline_at - t;
             }
-            /* fall through */
+            /* Falls through */
         default:
             r = enqueue_job(s, j, delay, 0);
             if (r < 1) twarnx("error recovering job %"PRIu64, j->r.id);
