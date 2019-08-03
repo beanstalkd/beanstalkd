@@ -52,8 +52,9 @@ int
 sockwant(Socket *s, int rw)
 {
     int n = 0;
-    struct kevent evs[2] = {}, *ev = evs;
-    struct timespec ts = {};
+    struct kevent evs[2] = {{0}};
+    struct kevent *ev = evs;
+    struct timespec ts = {.tv_sec = 0, .tv_nsec = 0};
 
     if (s->added) {
         ev->ident = s->fd;
