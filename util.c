@@ -150,10 +150,11 @@ void
 optparse(Server *s, char **argv)
 {
     int64 ms;
-    char *arg, c, *tmp;
+    char *arg, *tmp;
 #   define EARGF(x) (*arg ? (tmp=arg,arg="",tmp) : *argv ? *argv++ : (x))
 
     while ((arg = *argv++) && *arg++ == '-' && *arg) {
+        char c;
         while ((c = *arg++)) {
             switch (c) {
                 case 'p':

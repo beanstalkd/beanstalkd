@@ -307,14 +307,12 @@ balancerest(Wal *w, File *b, int n)
 static int
 balance(Wal *w, int n)
 {
-    int r;
-
     // Invariant 1
     // (this loop will run at most once)
     while (w->cur->resv < n) {
         int m = w->cur->resv;
 
-        r = needfree(w, m);
+        int r = needfree(w, m);
         if (r != m) {
             twarnx("needfree");
             return 0;
@@ -412,7 +410,7 @@ waldirlock(Wal *w)
         twarn("malloc");
         return 0;
     }
-    r = snprintf(path, path_length, "%s/lock", w->dir);
+    snprintf(path, path_length, "%s/lock", w->dir);
 
     fd = open(path, O_WRONLY|O_CREAT, 0600);
     free(path);
@@ -440,12 +438,11 @@ waldirlock(Wal *w)
 void
 walread(Wal *w, Job *list, int min)
 {
-    File *f;
-    int i, fd;
+    int i;
     int err = 0;
 
     for (i = min; i < w->next; i++) {
-        f = new(File);
+        File *f = new(File);
         if (!f) {
             twarnx("OOM");
             exit(1);
@@ -457,7 +454,7 @@ walread(Wal *w, Job *list, int min)
             exit(1);
         }
 
-        fd = open(f->path, O_RDONLY);
+        int fd = open(f->path, O_RDONLY);
         if (fd < 0) {
             twarn("open %s", f->path);
             free(f->path);
