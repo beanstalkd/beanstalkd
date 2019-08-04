@@ -138,16 +138,6 @@ conntickat(Conn *c)
 }
 
 
-// TODO: remove this function by inlining its content into 3 callees places.
-// Reason: conn.c does not use rw anywhere in this file.
-void
-connwant(Conn *c, int rw)
-{
-    c->rw = rw;
-    connsched(c);
-}
-
-
 // Remove c from the c->srv heap and reschedule it using the value
 // returned by conntickat if there is an outstanding timeout in the c.
 void

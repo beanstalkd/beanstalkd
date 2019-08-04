@@ -235,6 +235,9 @@ static char instance_hex[instance_id_bytes * 2 + 1]; // hex-encoded len of insta
 static struct utsname node_info;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
+// Single linked list that holds connections
+// that required update in polling mechanism by update_conns().
+// TODO: rename to epoll_changes?
 static Conn *dirty;
 
 static const char * op_names[] = {
@@ -274,33 +277,26 @@ buried_job_p(Tube *t)
 }
 
 static void
-reply(Conn *c, char *line, int len, int state)
-{
-    if (!c) return;
-
-    connwant(c, 'w');
+dirty_add(Conn *c, char rw) {
+    c->rw = rw;
+    connsched(c);
     c->next = dirty;
     dirty = c;
-    c->reply = line;
-    c->reply_len = len;
-    c->reply_sent = 0;
-    c->state = state;
-    if (verbose >= 2) {
-        printf(">%d reply %.*s\n", c->sock.fd, len-2, line);
-    }
 }
 
-
+// Remove connection c from the dirty.
 static void
-protrmdirty(Conn *c)
+dirty_rmconn(Conn *c)
 {
     Conn *x, *newdirty = NULL;
 
     while (dirty) {
+        // x as next element from dirty.
         x = dirty;
         dirty = dirty->next;
         x->next = NULL;
 
+        // put x back into newdirty list.
         if (x != c) {
             x->next = newdirty;
             newdirty = x;
@@ -309,11 +305,28 @@ protrmdirty(Conn *c)
     dirty = newdirty;
 }
 
+#define reply_msg(c, m) \
+    reply((c), (m), CONSTSTRLEN(m), STATE_SENDWORD)
 
-#define reply_msg(c,m) reply((c),(m),CONSTSTRLEN(m),STATE_SENDWORD)
+#define reply_serr(c, e) \
+    (twarnx("server error: %s", (e)), reply_msg((c), (e)))
 
-#define reply_serr(c,e) (twarnx("server error: %s",(e)),\
-                         reply_msg((c),(e)))
+static void
+reply(Conn *c, char *line, int len, int state)
+{
+    if (!c)
+        return;
+
+    dirty_add(c, 'w');
+
+    c->reply = line;
+    c->reply_len = len;
+    c->reply_sent = 0;
+    c->state = state;
+    if (verbose >= 2) {
+        printf(">%d reply %.*s\n", c->sock.fd, len-2, line);
+    }
+}
 
 static void
 reply_line(Conn*, int, const char*, ...)
@@ -1045,9 +1058,8 @@ wait_for_job(Conn *c, int timeout)
     /* Set the pending timeout to the requested timeout amount */
     c->pending_timeout = timeout;
 
-    connwant(c, 'h'); // only care if they hang up
-    c->next = dirty;
-    dirty = c;
+    // only care if they hang up
+    dirty_add(c, 'h');
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1815,9 +1827,7 @@ enter_drain_mode(int sig)
 static void
 reset_conn(Conn *c)
 {
-    connwant(c, 'r');
-    c->next = dirty;
-    dirty = c;
+    dirty_add(c, 'r');
 
     /* was this a peek or stats command? */
     if (c->out_job && c->out_job->r.state == Copy) job_free(c->out_job);
@@ -1983,6 +1993,9 @@ conn_data(Conn *c)
 #define want_command(c) ((c)->sock.fd && ((c)->state == STATE_WANTCOMMAND))
 #define cmd_data_ready(c) (want_command(c) && (c)->cmd_read)
 
+// TODO: rename it to epoll_changes_apply()? If so then:
+// dirty_add()    -> epoll_changes_add()
+// dirty_rmconn() -> epoll_changes_rmconn()
 static void
 update_conns()
 {
@@ -2021,7 +2034,7 @@ h_conn(const int fd, const short which, Conn *c)
         fill_extra_data(c);
     }
     if (c->state == STATE_CLOSE) {
-        protrmdirty(c);
+        dirty_rmconn(c);
         connclose(c);
     }
     update_conns();
@@ -2150,8 +2163,6 @@ h_accept(const int fd, const short which, Server *s)
         if (verbose) {
             printf("close %d\n", cfd);
         }
-        update_conns();
-        return;
     }
     update_conns();
 }
