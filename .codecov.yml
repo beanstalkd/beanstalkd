@@ -3,13 +3,17 @@ codecov:
     require_ci_to_pass: yes
 
 coverage:
-  precision: 1
+  precision: 2
   round: down
-  range: "70...100"
+  range: "65...90"
 
   status:
-    project: no
-    patch: no
+    project:
+      default:
+        threshold: 0.5 # Allow the coverage to drop by threshold %, and posting a success status.
+    patch:
+      default:
+        target: 0% # trial operation
     changes: no
 
 parsers:
@@ -26,9 +30,15 @@ comment:
   require_changes: no
 
 ignore:
-  # ignore files using wildcards
+  - ".git"
+  - "*.yml"
+  - "*.md"
+  # ignore test files
   - "test*.c"
+  # ignore sd-daemon.* since it's vendored as external lib
+  - "sd-daemon.*"
   # ignore folders and all its contents
-  - "ct/.*"
   - "adm/.*"
+  - "ct/.*"
+  - "doc/.*"
   - "pkg/.*"
