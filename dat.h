@@ -274,7 +274,7 @@ void job_free(Job *j);
 Job *job_find(uint64 job_id);
 
 /* the void* parameters are really job pointers */
-void job_setpos(void *j, size_t i);
+void job_setpos(void *j, size_t pos);
 int job_pri_less(void *ja, void *jb);
 int job_delay_less(void *ja, void *jb);
 
@@ -321,12 +321,12 @@ Conn *remove_waiting_conn(Conn *c);
 void enqueue_reserved_jobs(Conn *c);
 
 void enter_drain_mode(int sig);
-void h_accept(const int fd, const short which, Server* srv);
+void h_accept(const int fd, const short which, Server *s);
 void prot_remove_tube(Tube *t);
 int  prot_replay(Server *s, Job *list);
 
 
-int make_server_socket(char *host_addr, char *port);
+int make_server_socket(char *host, char *port);
 
 
 struct Conn {
@@ -366,8 +366,8 @@ struct Conn {
     Ms  watch;
     Job reserved_jobs;             // linked list header
 };
-int  conn_less(void *ax, void *bx);
-void conn_setpos(void *cx, size_t i);
+int  conn_less(void *ca, void *cb);
+void conn_setpos(void *c, size_t i);
 void connwant(Conn *c, int rw);
 void connsched(Conn *c);
 void connclose(Conn *c);
@@ -452,5 +452,5 @@ struct Server {
     // Connections that must produce deadline or timeout, ordered by the time.
     Heap   conns;
 };
-void srvserve(Server *srv);
+void srvserve(Server *s);
 void srvaccept(Server *s, int ev);
