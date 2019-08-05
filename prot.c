@@ -235,10 +235,9 @@ static char instance_hex[instance_id_bytes * 2 + 1]; // hex-encoded len of insta
 static struct utsname node_info;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;
 
-// Single linked list that holds connections
-// that required update in polling mechanism by update_conns().
-// TODO: rename to epoll_changes?
-static Conn *dirty;
+// Single linked list with connections that require updates
+// in the event notification mechanism.
+static Conn *epollq;
 
 static const char * op_names[] = {
     "<unknown>",
@@ -277,32 +276,51 @@ buried_job_p(Tube *t)
 }
 
 static void
-dirty_add(Conn *c, char rw) {
+epollq_add(Conn *c, char rw) {
     c->rw = rw;
     connsched(c);
-    c->next = dirty;
-    dirty = c;
+    c->next = epollq;
+    epollq = c;
 }
 
-// Remove connection c from the dirty.
+// Remove connection c from the epollq.
 static void
-dirty_rmconn(Conn *c)
+epollq_rmconn(Conn *c)
 {
-    Conn *x, *newdirty = NULL;
+    Conn *x, *newhead = NULL;
 
-    while (dirty) {
-        // x as next element from dirty.
-        x = dirty;
-        dirty = dirty->next;
+    while (epollq) {
+        // x as next element from epollq.
+        x = epollq;
+        epollq = epollq->next;
         x->next = NULL;
 
-        // put x back into newdirty list.
+        // put x back into newhead list.
         if (x != c) {
-            x->next = newdirty;
-            newdirty = x;
+            x->next = newhead;
+            newhead = x;
         }
     }
-    dirty = newdirty;
+    epollq = newhead;
+}
+
+// Propagate changes to event notification mechanism about wanted responses
+// from connections. Clear the epollq list.
+static void
+epollq_apply()
+{
+    Conn *c;
+
+    while (epollq) {
+        c = epollq;
+        epollq = epollq->next;
+        c->next = NULL;
+        int r = sockwant(&c->sock, c->rw);
+        if (r == -1) {
+            twarn("sockwant");
+            connclose(c);
+        }
+    }
 }
 
 #define reply_msg(c, m) \
@@ -317,7 +335,7 @@ reply(Conn *c, char *line, int len, int state)
     if (!c)
         return;
 
-    dirty_add(c, 'w');
+    epollq_add(c, 'w');
 
     c->reply = line;
     c->reply_len = len;
@@ -1059,7 +1077,7 @@ wait_for_job(Conn *c, int timeout)
     c->pending_timeout = timeout;
 
     // only care if they hang up
-    dirty_add(c, 'h');
+    epollq_add(c, 'h');
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1827,7 +1845,7 @@ enter_drain_mode(int sig)
 static void
 reset_conn(Conn *c)
 {
-    dirty_add(c, 'r');
+    epollq_add(c, 'r');
 
     /* was this a peek or stats command? */
     if (c->out_job && c->out_job->r.state == Copy) job_free(c->out_job);
@@ -1993,26 +2011,6 @@ conn_data(Conn *c)
 #define want_command(c) ((c)->sock.fd && ((c)->state == STATE_WANTCOMMAND))
 #define cmd_data_ready(c) (want_command(c) && (c)->cmd_read)
 
-// TODO: rename it to epoll_changes_apply()? If so then:
-// dirty_add()    -> epoll_changes_add()
-// dirty_rmconn() -> epoll_changes_rmconn()
-static void
-update_conns()
-{
-    Conn *c;
-
-    while (dirty) {
-        c = dirty;
-        dirty = dirty->next;
-        c->next = NULL;
-        int r = sockwant(&c->sock, c->rw);
-        if (r == -1) {
-            twarn("sockwant");
-            connclose(c);
-        }
-    }
-}
-
 static void
 h_conn(const int fd, const short which, Conn *c)
 {
@@ -2020,7 +2018,7 @@ h_conn(const int fd, const short which, Conn *c)
         twarnx("Argh! event fd doesn't match conn fd.");
         close(fd);
         connclose(c);
-        update_conns();
+        epollq_apply();
         return;
     }
 
@@ -2034,10 +2032,10 @@ h_conn(const int fd, const short which, Conn *c)
         fill_extra_data(c);
     }
     if (c->state == STATE_CLOSE) {
-        dirty_rmconn(c);
+        epollq_rmconn(c);
         connclose(c);
     }
-    update_conns();
+    epollq_apply();
 }
 
 static void
@@ -2097,7 +2095,7 @@ prottick(Server *s)
         conn_timeout(c);
     }
 
-    update_conns();
+    epollq_apply();
 
     return period;
 }
@@ -2112,7 +2110,7 @@ h_accept(const int fd, const short which, Server *s)
     int cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
-        update_conns();
+        epollq_apply();
         return;
     }
     if (verbose) {
@@ -2126,7 +2124,7 @@ h_accept(const int fd, const short which, Server *s)
         if (verbose) {
             printf("close %d\n", cfd);
         }
-        update_conns();
+        epollq_apply();
         return;
     }
 
@@ -2137,7 +2135,7 @@ h_accept(const int fd, const short which, Server *s)
         if (verbose) {
             printf("close %d\n", cfd);
         }
-        update_conns();
+        epollq_apply();
         return;
     }
 
@@ -2148,7 +2146,7 @@ h_accept(const int fd, const short which, Server *s)
         if (verbose) {
             printf("close %d\n", cfd);
         }
-        update_conns();
+        epollq_apply();
         return;
     }
     c->srv = s;
@@ -2164,7 +2162,7 @@ h_accept(const int fd, const short which, Server *s)
             printf("close %d\n", cfd);
         }
     }
-    update_conns();
+    epollq_apply();
 }
 
 void
