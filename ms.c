@@ -12,7 +12,7 @@ ms_init(Ms *a, ms_event_fn oninsert, ms_event_fn onremove)
     a->onremove = onremove;
 }
 
-static void
+static int
 grow(Ms *a)
 {
     void **nitems;
@@ -22,20 +22,19 @@ grow(Ms *a)
 
     nitems = malloc(ncap * sizeof(void *));
     if (!nitems)
-        return;
+        return 0;
 
     memcpy(nitems, a->items, a->len * sizeof(void *));
     free(a->items);
     a->items = nitems;
     a->cap = ncap;
+    return 1;
 }
 
 int
 ms_append(Ms *a, void *item)
 {
-    if (a->len >= a->cap)
-        grow(a);
-    if (a->len >= a->cap)
+    if (a->len >= a->cap && !grow(a))
         return 0;
 
     a->items[a->len++] = item;
