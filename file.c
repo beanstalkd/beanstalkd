@@ -197,6 +197,7 @@ readrec(File *f, Job *l, int *err)
     switch (jr.state) {
     case Reserved:
         jr.state = Ready;
+        /* Falls through */
     case Ready:
     case Buried:
     case Delayed:
@@ -321,6 +322,7 @@ readrec5(File *f, Job *l, int *err)
     switch (jr.state) {
     case Reserved:
         jr.state = Ready;
+        /* Falls through */
     case Ready:
     case Buried:
     case Delayed:
@@ -336,7 +338,6 @@ readrec5(File *f, Job *l, int *err)
             j = make_job_with_id(jr.pri, jr.delay, jr.ttr, jr.body_size,
                                  t, jr.id);
             j->next = j->prev = j;
-            j->r.created_at = jr.created_at;
         }
         j->r.id = jr.id;
         j->r.pri = jr.pri;

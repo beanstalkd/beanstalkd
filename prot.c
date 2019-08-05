@@ -509,13 +509,11 @@ bury_job(Server *s, Job *j, char update_store)
 void
 enqueue_reserved_jobs(Conn *c)
 {
-    int r;
-    Job *j;
-
     while (job_list_any_p(&c->reserved_jobs)) {
-        j = job_remove(c->reserved_jobs.next);
-        r = enqueue_job(c->srv, j, 0, 0);
-        if (r < 1) bury_job(c->srv, j, 0);
+        Job *j = job_remove(c->reserved_jobs.next);
+        int r = enqueue_job(c->srv, j, 0, 0);
+        if (r < 1)
+            bury_job(c->srv, j, 0);
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
         c->soonest_job = NULL;
@@ -557,12 +555,11 @@ kick_buried_job(Server *s, Job *j)
 static uint
 get_delayed_job_ct()
 {
-    Tube *t;
     size_t i;
     uint count = 0;
 
     for (i = 0; i < tubes.len; i++) {
-        t = tubes.items[i];
+        Tube *t = tubes.items[i];
         count += t->delay.len;
     }
     return count;
@@ -880,17 +877,17 @@ static int
 fmt_stats(char *buf, size_t size, void *x)
 {
     int whead = 0, wcur = 0;
-    Server *srv;
+    Server *s = x;
     struct rusage ru;
 
-    srv = x;
+    s = x;
 
-    if (srv->wal.head) {
-        whead = srv->wal.head->seq;
+    if (s->wal.head) {
+        whead = s->wal.head->seq;
     }
 
-    if (srv->wal.cur) {
-        wcur = srv->wal.cur->seq;
+    if (s->wal.cur) {
+        wcur = s->wal.cur->seq;
     }
 
     getrusage(RUSAGE_SELF, &ru); /* don't care if it fails */
@@ -938,9 +935,9 @@ fmt_stats(char *buf, size_t size, void *x)
             uptime(),
             whead,
             wcur,
-            srv->wal.nmig,
-            srv->wal.nrec,
-            srv->wal.filesize,
+            s->wal.nmig,
+            s->wal.nrec,
+            s->wal.filesize,
             drain_mode ? "true" : "false",
             instance_hex,
             node_info.nodename);
@@ -1386,7 +1383,7 @@ dispatch_cmd(Conn *c)
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
-        /* FALLTHROUGH */
+        /* Falls through */
 
     case OP_RESERVE:
         /* don't allow trailing garbage */
@@ -1771,7 +1768,7 @@ dispatch_cmd(Conn *c)
 static void
 conn_timeout(Conn *c)
 {
-    int r, should_timeout = 0;
+    int should_timeout = 0;
     Job *j;
 
     /* Check if the client was trying to reserve a job. */
@@ -1781,7 +1778,8 @@ conn_timeout(Conn *c)
     /* Check if any reserved jobs have run out of time. We should do this
      * whether or not the client is waiting for a new reservation. */
     while ((j = connsoonestjob(c))) {
-        if (j->r.deadline_at >= nanoseconds()) break;
+        if (j->r.deadline_at >= nanoseconds())
+            break;
 
         /* This job is in the middle of being written out. If we return it to
          * the ready queue, someone might free it before we finish writing it
@@ -1793,7 +1791,7 @@ conn_timeout(Conn *c)
 
         timeout_ct++; /* stats */
         j->r.timeout_ct++;
-        r = enqueue_job(c->srv, remove_this_reserved_job(c, j), 0, 0);
+        int r = enqueue_job(c->srv, remove_this_reserved_job(c, j), 0, 0);
         if (r < 1)
             bury_job(c->srv, j, 0); /* out of memory, so bury it */
         connsched(c);
@@ -1808,9 +1806,9 @@ conn_timeout(Conn *c)
 }
 
 void
-enter_drain_mode(int signum)
+enter_drain_mode(int sig)
 {
-    UNUSED_PARAMETER(signum);
+    UNUSED_PARAMETER(sig);
     drain_mode = 1;
 }
 
@@ -1988,14 +1986,13 @@ conn_data(Conn *c)
 static void
 update_conns()
 {
-    int r;
     Conn *c;
 
     while (dirty) {
         c = dirty;
         dirty = dirty->next;
         c->next = NULL;
-        r = sockwant(&c->sock, c->rw);
+        int r = sockwant(&c->sock, c->rw);
         if (r == -1) {
             twarn("sockwant");
             connclose(c);
@@ -2202,31 +2199,33 @@ int
 prot_replay(Server *s, Job *list)
 {
     Job *j, *nj;
-    int64 t, delay;
-    int r, z;
+    int64 t;
+    int r;
 
     for (j = list->next ; j != list ; j = nj) {
         nj = j->next;
         job_remove(j);
-        z = walresvupdate(&s->wal);
+        int z = walresvupdate(&s->wal);
         if (!z) {
             twarnx("failed to reserve space");
             return 0;
         }
-        delay = 0;
+        int64 delay = 0;
         switch (j->r.state) {
-        case Buried:
+        case Buried: {
             bury_job(s, j, 0);
             break;
+        }
         case Delayed:
             t = nanoseconds();
             if (t < j->r.deadline_at) {
                 delay = j->r.deadline_at - t;
             }
-            /* fall through */
+            /* Falls through */
         default:
             r = enqueue_job(s, j, delay, 0);
-            if (r < 1) twarnx("error recovering job %"PRIu64, j->r.id);
+            if (r < 1)
+                twarnx("error recovering job %"PRIu64, j->r.id);
         }
     }
     return 1;
