@@ -1098,8 +1098,39 @@ cttest_close_releases_job()
     // Closed consumer connection should make the job ready sooner than ttr=100.
     close(cons);
 
-    // Job should be released in less than 1s. It is low expectation,
-    // but we do not make guarantees about how soon jobs should be released.
+    // Job should be released in less than 1s. It is not instantly;
+    // we do not make guarantees about how soon jobs should be released.
+    mustsend(prod, "reserve-with-timeout 1\r\n");
+    ckresp(prod, "RESERVED 1 1\r\n");
+    ckresp(prod, "a\r\n");
+}
+
+void
+cttest_quit_releases_job()
+{
+    // This test is similar to the close_releases_job test, except that
+    // connection is not closed, but command quit is sent.
+    int port = SERVER();
+    int cons = mustdiallocal(port);
+    int prod = mustdiallocal(port);
+    mustsend(cons, "reserve-with-timeout 1\r\n");
+
+    mustsend(prod, "put 0 0 100 1\r\n");
+    mustsend(prod, "a\r\n");
+    ckresp(prod, "INSERTED 1\r\n");
+
+    ckresp(cons, "RESERVED 1 1\r\n");
+    ckresp(cons, "a\r\n");
+
+    mustsend(prod, "stats-job 1\r\n");
+    ckrespsub(prod, "OK ");
+    ckrespsub(prod, "\nstate: reserved\n");
+
+    // Quitting consumer should make the job ready sooner than ttr=100.
+    mustsend(cons, "quit\r\n");
+
+    // Job should be released in less than 1s. It is not instantly;
+    // we do not make guarantees about how soon jobs should be released.
     mustsend(prod, "reserve-with-timeout 1\r\n");
     ckresp(prod, "RESERVED 1 1\r\n");
     ckresp(prod, "a\r\n");

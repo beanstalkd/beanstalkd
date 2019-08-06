@@ -368,7 +368,6 @@ struct Conn {
 };
 int  conn_less(void *ca, void *cb);
 void conn_setpos(void *c, size_t i);
-void connwant(Conn *c, int rw);
 void connsched(Conn *c);
 void connclose(Conn *c);
 void connsetproducer(Conn *c);
