@@ -95,13 +95,14 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_EXPECTED_CRLF "EXPECTED_CRLF\r\n"
 #define MSG_JOB_TOO_BIG "JOB_TOO_BIG\r\n"
 
-#define STATE_WANTCOMMAND 0
-#define STATE_WANTDATA 1
-#define STATE_SENDJOB 2
-#define STATE_SENDWORD 3
-#define STATE_WAIT 4
-#define STATE_BITBUCKET 5
-#define STATE_CLOSE 6
+// Connection can be in one of these states:
+#define STATE_WANTCOMMAND 0    // conn expects a command from the client
+#define STATE_WANTDATA 1       // conn expects a job data
+#define STATE_SENDJOB 2        // conn sends job to the client
+#define STATE_SENDWORD 3       // conn sends a line reply
+#define STATE_WAIT 4           // client awaits for the job reservation
+#define STATE_BITBUCKET 5      // conn discards content
+#define STATE_CLOSE 6          // conn should be closed
 
 #define OP_UNKNOWN 0
 #define OP_PUT 1

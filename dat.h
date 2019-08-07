@@ -49,11 +49,6 @@ typedef int(FAlloc)(int, int);
 // or reply line ("USING a{200}\r\n").
 #define LINE_BUF_SIZE 224
 
-// CONN_TYPE_* are bit masks used to track the count of connection types.
-#define CONN_TYPE_PRODUCER 1
-#define CONN_TYPE_WORKER   2
-#define CONN_TYPE_WAITING  4
-
 #define min(a,b) ((a)<(b)?(a):(b))
 
 // Jobs with priority less than URGENT_THRESHOLD are counted as urgent.
@@ -113,14 +108,35 @@ void* heapremove(Heap *h, size_t k);
 
 
 struct Socket {
+    // Descriptor for the socket.
     int    fd;
+
+    // f can point to srvaccept or prothandle.
     Handle f;
+
+    // x is passed as first parameter to f.
     void   *x;
+
+    // added value is platform dependend: on OSX it can be > 1.
+    // Value of 1 - socket was already added to event notifications,
+    // otherwise it is 0.
     int    added;
 };
+
 int sockinit(void);
-int sockwant(Socket*, int);
-int socknext(Socket**, int64);
+
+// sockwant updates event filter for the socket s. rw designates
+// the kind of event we should be notified about:
+// 'r' - read
+// 'w' - write
+// 'h' - hangup (closed connection)
+// 0   - ignore this socket
+int sockwant(Socket *s, int rw);
+
+// socknext waits for the next event at most timeout nanoseconds.
+// If event happens before timeout then s points to the corresponding socket,
+// and the kind of event is returned. In case of timeout, 0 is returned.
+int socknext(Socket **s, int64 timeout);
 
 
 // ms_event_fn is called with the element being inserted/removed and its position.
@@ -329,19 +345,30 @@ int  prot_replay(Server *s, Job *list);
 int make_server_socket(char *host, char *port);
 
 
+// CONN_TYPE_* are bit masks used to track the type of connection.
+// A put command adds the PRODUCER type, "reserve*" adds the WORKER type.
+// If connection awaits for data, then it has WAITING type.
+#define CONN_TYPE_PRODUCER 1
+#define CONN_TYPE_WORKER   2
+#define CONN_TYPE_WAITING  4
+
 struct Conn {
     Server *srv;
     Socket sock;
-    char   state;
-    char   type;
-    Conn   *next;
+    char   state;       // see the STATE_* description
+    char   type;        // combination of CONN_TYPE_* values
+    Conn   *next;       // only used in epollq functions
     Tube   *use;        // tube currently in use
     int64  tickat;      // time at which to do more work; determines pos in heap
     size_t tickpos;     // position in srv->conns, stale when in_conns=0
     byte   in_conns;    // 1 if the conn is in srv->conns heap, 0 otherwise
     Job    *soonest_job;// memoization of the soonest job
     int    rw;          // currently want: 'r', 'w', or 'h'
+
+    // How long client should "wait" for the next job; -1 means forever.
     int    pending_timeout;
+
+    // Used to inform state machine that client no longer waits for the data.
     char   halfclosed;
 
     char   cmd[LINE_BUF_SIZE];     // this string is NOT NUL-terminated
