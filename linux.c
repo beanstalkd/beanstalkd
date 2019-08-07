@@ -22,7 +22,15 @@ static int epfd;
 int
 rawfalloc(int fd, int len)
 {
-    return ftruncate(fd, len);
+    // XSI-conformant systems might not extend the file and return an error.
+    // ftruncate() might extend the file with a sequence of null bytes or a hole.
+    // Latter means that disk blocks are not allocated before the write happens.
+    // To ensure that write won't fail because disk space is exhausted,
+    // we might use posix_fallocate() that ensures disk allocation, but it
+    // has limited support for NFS. Optionally can revert to regular write as on osx.
+    if (!ftruncate(fd, len))
+        return 0;
+    return errno;
 }
 
 
