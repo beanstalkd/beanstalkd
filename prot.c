@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <inttypes.h>
 #include <stdarg.h>
+#include <signal.h>
 
 /* job body cannot be greater than this many bytes long */
 size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
@@ -226,7 +227,10 @@ static struct stats global_stat = {0, 0, 0, 0, 0, 0, 0};
 
 static Tube *default_tube;
 
-static int drain_mode = 0;
+// If drain_mode is 1, then server does not accept new jobs.
+// Variable is set by the SIGUSR1 handler.
+static volatile sig_atomic_t drain_mode = 0;
+
 static int64 started_at;
 
 enum { instance_id_bytes = 8 };
@@ -275,6 +279,9 @@ buried_job_p(Tube *t)
     return job_list_any_p(&t->buried);
 }
 
+// epollq_add schedules connection c in the s->conns heap, adds c
+// to the epollq list to change expected operation in event notifications.
+// rw='w' means to notify when socket is writeable, 'r' - readable, 'h' - closed.
 static void
 epollq_add(Conn *c, char rw) {
     c->rw = rw;
@@ -283,7 +290,7 @@ epollq_add(Conn *c, char rw) {
     epollq = c;
 }
 
-// Remove connection c from the epollq.
+// epollq_rmconn removes connection c from the epollq.
 static void
 epollq_rmconn(Conn *c)
 {
@@ -304,8 +311,8 @@ epollq_rmconn(Conn *c)
     epollq = newhead;
 }
 
-// Propagate changes to event notification mechanism about wanted responses
-// from connections. Clear the epollq list.
+// Propagate changes to event notification mechanism about expected operations
+// in connections' sockets. Clear the epollq list.
 static void
 epollq_apply()
 {
