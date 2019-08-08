@@ -37,6 +37,12 @@ su(const char *user)
 }
 
 static void
+handle_sigterm_pid1()
+{
+    raise(SIGKILL);
+}
+
+static void
 set_sig_handlers()
 {
     struct sigaction sa;
@@ -60,6 +66,18 @@ set_sig_handlers()
     if (r == -1) {
         twarn("sigaction(SIGUSR1)");
         exit(111);
+    }
+
+    // Workaround for running the server with pid=1 in Docker.
+    // Handle SIGTERM so the server is killed immediately and
+    // not after 10 seconds timeout. See issue #527.
+    if (getpid() == 1) {
+        sa.sa_handler = handle_sigterm_pid1;
+        r = sigaction(SIGTERM, &sa, 0);
+        if (r == -1) {
+            twarn("sigaction(SIGTERM)");
+            exit(111);
+        }
     }
 }
 
