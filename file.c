@@ -450,7 +450,8 @@ filewopen(File *f)
 
     r = falloc(fd, f->w->filesize);
     if (r) {
-        close(fd);
+        if (close(fd) == -1)
+            twarn("close");
         errno = r;
         twarn("falloc %s", f->path);
         r = unlink(f->path);
@@ -463,7 +464,8 @@ filewopen(File *f)
     n = write(fd, &ver, sizeof(int));
     if (n < 0 || (size_t)n < sizeof(int)) {
         twarn("write %s", f->path);
-        close(fd);
+        if (close(fd) == -1)
+            twarn("close");
         return;
     }
 
@@ -539,7 +541,8 @@ filewclose(File *f)
             twarn("ftruncate");
         }
     }
-    close(f->fd);
+    if (close(f->fd) == -1)
+        twarn("close");
     f->iswopen = 0;
     filedecref(f);
 }
