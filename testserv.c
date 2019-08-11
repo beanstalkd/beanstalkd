@@ -183,27 +183,7 @@ mustforksrv(void)
     set_sig_handler();
     prot_init();
 
-    if (srv.wal.use) {
-        // We want to make sure that only one beanstalkd tries
-        // to use the wal directory at a time. So acquire a lock
-        // now and never release it.
-        if (!waldirlock(&srv.wal)) {
-            twarnx("failed to lock wal dir %s", srv.wal.dir);
-            exit(10);
-        }
-
-        Job list = {
-            .prev = NULL,
-            .next = NULL,
-        };
-        list.prev = list.next = &list;
-        walinit(&srv.wal, &list);
-        int ok = prot_replay(&srv, &list);
-        if (!ok) {
-            twarnx("failed to replay log");
-            exit(11);
-        }
-    }
+    srv_acquire_wal(&srv);
 
     srvserve(&srv); /* does not return */
     exit(1); /* satisfy the compiler */
