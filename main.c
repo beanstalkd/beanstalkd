@@ -108,25 +108,7 @@ main(int argc, char **argv)
         su(srv.user);
     set_sig_handlers();
 
-    if (srv.wal.use) {
-        // We want to make sure that only one beanstalkd tries
-        // to use the wal directory at a time. So acquire a lock
-        // now and never release it.
-        if (!waldirlock(&srv.wal)) {
-            twarnx("failed to lock wal dir %s", srv.wal.dir);
-            exit(10);
-        }
-
-        Job list = {.prev=NULL, .next=NULL};
-        list.prev = list.next = &list;
-        walinit(&srv.wal, &list);
-        r = prot_replay(&srv, &list);
-        if (!r) {
-            twarnx("failed to replay log");
-            exit(1);
-        }
-    }
-
+    srv_acquire_wal(&srv);
     srvserve(&srv);
     exit(0);
 }

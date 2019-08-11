@@ -478,5 +478,6 @@ struct Server {
     // Connections that must produce deadline or timeout, ordered by the time.
     Heap   conns;
 };
+void srv_acquire_wal(Server *s);
 void srvserve(Server *s);
 void srvaccept(Server *s, int ev);
