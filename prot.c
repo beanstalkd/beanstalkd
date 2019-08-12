@@ -358,6 +358,8 @@ static void
 reply_line(Conn*, int, const char*, ...)
 __attribute__((format(printf, 3, 4)));
 
+// reply_line prints *fmt into c->reply_buffer and
+// calls reply() for the string and state.
 static void
 reply_line(Conn *c, int state, const char *fmt, ...)
 {
@@ -377,35 +379,58 @@ reply_line(Conn *c, int state, const char *fmt, ...)
     reply(c, c->reply_buf, r, state);
 }
 
+// reply_job tells the connection c which job to send,
+// and replies with this line: <msg> <job_id> <job_size>.
 static void
-reply_job(Conn *c, Job *j, const char *word)
+reply_job(Conn *c, Job *j, const char *msg)
 {
-    /* tell this connection which job to send */
     c->out_job = j;
     c->out_job_sent = 0;
-
     reply_line(c, STATE_SENDJOB, "%s %"PRIu64" %u\r\n",
-               word, j->r.id, j->r.body_size - 2);
+               msg, j->r.id, j->r.body_size - 2);
 }
 
+// remove_waiting_conn unsets CONN_TYPE_WAITING for the connection,
+// removes it from the waiting_conns set of every tube it's watching.
 Conn *
 remove_waiting_conn(Conn *c)
 {
-    Tube *t;
-    size_t i;
-
-    if (!conn_waiting(c)) return NULL;
+    // What for is this check? If this function returns NULL then
+    // functions calling it hit null pointer dereference afterwards
+    // or just do nothing at best. Maybe NULL result should produce
+    // INTERNAL_ERROR to the client, meaning a bug in the code.
+    if (!conn_waiting(c))
+        return NULL;
 
     c->type &= ~CONN_TYPE_WAITING;
     global_stat.waiting_ct--;
+    size_t i;
     for (i = 0; i < c->watch.len; i++) {
-        t = c->watch.items[i];
+        Tube *t = c->watch.items[i];
         t->stat.waiting_ct--;
-        ms_remove(&t->waiting, c);
+        ms_remove(&t->waiting_conns, c);
     }
     return c;
 }
 
+// enqueue_waiting_conn sets CONN_TYPE_WAITING for the connection,
+// adds it to the waiting_conns set of every tube it's watching.
+static void
+enqueue_waiting_conn(Conn *c)
+{
+    c->type |= CONN_TYPE_WAITING;
+    global_stat.waiting_ct++;
+    size_t i;
+    for (i = 0; i < c->watch.len; i++) {
+        Tube *t = c->watch.items[i];
+        t->stat.waiting_ct++;
+        ms_append(&t->waiting_conns, c);
+    }
+}
+
+// TODO: inline this obscure function to the process_queue();
+// this function does a sequence of many things, all are side effects,
+// there is no point to have it as separate function.
 static void
 reserve_job(Conn *c, Job *j)
 {
@@ -423,35 +448,38 @@ reserve_job(Conn *c, Job *j)
     reply_job(c, j, MSG_RESERVED);
 }
 
+// next_eligible_job iterates through all the tubes with awaiting connections,
+// returns the next ready job with the smallest priority.
+// If jobs has the same priority it picks the job with smaller id.
+// All paused tubes with expired pause deadline are unpaused.
 static Job *
 next_eligible_job(int64 now)
 {
-    Tube *t;
     size_t i;
     Job *j = NULL;
-    Job *candidate;
 
     for (i = 0; i < tubes.len; i++) {
-        t = tubes.items[i];
+        Tube *t = tubes.items[i];
         if (t->pause) {
-            if (t->deadline_at > now) continue;
+            if (t->deadline_at > now)
+                continue;
             t->pause = 0;
         }
-        if (t->waiting.len && t->ready.len) {
-            candidate = t->ready.data[0];
+        if (t->waiting_conns.len && t->ready.len) {
+            Job *candidate = t->ready.data[0];
             if (!j || job_pri_less(candidate, j)) {
                 j = candidate;
             }
         }
     }
-
     return j;
 }
 
+// process_queue performs reservation for every jobs that is awaited for.
 static void
 process_queue()
 {
-    Job *j;
+    Job *j = NULL;
     int64 now = nanoseconds();
 
     while ((j = next_eligible_job(now))) {
@@ -461,7 +489,11 @@ process_queue()
             global_stat.urgent_ct--;
             j->tube->stat.urgent_ct--;
         }
-        reserve_job(remove_waiting_conn(ms_take(&j->tube->waiting)), j);
+        Conn *next = ms_take(&j->tube->waiting_conns);
+        next = remove_waiting_conn(next);
+        // If next==NULL here, we have a bug. See the call above.
+        // TODO: Report this bug on stderr and skip the conn.
+        reserve_job(next, j);
     }
 }
 
@@ -481,11 +513,13 @@ delay_q_peek()
         nj = t->delay.data[0];
         if (!j || nj->r.deadline_at < j->r.deadline_at) j = nj;
     }
-
     return j;
 }
 
-/* Inserts job j in the tube, returns 1 on success, otherwise 0 */
+// enqueue_job inserts job j in the tube, returns 1 on success, otherwise 0.
+// If update_store then it writes an entry to WAL.
+// On success it processes the queue.
+// BUG: If maintenance of WAL has failed, it is not reported as error.
 static int
 enqueue_job(Server *s, Job *j, int64 delay, char update_store)
 {
@@ -495,11 +529,13 @@ enqueue_job(Server *s, Job *j, int64 delay, char update_store)
     if (delay) {
         j->r.deadline_at = nanoseconds() + delay;
         r = heapinsert(&j->tube->delay, j);
-        if (!r) return 0;
+        if (!r)
+            return 0;
         j->r.state = Delayed;
     } else {
         r = heapinsert(&j->tube->ready, j);
-        if (!r) return 0;
+        if (!r)
+            return 0;
         j->r.state = Ready;
         ready_ct++;
         if (j->r.pri < URGENT_THRESHOLD) {
@@ -515,6 +551,8 @@ enqueue_job(Server *s, Job *j, int64 delay, char update_store)
         walmaint(&s->wal);
     }
 
+    // The call below makes this function do too much.
+    // TODO: refactor this call outside so the call is explicit (not hidden)?
     process_queue();
     return 1;
 }
@@ -692,21 +730,6 @@ remove_ready_job(Job *j)
     return j;
 }
 
-static void
-enqueue_waiting_conn(Conn *c)
-{
-    Tube *t;
-    size_t i;
-
-    global_stat.waiting_ct++;
-    c->type |= CONN_TYPE_WAITING;
-    for (i = 0; i < c->watch.len; i++) {
-        t = c->watch.items[i];
-        t->stat.waiting_ct++;
-        ms_append(&t->waiting, c);
-    }
-}
-
 static Job *
 find_reserved_job_in_conn(Conn *c, Job *j)
 {
@@ -722,12 +745,6 @@ touch_job(Conn *c, Job *j)
         c->soonest_job = NULL;
     }
     return j;
-}
-
-static Job *
-peek_job(uint64 id)
-{
-    return job_find(id);
 }
 
 static void
@@ -757,12 +774,6 @@ scan_line_end(const char *s, int size)
         return match - s + 2;
 
     return 0;
-}
-
-static size_t
-cmd_len(Conn *c)
-{
-    return scan_line_end(c->cmd, c->cmd_read);
 }
 
 /* parse the command line */
@@ -888,6 +899,8 @@ enqueue_incoming_job(Conn *c)
 
     /* we have a complete job, so let's stick it in the pqueue */
     r = enqueue_job(c->srv, j, j->r.delay, 1);
+
+    // Dead code: condition cannot happen, r can take 1 or 0 values only.
     if (r < 0) {
         reply_serr(c, MSG_INTERNAL_ERROR);
         return;
@@ -1260,12 +1273,6 @@ name_is_ok(const char *name, size_t max)
         strspn(name, NAME_CHARS) == len && name[0] != '-';
 }
 
-void
-prot_remove_tube(Tube *t)
-{
-    ms_remove(&tubes, t);
-}
-
 static void
 dispatch_cmd(Conn *c)
 {
@@ -1404,8 +1411,8 @@ dispatch_cmd(Conn *c)
 
         /* So, peek is annoying, because some other connection might free the
          * job while we are still trying to write it out. So we copy it and
-         * free the copy when it's done sending, in the "reset_conn" function. */
-        j = job_copy(peek_job(id));
+         * free the copy when it's done sending, in the "conn_want_command" function. */
+        j = job_copy(job_find(id));
 
         if (!j) {
             reply_msg(c, MSG_NOTFOUND);
@@ -1620,7 +1627,7 @@ dispatch_cmd(Conn *c)
         }
         op_ct[type]++;
 
-        j = peek_job(id);
+        j = job_find(id);
         if (!j) {
             reply_msg(c, MSG_NOTFOUND);
             return;
@@ -1851,12 +1858,13 @@ enter_drain_mode(int sig)
 }
 
 static void
-reset_conn(Conn *c)
+conn_want_command(Conn *c)
 {
     epollq_add(c, 'r');
 
     /* was this a peek or stats command? */
-    if (c->out_job && c->out_job->r.state == Copy) job_free(c->out_job);
+    if (c->out_job && c->out_job->r.state == Copy)
+        job_free(c->out_job);
     c->out_job = NULL;
 
     c->reply_sent = 0; /* now that we're done, reset this */
@@ -1864,7 +1872,7 @@ reset_conn(Conn *c)
 }
 
 static void
-conn_data(Conn *c)
+conn_process_io(Conn *c)
 {
     int r, to_read;
     Job *j;
@@ -1884,7 +1892,7 @@ conn_data(Conn *c)
 
         c->cmd_read += r; /* we got some bytes */
 
-        c->cmd_len = cmd_len(c); /* find the EOL */
+        c->cmd_len = scan_line_end(c->cmd, c->cmd_read); /* find the EOL */
 
         /* yay, complete command line */
         if (c->cmd_len) {
@@ -1962,7 +1970,7 @@ conn_data(Conn *c)
         /* (c->reply_sent > c->reply_len) can't happen */
 
         if (c->reply_sent == c->reply_len) {
-            reset_conn(c);
+            conn_want_command(c);
             return;
         }
 
@@ -2000,7 +2008,7 @@ conn_data(Conn *c)
             if (verbose >= 2) {
                 printf(">%d job %"PRIu64"\n", c->sock.fd, j->r.id);
             }
-            reset_conn(c);
+            conn_want_command(c);
             return;
         }
 
@@ -2034,8 +2042,8 @@ h_conn(const int fd, const short which, Conn *c)
         c->halfclosed = 1;
     }
 
-    conn_data(c);
-    while (cmd_data_ready(c) && (c->cmd_len = cmd_len(c))) {
+    conn_process_io(c);
+    while (cmd_data_ready(c) && (c->cmd_len = scan_line_end(c->cmd, c->cmd_read))) {
         dispatch_cmd(c);
         fill_extra_data(c);
     }
@@ -2075,6 +2083,8 @@ prottick(Server *s)
             bury_job(s, j, 0);  /* out of memory */
     }
 
+    // Unpause every possible tube and process the queue.
+    // Capture the smallest period from the soonest pause deadline.
     size_t i;
     for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
@@ -2089,7 +2099,7 @@ prottick(Server *s)
     }
 
     // Process connections with pending timeouts. Release jobs with expired ttr.
-    // Capture the period from the soonest connection.
+    // Capture the smallest period from the soonest connection.
     while (s->conns.len) {
         Conn *c = s->conns.data[0];
         d = c->tickat - now;

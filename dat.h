@@ -237,7 +237,7 @@ struct Tube {
     char name[MAX_TUBE_NAME_LEN];
     Heap ready;
     Heap delay;
-    Ms waiting;                 // set of conns
+    Ms waiting_conns;           // conns waiting for the job at this moment
     struct stats stat;
     uint using_ct;
     uint watching_ct;
@@ -338,7 +338,6 @@ void enqueue_reserved_jobs(Conn *c);
 
 void enter_drain_mode(int sig);
 void h_accept(const int fd, const short which, Server *s);
-void prot_remove_tube(Tube *t);
 int  prot_replay(Server *s, Job *list);
 
 
@@ -385,13 +384,13 @@ struct Conn {
     // in_job_read's meaning is inverted -- then it counts the bytes that
     // remain to be thrown away.
     int32 in_job_read;
-    Job   *in_job;                 // a job to be read from the client
+    Job   *in_job;              // a job to be read from the client
 
-    Job *out_job;
-    int out_job_sent;
+    Job *out_job;               // a job to be sent to the client
+    int out_job_sent;           // how many bytes of *out_job were sent already
 
-    Ms  watch;
-    Job reserved_jobs;             // linked list header
+    Ms  watch;                  // the set of watched tubes by the connection
+    Job reserved_jobs;          // linked list header
 };
 int  conn_less(void *ca, void *cb);
 void conn_setpos(void *c, size_t i);
