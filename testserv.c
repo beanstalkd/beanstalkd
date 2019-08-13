@@ -1744,8 +1744,17 @@ cttest_binlog_v5()
 }
 
 static void
-bench_put_delete_size(int n, int size)
+bench_put_delete_size(int n, int size, int walsize, int sync, int64 syncrate_ms)
 {
+    if (walsize > 0) {
+        srv.wal.dir = ctdir();
+        srv.wal.use = 1;
+        srv.wal.filesize = walsize;
+        srv.wal.syncrate = syncrate_ms * 1000000;
+        srv.wal.wantsync = sync;
+    }
+
+    job_data_size_limit = JOB_DATA_SIZE_LIMIT_MAX;
     int port = SERVER();
     int fd = mustdiallocal(port);
     char buf[50], put[50];
@@ -1769,25 +1778,73 @@ bench_put_delete_size(int n, int size)
 }
 
 void
-ctbench_put_delete_8(int n)
+ctbench_put_delete_0008(int n)
 {
-    bench_put_delete_size(n, 8);
+    bench_put_delete_size(n, 8, 0, 0, 0);
 }
 
 void
-ctbench_put_delete_1k(int n)
+ctbench_put_delete_1024(int n)
 {
-    bench_put_delete_size(n, 1024);
+    bench_put_delete_size(n, 1024, 0, 0, 0);
 }
 
 void
-ctbench_put_delete_8k(int n)
+ctbench_put_delete_8192(int n)
 {
-    bench_put_delete_size(n, 8192);
+    bench_put_delete_size(n, 8192, 0, 0, 0);
 }
 
 void
-ctbench_put_delete_64k(int n)
+ctbench_put_delete_81920(int n)
 {
-    bench_put_delete_size(n, 65535);
+    bench_put_delete_size(n, 81920, 0, 0, 0);
+}
+
+void
+ctbench_put_delete_wal_1024_fsync_000ms(int n)
+{
+    bench_put_delete_size(n, 1024, 512000, 1, 0);
+}
+
+void
+ctbench_put_delete_wal_1024_fsync_050ms(int n)
+{
+    bench_put_delete_size(n, 1024, 512000, 1, 100);
+}
+
+void
+ctbench_put_delete_wal_1024_fsync_200ms(int n)
+{
+    bench_put_delete_size(n, 1024, 512000, 1, 500);
+}
+
+void
+ctbench_put_delete_wal_1024_no_fsync(int n)
+{
+    bench_put_delete_size(n, 1024, 512000, 0, 0);
+}
+
+void
+ctbench_put_delete_wal_8192_fsync_000ms(int n)
+{
+    bench_put_delete_size(n, 8192, 512000, 1, 0);
+}
+
+void
+ctbench_put_delete_wal_8192_fsync_050ms(int n)
+{
+    bench_put_delete_size(n, 8192, 512000, 1, 100);
+}
+
+void
+ctbench_put_delete_wal_8192_fsync_200ms(int n)
+{
+    bench_put_delete_size(n, 8192, 512000, 1, 500);
+}
+
+void
+ctbench_put_delete_wal_8192_no_fsync(int n)
+{
+    bench_put_delete_size(n, 8192, 512000, 0, 0);
 }
