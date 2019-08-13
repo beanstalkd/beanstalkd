@@ -226,7 +226,8 @@ connclose(Conn *c)
     job_free(c->in_job);
 
     /* was this a peek or stats command? */
-    if (c->out_job && !c->out_job->r.id) job_free(c->out_job);
+    if (c->out_job && c->out_job->r.state == Copy)
+        job_free(c->out_job);
 
     c->in_job = c->out_job = NULL;
     c->in_job_read = 0;
@@ -237,7 +238,8 @@ connclose(Conn *c)
     cur_conn_ct--; /* stats */
 
     remove_waiting_conn(c);
-    if (has_reserved_job(c)) enqueue_reserved_jobs(c);
+    if (has_reserved_job(c))
+        enqueue_reserved_jobs(c);
 
     ms_clear(&c->watch);
     c->use->using_ct--;

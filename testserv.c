@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/un.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -29,6 +30,15 @@ static int64 timeout = 5000000000LL;
 // should fail with ENOSPC result.
 static byte fallocpat[3];
 
+
+static int
+exist(char *path)
+{
+    struct stat s;
+
+    int r = stat(path, &s);
+    return r != -1;
+}
 
 static int
 wrapfalloc(int fd, int size)
@@ -100,6 +110,29 @@ mustdiallocal(int port)
     return fd;
 }
 
+static int
+mustdialunix(char *socket_file)
+{
+    struct sockaddr_un addr;
+    const size_t maxlen = sizeof(addr.sun_path);
+    addr.sun_family = AF_UNIX;
+    snprintf(addr.sun_path, maxlen, "%s", socket_file);
+
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd == -1) {
+        twarn("socket");
+        exit(1);
+    }
+
+    int r = connect(fd, (struct sockaddr *)&addr, sizeof addr);
+    if (r == -1) {
+        twarn("connect");
+        exit(1);
+    }
+
+    return fd;
+}
+
 static void
 exit_process(int signum)
 {
@@ -142,6 +175,7 @@ kill_srvpid(void)
 }
 
 #define SERVER() (progname=__func__, mustforksrv())
+#define SERVER_UNIX() (progname=__func__, mustforksrv_unix())
 
 // Forks the server storing the pid in srvpid.
 // The parent process returns port assigned.
@@ -183,27 +217,45 @@ mustforksrv(void)
     set_sig_handler();
     prot_init();
 
-    if (srv.wal.use) {
-        // We want to make sure that only one beanstalkd tries
-        // to use the wal directory at a time. So acquire a lock
-        // now and never release it.
-        if (!waldirlock(&srv.wal)) {
-            twarnx("failed to lock wal dir %s", srv.wal.dir);
-            exit(10);
-        }
+    srv_acquire_wal(&srv);
 
-        Job list = {
-            .prev = NULL,
-            .next = NULL,
-        };
-        list.prev = list.next = &list;
-        walinit(&srv.wal, &list);
-        int ok = prot_replay(&srv, &list);
-        if (!ok) {
-            twarnx("failed to replay log");
-            exit(11);
-        }
+    srvserve(&srv); /* does not return */
+    exit(1); /* satisfy the compiler */
+}
+
+static char *
+mustforksrv_unix(void)
+{
+    static char path[90];
+    char name[95];
+    snprintf(path, sizeof(path), "%s/socket", ctdir());
+    snprintf(name, sizeof(name), "unix:%s", path);
+    srv.sock.fd = make_server_socket(name, NULL);
+    if (srv.sock.fd == -1) {
+        puts("mustforksrv_unix failed");
+        exit(1);
     }
+
+    srvpid = fork();
+    if (srvpid < 0) {
+        twarn("fork");
+        exit(1);
+    }
+
+    if (srvpid > 0) {
+        // On exit the parent (test) sends SIGTERM to the child.
+        atexit(kill_srvpid);
+        printf("start server socket=%s\n", path);
+        assert(exist(path));
+        return path;
+    }
+
+    /* now in child */
+
+    set_sig_handler();
+    prot_init();
+
+    srv_acquire_wal(&srv);
 
     srvserve(&srv); /* does not return */
     exit(1); /* satisfy the compiler */
@@ -313,15 +365,6 @@ filesize(char *path)
     return s.st_size;
 }
 
-static int
-exist(char *path)
-{
-    struct stat s;
-
-    int r = stat(path, &s);
-    return r != -1;
-}
-
 void
 cttest_unknown_command()
 {
@@ -381,6 +424,31 @@ cttest_peek_not_found()
     ckresp(fd, "NOT_FOUND\r\n");
     mustsend(fd, "peek 18446744073709551615\r\n");  // UINT64_MAX
     ckresp(fd, "NOT_FOUND\r\n");
+}
+
+void
+cttest_peek_ok_unix()
+{
+    char *name = SERVER_UNIX();
+    int fd = mustdialunix(name);
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "a\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "peek 1\r\n");
+    ckresp(fd, "FOUND 1 1\r\n");
+    ckresp(fd, "a\r\n");
+
+    unlink(name);
+}
+
+void
+cttest_unix_auto_removal()
+{
+    // Twice, to trigger autoremoval
+    SERVER_UNIX();
+    kill_srvpid();
+    SERVER_UNIX();
 }
 
 void

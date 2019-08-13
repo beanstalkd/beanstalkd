@@ -465,7 +465,8 @@ walread(Wal *w, Job *list, int min)
         f->fd = fd;
         fileadd(f, w);
         err |= fileread(f, list);
-        close(fd);
+        if (close(fd) == -1)
+            twarn("close");
     }
 
     if (err) {

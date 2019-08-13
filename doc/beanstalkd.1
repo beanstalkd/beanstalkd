@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "BEANSTALKD" "1" "April 2012" "" ""
+.TH "BEANSTALKD" "1" "August 2019" "" ""
 .
 .SH "NAME"
 \fBbeanstalkd\fR \- simple, fast work queue
@@ -55,6 +55,9 @@ Show a brief help message and exit\.
 .TP
 \fB\-l\fR \fIaddr\fR
 Listen on address \fIaddr\fR (default is 0\.0\.0\.0)\.
+.
+.IP
+When \fIaddr\fR starts with "unix:", the unprefixed value of it will be used as the local filesystem path to create a UNIX socket instead of a TCP socket\. In this case the value of \fB\-p\fR will be ignored\.
 .
 .IP
 (Option \fB\-l\fR has no effect if sd\-daemon(5) socket activation is being used\. See also \fIENVIRONMENT\fR\.)
