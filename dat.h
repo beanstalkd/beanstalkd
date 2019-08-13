@@ -203,7 +203,13 @@ struct Jobrec {
     int64  ttr;
     int32  body_size;
     int64  created_at;
+
+    // deadline_at is a timestamp, in nsec, that points to:
+    // * time when job will become ready for delayed job,
+    // * time when TTR is about to expire for reserved job,
+    // * undefined otherwise.
     int64  deadline_at;
+
     uint32 reserve_ct;
     uint32 timeout_ct;
     uint32 release_ct;
@@ -241,8 +247,14 @@ struct Tube {
     struct stats stat;
     uint using_ct;
     uint watching_ct;
+
+    // pause is set to the duration of the current pause, otherwise 0, in nsec.
     int64 pause;
+
+    // dealine_at is a timestamp when to unpause the tube, in nsec.
+    // TODO: rename to unpause_at
     int64 deadline_at;
+
     Job buried;                 // linked list header
 };
 
