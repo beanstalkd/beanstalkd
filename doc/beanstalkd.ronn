@@ -59,6 +59,10 @@ and format of the `beanstalkd` protocol.
 * `-l` <addr>:
   Listen on address <addr> (default is 0.0.0.0).
 
+  When <addr> starts with "unix:", the unprefixed value of it will be
+  used as the local filesystem path to create a UNIX socket instead of
+  a TCP socket. In this case the value of `-p` will be ignored.
+
   (Option `-l` has no effect if sd-daemon(5) socket activation is
   being used. See also [ENVIRONMENT][].)
 
