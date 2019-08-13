@@ -121,6 +121,10 @@ it writes to the binlog.</p>
 <dt class="flush"><code>-h</code></dt><dd><p>Show a brief help message and exit.</p></dd>
 <dt class="flush"><code>-l</code> <var>addr</var></dt><dd><p>Listen on address <var>addr</var> (default is 0.0.0.0).</p>
 
+<p>When <var>addr</var> starts with "unix:", the unprefixed value of it will be
+used as the local filesystem path to create a UNIX socket instead of
+a TCP socket. In this case the value of <code>-p</code> will be ignored.</p>
+
 <p>(Option <code>-l</code> has no effect if <span class="man-ref">sd-daemon<span class="s">(5)</span></span> socket activation is
 being used. See also <a href="#ENVIRONMENT" title="ENVIRONMENT" data-bare-link="true">ENVIRONMENT</a>.)</p></dd>
 <dt class="flush"><code>-n</code></dt><dd><p>Turn off binlog compaction, negating <code>-c</code>.</p>
@@ -167,7 +171,7 @@ of many others.</p>
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'></li>
-    <li class='tc'>April 2012</li>
+    <li class='tc'>August 2019</li>
     <li class='tr'>beanstalkd(1)</li>
   </ol>
 
