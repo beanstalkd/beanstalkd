@@ -496,21 +496,22 @@ process_queue()
     }
 }
 
+// soonest_delayed_job returns the delayed job
+// with the smallest deadline_at among all tubes.
 static Job *
-delay_q_peek()
+soonest_delayed_job()
 {
-    size_t i;
-    Tube *t;
     Job *j = NULL;
-    Job *nj;
+    size_t i;
 
     for (i = 0; i < tubes.len; i++) {
-        t = tubes.items[i];
+        Tube *t = tubes.items[i];
         if (t->delay.len == 0) {
             continue;
         }
-        nj = t->delay.data[0];
-        if (!j || nj->r.deadline_at < j->r.deadline_at) j = nj;
+        Job *nj = t->delay.data[0];
+        if (!j || nj->r.deadline_at < j->r.deadline_at)
+            j = nj;
     }
     return j;
 }
@@ -594,17 +595,6 @@ enqueue_reserved_jobs(Conn *c)
         j->tube->stat.reserved_ct--;
         c->soonest_job = NULL;
     }
-}
-
-static Job *
-delay_q_take()
-{
-    Job *j = delay_q_peek();
-    if (!j) {
-        return 0;
-    }
-    heapremove(&j->tube->delay, j->heap_index);
-    return j;
 }
 
 static int
@@ -2070,13 +2060,16 @@ prottick(Server *s)
     int64 d;
 
     now = nanoseconds();
-    while ((j = delay_q_peek())) {
+
+    // Enqueue all jobs that are no longer delayed.
+    // Capture the smallest period from the soonest delayed job.
+    while ((j = soonest_delayed_job())) {
         d = j->r.deadline_at - now;
         if (d > 0) {
             period = min(period, d);
             break;
         }
-        j = delay_q_take();
+        heapremove(&j->tube->delay, j->heap_index);
         int r = enqueue_job(s, j, 0, 0);
         if (r < 1)
             bury_job(s, j, 0);  /* out of memory */
@@ -2106,7 +2099,6 @@ prottick(Server *s)
             period = min(period, d);
             break;
         }
-
         heapremove(&s->conns, 0);
         c->in_conns = 0;
         conn_timeout(c);

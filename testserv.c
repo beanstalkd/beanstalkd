@@ -871,6 +871,44 @@ cttest_small_delay()
 }
 
 void
+cttest_delayed_to_ready()
+{
+    int port = SERVER();
+    int fd = mustdiallocal(port);
+    mustsend(fd, "put 0 1 1 0\r\n");
+    mustsend(fd, "\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
+
+    mustsend(fd, "stats-tube default\r\n");
+    ckrespsub(fd, "OK ");
+    ckrespsub(fd, "\ncurrent-jobs-ready: 0\n");
+
+    mustsend(fd, "stats-tube default\r\n");
+    ckrespsub(fd, "OK ");
+    ckrespsub(fd, "\ncurrent-jobs-delayed: 1\n");
+
+    mustsend(fd, "stats-tube default\r\n");
+    ckrespsub(fd, "OK ");
+    ckrespsub(fd, "\ntotal-jobs: 1\n");
+
+    usleep(1010000); // 1.01 sec
+
+    // check that after 1 sec the delayed job is ready again
+
+    mustsend(fd, "stats-tube default\r\n");
+    ckrespsub(fd, "OK ");
+    ckrespsub(fd, "\ncurrent-jobs-ready: 1\n");
+
+    mustsend(fd, "stats-tube default\r\n");
+    ckrespsub(fd, "OK ");
+    ckrespsub(fd, "\ncurrent-jobs-delayed: 0\n");
+
+    mustsend(fd, "stats-tube default\r\n");
+    ckrespsub(fd, "OK ");
+    ckrespsub(fd, "\ntotal-jobs: 1\n");
+}
+
+void
 cttest_statsjob_ck_format()
 {
     int port = SERVER();
