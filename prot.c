@@ -447,12 +447,12 @@ reserve_job(Conn *c, Job *j)
     reply_job(c, j, MSG_RESERVED);
 }
 
-// next_eligible_job iterates through all the tubes with awaiting connections,
+// next_awaited_job iterates through all the tubes with awaiting connections,
 // returns the next ready job with the smallest priority.
 // If jobs has the same priority it picks the job with smaller id.
-// All paused tubes with expired pause deadline are unpaused.
+// All tubes with expired pause are unpaused.
 static Job *
-next_eligible_job(int64 now)
+next_awaited_job(int64 now)
 {
     size_t i;
     Job *j = NULL;
@@ -460,7 +460,7 @@ next_eligible_job(int64 now)
     for (i = 0; i < tubes.len; i++) {
         Tube *t = tubes.items[i];
         if (t->pause) {
-            if (t->deadline_at > now)
+            if (t->unpause_at > now)
                 continue;
             t->pause = 0;
         }
@@ -481,7 +481,7 @@ process_queue()
     Job *j = NULL;
     int64 now = nanoseconds();
 
-    while ((j = next_eligible_job(now))) {
+    while ((j = next_awaited_job(now))) {
         heapremove(&j->tube->ready, j->heap_index);
         ready_ct--;
         if (j->r.pri < URGENT_THRESHOLD) {
@@ -489,9 +489,11 @@ process_queue()
             j->tube->stat.urgent_ct--;
         }
         Conn *next = ms_take(&j->tube->waiting_conns);
+        if (next==NULL) {
+            twarnx("waiting_conns is empty");
+            continue;
+        }
         next = remove_waiting_conn(next);
-        // If next==NULL here, we have a bug. See the call above.
-        // TODO: Report this bug on stderr and skip the conn.
         reserve_job(next, j);
     }
 }
@@ -1198,7 +1200,7 @@ fmt_stats_tube(char *buf, size_t size, Tube *t)
     uint64 time_left;
 
     if (t->pause > 0) {
-        time_left = (t->deadline_at - nanoseconds()) / 1000000000;
+        time_left = (t->unpause_at - nanoseconds()) / 1000000000;
     } else {
         time_left = 0;
     }
@@ -1779,7 +1781,7 @@ dispatch_cmd(Conn *c)
             delay = 1;
         }
 
-        t->deadline_at = nanoseconds() + delay;
+        t->unpause_at = nanoseconds() + delay;
         t->pause = delay;
         t->stat.pause_ct++;
 
@@ -2080,7 +2082,7 @@ prottick(Server *s)
     size_t i;
     for (i = 0; i < tubes.len; i++) {
         t = tubes.items[i];
-        d = t->deadline_at - now;
+        d = t->unpause_at - now;
         if (t->pause && d <= 0) {
             t->pause = 0;
             process_queue();

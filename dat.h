@@ -251,9 +251,8 @@ struct Tube {
     // pause is set to the duration of the current pause, otherwise 0, in nsec.
     int64 pause;
 
-    // dealine_at is a timestamp when to unpause the tube, in nsec.
-    // TODO: rename to unpause_at
-    int64 deadline_at;
+    // unpause_at is a timestamp when to unpause the tube, in nsec.
+    int64 unpause_at;
 
     Job buried;                 // linked list header
 };
