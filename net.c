@@ -38,7 +38,7 @@ make_inet_socket(char *host, char *port)
     struct addrinfo *airoot, *ai, hints;
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = PF_UNSPEC;
+    hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
     r = getaddrinfo(host, port, &hints, &airoot);
@@ -84,6 +84,16 @@ make_inet_socket(char *host, char *port)
             twarn("setting TCP_NODELAY on fd %d", fd);
             close(fd);
             continue;
+        }
+
+        if (host == NULL && ai->ai_family == AF_INET6) {
+            flags = 0;
+            r = setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &flags, sizeof(flags));
+            if (r == -1) {
+                twarn("setting IPV6_V6ONLY on fd %d", fd);
+                close(fd);
+                continue;
+            }
         }
 
         r = bind(fd, ai->ai_addr, ai->ai_addrlen);
