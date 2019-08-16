@@ -1312,6 +1312,34 @@ cttest_list_tube()
     ckresp(fd0, "NOT_IGNORED\r\n");
 }
 
+#define STRING_LEN_200  \
+    "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" \
+    "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"
+
+void
+cttest_use_tube_long()
+{
+    int port = SERVER();
+    int fd0 = mustdiallocal(port);
+    // 200 chars is okay
+    mustsend(fd0, "use " STRING_LEN_200 "\r\n");
+    ckresp(fd0, "USING " STRING_LEN_200 "\r\n");
+    // 201 chars is too much
+    mustsend(fd0, "use " STRING_LEN_200 "Z\r\n");
+    ckresp(fd0, "BAD_FORMAT\r\n");
+}
+
+void
+cttest_longest_command()
+{
+    int port = SERVER();
+    int fd0 = mustdiallocal(port);
+    mustsend(fd0, "use " STRING_LEN_200 "\r\n");
+    ckresp(fd0, "USING " STRING_LEN_200 "\r\n");
+    mustsend(fd0, "pause-tube " STRING_LEN_200 " 4294967295\r\n");
+    ckresp(fd0, "PAUSED\r\n");
+}
+
 void
 cttest_binlog_empty_exit()
 {
