@@ -276,7 +276,7 @@ static Job *remove_buried_job(Job *j);
 static int
 buried_job_p(Tube *t)
 {
-    return job_list_any_p(&t->buried);
+    return !job_list_is_empty(&t->buried);
 }
 
 // epollq_add schedules connection c in the s->conns heap, adds c
@@ -391,15 +391,12 @@ reply_job(Conn *c, Job *j, const char *msg)
 
 // remove_waiting_conn unsets CONN_TYPE_WAITING for the connection,
 // removes it from the waiting_conns set of every tube it's watching.
-Conn *
+// Noop if connection is not waiting.
+void
 remove_waiting_conn(Conn *c)
 {
-    // What for is this check? If this function returns NULL then
-    // functions calling it hit null pointer dereference afterwards
-    // or just do nothing at best. Maybe NULL result should produce
-    // INTERNAL_ERROR to the client, meaning a bug in the code.
     if (!conn_waiting(c))
-        return NULL;
+        return;
 
     c->type &= ~CONN_TYPE_WAITING;
     global_stat.waiting_ct--;
@@ -409,7 +406,6 @@ remove_waiting_conn(Conn *c)
         t->stat.waiting_ct--;
         ms_remove(&t->waiting_conns, c);
     }
-    return c;
 }
 
 // enqueue_waiting_conn sets CONN_TYPE_WAITING for the connection,
@@ -425,26 +421,6 @@ enqueue_waiting_conn(Conn *c)
         t->stat.waiting_ct++;
         ms_append(&t->waiting_conns, c);
     }
-}
-
-// TODO: inline this obscure function to the process_queue();
-// this function does a sequence of many things, all are side effects,
-// there is no point to have it as separate function.
-static void
-reserve_job(Conn *c, Job *j)
-{
-    j->r.deadline_at = nanoseconds() + j->r.ttr;
-    global_stat.reserved_ct++; /* stats */
-    j->tube->stat.reserved_ct++;
-    j->r.reserve_ct++;
-    j->r.state = Reserved;
-    job_insert(&c->reserved_jobs, j);
-    j->reserver = c;
-    c->pending_timeout = -1;
-    if (c->soonest_job && j->r.deadline_at < c->soonest_job->r.deadline_at) {
-        c->soonest_job = j;
-    }
-    reply_job(c, j, MSG_RESERVED);
 }
 
 // next_awaited_job iterates through all the tubes with awaiting connections,
@@ -488,13 +464,17 @@ process_queue()
             global_stat.urgent_ct--;
             j->tube->stat.urgent_ct--;
         }
-        Conn *next = ms_take(&j->tube->waiting_conns);
-        if (next==NULL) {
+
+        Conn *c = ms_take(&j->tube->waiting_conns);
+        if (c == NULL) {
             twarnx("waiting_conns is empty");
             continue;
         }
-        next = remove_waiting_conn(next);
-        reserve_job(next, j);
+        global_stat.reserved_ct++;
+
+        remove_waiting_conn(c);
+        conn_reserve_job(c, j);
+        reply_job(c, j, MSG_RESERVED);
     }
 }
 
@@ -568,7 +548,7 @@ bury_job(Server *s, Job *j, char update_store)
         j->walresv += z;
     }
 
-    job_insert(&j->tube->buried, j);
+    job_list_insert(&j->tube->buried, j);
     global_stat.buried_ct++;
     j->tube->stat.buried_ct++;
     j->r.state = Buried;
@@ -588,8 +568,8 @@ bury_job(Server *s, Job *j, char update_store)
 void
 enqueue_reserved_jobs(Conn *c)
 {
-    while (job_list_any_p(&c->reserved_jobs)) {
-        Job *j = job_remove(c->reserved_jobs.next);
+    while (!job_list_is_empty(&c->reserved_jobs)) {
+        Job *j = job_list_remove(c->reserved_jobs.next);
         int r = enqueue_job(c->srv, j, 0, 0);
         if (r < 1)
             bury_job(c->srv, j, 0);
@@ -691,7 +671,7 @@ static Job *
 remove_buried_job(Job *j)
 {
     if (!j || j->r.state != Buried) return NULL;
-    j = job_remove(j);
+    j = job_list_remove(j);
     if (j) {
         global_stat.buried_ct--;
         j->tube->stat.buried_ct--;
@@ -1240,7 +1220,7 @@ maybe_enqueue_incoming_job(Conn *c)
 static Job *
 remove_this_reserved_job(Conn *c, Job *j)
 {
-    j = job_remove(j);
+    j = job_list_remove(j);
     if (j) {
         global_stat.reserved_ct--;
         j->tube->stat.reserved_ct--;
@@ -1834,10 +1814,12 @@ conn_timeout(Conn *c)
     }
 
     if (should_timeout) {
-        reply_msg(remove_waiting_conn(c), MSG_DEADLINE_SOON);
+        remove_waiting_conn(c);
+        reply_msg(c, MSG_DEADLINE_SOON);
     } else if (conn_waiting(c) && c->pending_timeout >= 0) {
         c->pending_timeout = -1;
-        reply_msg(remove_waiting_conn(c), MSG_TIMED_OUT);
+        remove_waiting_conn(c);
+        reply_msg(c, MSG_TIMED_OUT);
     }
 }
 
@@ -2008,7 +1990,8 @@ conn_process_io(Conn *c)
     case STATE_WAIT:
         if (c->halfclosed) {
             c->pending_timeout = -1;
-            reply_msg(remove_waiting_conn(c), MSG_TIMED_OUT);
+            remove_waiting_conn(c);
+            reply_msg(c, MSG_TIMED_OUT);
             return;
         }
         break;
@@ -2208,7 +2191,8 @@ prot_init()
     ms_init(&tubes, NULL, NULL);
 
     TUBE_ASSIGN(default_tube, tube_find_or_make("default"));
-    if (!default_tube) twarnx("Out of memory during startup!");
+    if (!default_tube)
+        twarnx("Out of memory during startup!");
 }
 
 // For each job in list, inserts the job into the appropriate data
@@ -2224,7 +2208,7 @@ prot_replay(Server *s, Job *list)
 
     for (j = list->next ; j != list ; j = nj) {
         nj = j->next;
-        job_remove(j);
+        job_list_remove(j);
         int z = walresvupdate(&s->wal);
         if (!z) {
             twarnx("failed to reserve space");

@@ -309,9 +309,10 @@ Job *job_copy(Job *j);
 
 const char * job_state(Job *j);
 
-int job_list_any_p(Job *head);
-Job *job_remove(Job *j);
-void job_insert(Job *head, Job *j);
+void job_list_reset(Job *head);
+int job_list_is_empty(Job *head);
+Job *job_list_remove(Job *j);
+void job_list_insert(Job *head, Job *j);
 
 /* for unit tests */
 size_t get_all_jobs_used(void);
@@ -343,7 +344,7 @@ extern size_t job_data_size_limit;
 void prot_init(void);
 int64 prottick(Server *s);
 
-Conn *remove_waiting_conn(Conn *c);
+void remove_waiting_conn(Conn *c);
 
 void enqueue_reserved_jobs(Conn *c);
 
@@ -412,6 +413,7 @@ void connsetworker(Conn *c);
 Job *connsoonestjob(Conn *c);
 int  conndeadlinesoon(Conn *c);
 int conn_ready(Conn *c);
+void conn_reserve_job(Conn *c, Job *j);
 #define conn_waiting(c) ((c)->type & CONN_TYPE_WAITING)
 
 
