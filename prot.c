@@ -1633,7 +1633,7 @@ dispatch_cmd(Conn *c)
 
     case OP_STATS_TUBE:
         name = c->cmd + CMD_STATS_TUBE_LEN;
-        if (!name_is_ok(name, 200)) {
+        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
@@ -1680,7 +1680,7 @@ dispatch_cmd(Conn *c)
 
     case OP_USE:
         name = c->cmd + CMD_USE_LEN;
-        if (!name_is_ok(name, 200)) {
+        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
@@ -1702,7 +1702,7 @@ dispatch_cmd(Conn *c)
 
     case OP_WATCH:
         name = c->cmd + CMD_WATCH_LEN;
-        if (!name_is_ok(name, 200)) {
+        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
@@ -1727,7 +1727,7 @@ dispatch_cmd(Conn *c)
 
     case OP_IGNORE:
         name = c->cmd + CMD_IGNORE_LEN;
-        if (!name_is_ok(name, 200)) {
+        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
@@ -1765,7 +1765,7 @@ dispatch_cmd(Conn *c)
         op_ct[type]++;
 
         *delay_buf = '\0';
-        if (!name_is_ok(name, 200)) {
+        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }

@@ -8,15 +8,15 @@ struct Ms tubes;
 Tube *
 make_tube(const char *name)
 {
-    Tube *t;
+    Tube *t = new(Tube);
+    if (!t)
+        return NULL;
 
-    t = new(Tube);
-    if (!t) return NULL;
-
-    t->name[MAX_TUBE_NAME_LEN - 1] = '\0';
-    strncpy(t->name, name, MAX_TUBE_NAME_LEN - 1);
-    if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0')
+    strncpy(t->name, name, MAX_TUBE_NAME_LEN);
+    if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0') {
+        t->name[MAX_TUBE_NAME_LEN - 1] = '\0';
         twarnx("truncating tube name");
+    }
 
     t->ready.less = job_pri_less;
     t->delay.less = job_delay_less;

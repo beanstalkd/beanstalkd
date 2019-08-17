@@ -47,7 +47,7 @@ typedef int(FAlloc)(int, int);
 // A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
 // MUST be enough to hold the longest possible command ("pause-tube a{200} 4294967295\r\n")
 // or reply line ("USING a{200}\r\n").
-#define LINE_BUF_SIZE 224
+#define LINE_BUF_SIZE (11 + MAX_TUBE_NAME_LEN + 12)
 
 #define min(a,b) ((a)<(b)?(a):(b))
 
