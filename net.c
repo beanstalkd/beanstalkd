@@ -218,7 +218,8 @@ make_server_socket(char *host, char *port)
      * and return. */
     r = sd_listen_fds(1);
     if (r < 0) {
-        return twarn("sd_listen_fds"), -1;
+        twarn("sd_listen_fds");
+        return -1;
     }
     if (r > 0) {
         if (r > 1) {

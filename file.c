@@ -212,11 +212,11 @@ readrec(File *f, Job *l, int *err)
             t = tube_find_or_make(tubename);
             j = make_job_with_id(jr.pri, jr.delay, jr.ttr, jr.body_size,
                                  t, jr.id);
-            j->next = j->prev = j;
+            job_list_reset(j);
             j->r.created_at = jr.created_at;
         }
         j->r = jr;
-        job_insert(l, j);
+        job_list_insert(l, j);
 
         // full record; read the job body
         if (namelen) {
@@ -243,7 +243,7 @@ readrec(File *f, Job *l, int *err)
         return 1;
     case Invalid:
         if (j) {
-            job_remove(j);
+            job_list_remove(j);
             filermjob(j->file, j);
             job_free(j);
         }
@@ -253,7 +253,7 @@ readrec(File *f, Job *l, int *err)
 Error:
     *err = 1;
     if (j) {
-        job_remove(j);
+        job_list_remove(j);
         filermjob(j->file, j);
         job_free(j);
     }
@@ -337,7 +337,7 @@ readrec5(File *f, Job *l, int *err)
             t = tube_find_or_make(tubename);
             j = make_job_with_id(jr.pri, jr.delay, jr.ttr, jr.body_size,
                                  t, jr.id);
-            j->next = j->prev = j;
+            job_list_reset(j);
         }
         j->r.id = jr.id;
         j->r.pri = jr.pri;
@@ -352,7 +352,7 @@ readrec5(File *f, Job *l, int *err)
         j->r.bury_ct = jr.bury_ct;
         j->r.kick_ct = jr.kick_ct;
         j->r.state = jr.state;
-        job_insert(l, j);
+        job_list_insert(l, j);
 
         // full record; read the job body
         if (namelen) {
@@ -379,7 +379,7 @@ readrec5(File *f, Job *l, int *err)
         return 1;
     case Invalid:
         if (j) {
-            job_remove(j);
+            job_list_remove(j);
             filermjob(j->file, j);
             job_free(j);
         }
@@ -389,7 +389,7 @@ readrec5(File *f, Job *l, int *err)
 Error:
     *err = 1;
     if (j) {
-        job_remove(j);
+        job_list_remove(j);
         filermjob(j->file, j);
         job_free(j);
     }
