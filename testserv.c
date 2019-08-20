@@ -1403,7 +1403,7 @@ cttest_binlog_size_limit()
     int i = 0;
     int gotsize;
 
-    size = 1024;
+    size = 4096;
     srv.wal.dir = ctdir();
     srv.wal.use = 1;
     srv.wal.filesize = size;
