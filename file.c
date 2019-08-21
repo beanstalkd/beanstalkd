@@ -50,6 +50,27 @@ enum
 	Jobrec5size = offsetof(Jobrec5, pad)
 };
 
+// rawfalloc allocates disk space of len bytes.
+// It expects fd's offset to be 0; may also reset fd's offset to 0.
+// Returns 0 on success, and a positive errno otherwise.
+int
+rawfalloc(int fd, int len)
+{
+    // We do not use ftruncate() because it might extend the file
+    // with a sequence of null bytes or a hole.
+    // posix_fallocate() is not portable enough, might fail for NFS.
+    static char buf[4096] = {0};
+    int i, w;
+
+    for (i = 0; i < len; i += w) {
+        w = write(fd, buf, sizeof buf);
+        if (w == -1)
+            return errno;
+    }
+    lseek(fd, 0, 0);            // do not care if this fails
+    return 0;
+}
+
 void
 fileincref(File *f)
 {

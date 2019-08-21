@@ -108,7 +108,7 @@ usage(int code)
             " -u USER  become user and group\n"
             " -z BYTES set the maximum job size in bytes (default is %d, max allowed is %d)\n"
             " -s BYTES set the size of each write-ahead log file (default is %d)\n"
-            "            (will be rounded up to a multiple of 512 bytes)\n"
+            "            (will be rounded up to a multiple of 4096 bytes)\n"
             " -c       compact the binlog (default)\n"
             " -n       do not compact the binlog\n"
             " -v       show version information\n"
