@@ -79,12 +79,12 @@ make_inet_socket(char *host, char *port)
             close(fd);
             continue;
         }
-        r = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof flags);
-        if (r == -1) {
-            twarn("setting TCP_NODELAY on fd %d", fd);
-            close(fd);
-            continue;
-        }
+        /* r = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof flags); */
+        /* if (r == -1) { */
+        /*     twarn("setting TCP_NODELAY on fd %d", fd); */
+        /*     close(fd); */
+        /*     continue; */
+        /* } */
 
         if (host == NULL && ai->ai_family == AF_INET6) {
             flags = 0;
