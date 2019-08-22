@@ -395,7 +395,7 @@ struct Conn {
     // while in_job_read is nonzero, we are in bit bucket mode and
     // in_job_read's meaning is inverted -- then it counts the bytes that
     // remain to be thrown away.
-    int32 in_job_read;
+    int64 in_job_read;
     Job   *in_job;              // a job to be read from the client
 
     Job *out_job;               // a job to be sent to the client
