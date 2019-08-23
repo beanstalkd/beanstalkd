@@ -78,13 +78,13 @@ extern FAlloc *falloc;
 
 // stats structure holds counters for operations, both globally and per tube.
 struct stats {
-    uint urgent_ct;
-    uint waiting_ct;
-    uint buried_ct;
-    uint reserved_ct;
-    uint pause_ct;
-    uint64   total_delete_ct;
-    uint64   total_jobs_ct;
+    uint64 urgent_ct;
+    uint64 waiting_ct;
+    uint64 buried_ct;
+    uint64 reserved_ct;
+    uint64 pause_ct;
+    uint64 total_delete_ct;
+    uint64 total_jobs_ct;
 };
 
 
