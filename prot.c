@@ -789,9 +789,9 @@ fill_extra_data(Conn *c)
     if (!c->cmd_len) return; /* we don't have a complete command */
 
     /* how many extra bytes did we read? */
-    int32 extra_bytes = c->cmd_read - c->cmd_len;
+    int64 extra_bytes = c->cmd_read - c->cmd_len;
 
-    int32 job_data_bytes = 0;
+    int64 job_data_bytes = 0;
     /* how many bytes should we put into the job body? */
     if (c->in_job) {
         job_data_bytes = min(extra_bytes, c->in_job->r.body_size);
@@ -804,16 +804,16 @@ fill_extra_data(Conn *c)
     }
 
     /* how many bytes are left to go into the future cmd? */
-    int32 cmd_bytes = extra_bytes - job_data_bytes;
+    int64 cmd_bytes = extra_bytes - job_data_bytes;
     memmove(c->cmd, c->cmd + c->cmd_len + job_data_bytes, cmd_bytes);
     c->cmd_read = cmd_bytes;
     c->cmd_len = 0; /* we no longer know the length of the new command */
 }
 
-#define skip(conn,n,msg) (_skip(conn,n,msg,CONSTSTRLEN(msg)))
+#define skip(conn,n,msg) (_skip(conn, n, msg, CONSTSTRLEN(msg)))
 
 static void
-_skip(Conn *c, int32 n, char *msg, int msglen)
+_skip(Conn *c, int64 n, char *msg, int msglen)
 {
     /* Invert the meaning of in_job_read while throwing away data -- it
      * counts the bytes that remain to be thrown away. */
@@ -1286,7 +1286,7 @@ dispatch_cmd(Conn *c)
 
         if (body_size > job_data_size_limit) {
             /* throw away the job body and respond with JOB_TOO_BIG */
-            skip(c, body_size + 2, MSG_JOB_TOO_BIG);
+            skip(c, (int64)body_size + 2, MSG_JOB_TOO_BIG);
             return;
         }
 
@@ -1847,7 +1847,8 @@ conn_want_command(Conn *c)
 static void
 conn_process_io(Conn *c)
 {
-    int r, to_read;
+    int r;
+    int64 to_read;
     Job *j;
     struct iovec iov[2];
 
