@@ -201,9 +201,7 @@ void
 walmaint(Wal *w)
 {
     if (w->use) {
-        if (!w->nocomp) {
-            walcompact(w);
-        }
+        walcompact(w);
         walsync(w);
     }
 }

@@ -109,8 +109,6 @@ usage(int code)
             " -z BYTES set the maximum job size in bytes (default is %d, max allowed is %d)\n"
             " -s BYTES set the size of each write-ahead log file (default is %d)\n"
             "            (will be rounded up to a multiple of 4096 bytes)\n"
-            " -c       compact the binlog (default)\n"
-            " -n       do not compact the binlog\n"
             " -v       show version information\n"
             " -V       increase verbosity\n"
             " -h       show this help\n",
@@ -176,10 +174,10 @@ optparse(Server *s, char **argv)
                     s->wal.filesize = parse_size_t(EARGF(flagusage("-s")));
                     break;
                 case 'c':
-                    s->wal.nocomp = 0;
+                    warnx("-c flag was removed. binlog is always compacted.");
                     break;
                 case 'n':
-                    s->wal.nocomp = 1;
+                    warnx("-n flag was removed. binlog is always compacted.");
                     break;
                 case 'f':
                     ms = (int64)parse_size_t(EARGF(flagusage("-f")));

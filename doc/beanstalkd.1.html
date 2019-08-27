@@ -99,11 +99,6 @@ and format of the <code>beanstalkd</code> protocol.</p>
 Upon startup, <code>beanstalkd</code> will recover any binlog that is present
 in <var>path</var>, then, during normal operation, append new jobs and
 changes in state to the binlog.</p></dd>
-<dt class="flush"><code>-c</code></dt><dd><p>Perform online, incremental compaction of binlog files. Negates
-<code>-n</code>. This is the default behavior.</p>
-
-<p>(Do not use this option, except to negate <code>-n</code>. Both <code>-c</code> and <code>-n</code>
-will likely be removed in a future <code>beanstalkd</code> release.)</p></dd>
 <dt class="flush"><code>-f</code> <var>ms</var></dt><dd><p>Call <span class="man-ref">fsync<span class="s">(2)</span></span> at most once every <var>ms</var> milliseconds. Larger values
 for <var>ms</var> reduce disk activity and improve speed at the cost of
 safety. A power failure could result in the loss of up to <var>ms</var>
@@ -127,10 +122,6 @@ a TCP socket. In this case the value of <code>-p</code> will be ignored.</p>
 
 <p>(Option <code>-l</code> has no effect if <span class="man-ref">sd-daemon<span class="s">(5)</span></span> socket activation is
 being used. See also <a href="#ENVIRONMENT" title="ENVIRONMENT" data-bare-link="true">ENVIRONMENT</a>.)</p></dd>
-<dt class="flush"><code>-n</code></dt><dd><p>Turn off binlog compaction, negating <code>-c</code>.</p>
-
-<p>(Do not use this option. Both <code>-c</code> and <code>-n</code> will likely be removed
-in a future <code>beanstalkd</code> release.)</p></dd>
 <dt class="flush"><code>-p</code> <var>port</var></dt><dd><p>Listen on TCP port <var>port</var> (default is 11300).</p>
 
 <p>(Option <code>-p</code> has no effect if <span class="man-ref">sd-daemon<span class="s">(5)</span></span> socket activation is
@@ -143,6 +134,8 @@ being used. See also <a href="#ENVIRONMENT" title="ENVIRONMENT" data-bare-link="
 verbose output. The output format is subject to change.</p></dd>
 <dt class="flush"><code>-v</code></dt><dd><p>Print the version string and exit.</p></dd>
 <dt><code>-z</code> <var>bytes</var></dt><dd><p>The maximum size in bytes of a job.</p></dd>
+<dt class="flush"><code>-c</code></dt><dd><p>This flag has no effect. It is kept for historical compatibility only.</p></dd>
+<dt class="flush"><code>-n</code></dt><dd><p>This flag has no effect. It is kept for historical compatibility only.</p></dd>
 </dl>
 
 
@@ -165,8 +158,8 @@ distribution.</p>
 
 <h2 id="AUTHOR">AUTHOR</h2>
 
-<p><code>Beanstalkd</code> is written and maintained by Keith Rarick with the help
-of many others.</p>
+<p><code>Beanstalkd</code> is written by Keith Rarick and maintained by the community at
+<a href="https://github.com/beanstalkd/beanstalkd/issues" data-bare-link="true">https://github.com/beanstalkd/beanstalkd/issues</a></p>
 
 
   <ol class='man-decor man-foot man foot'>
