@@ -22,13 +22,6 @@ When started, \fBbeanstalkd\fR opens a socket (or uses a file descriptor provide
 Use a binlog to keep jobs on persistent storage in directory \fIpath\fR\. Upon startup, \fBbeanstalkd\fR will recover any binlog that is present in \fIpath\fR, then, during normal operation, append new jobs and changes in state to the binlog\.
 .
 .TP
-\fB\-c\fR
-Perform online, incremental compaction of binlog files\. Negates \fB\-n\fR\. This is the default behavior\.
-.
-.IP
-(Do not use this option, except to negate \fB\-n\fR\. Both \fB\-c\fR and \fB\-n\fR will likely be removed in a future \fBbeanstalkd\fR release\.)
-.
-.TP
 \fB\-f\fR \fIms\fR
 Call fsync(2) at most once every \fIms\fR milliseconds\. Larger values for \fIms\fR reduce disk activity and improve speed at the cost of safety\. A power failure could result in the loss of up to \fIms\fR milliseconds of history\.
 .
@@ -63,13 +56,6 @@ When \fIaddr\fR starts with "unix:", the unprefixed value of it will be used as 
 (Option \fB\-l\fR has no effect if sd\-daemon(5) socket activation is being used\. See also \fIENVIRONMENT\fR\.)
 .
 .TP
-\fB\-n\fR
-Turn off binlog compaction, negating \fB\-c\fR\.
-.
-.IP
-(Do not use this option\. Both \fB\-c\fR and \fB\-n\fR will likely be removed in a future \fBbeanstalkd\fR release\.)
-.
-.TP
 \fB\-p\fR \fIport\fR
 Listen on TCP port \fIport\fR (default is 11300)\.
 .
@@ -99,6 +85,14 @@ Print the version string and exit\.
 \fB\-z\fR \fIbytes\fR
 The maximum size in bytes of a job\.
 .
+.TP
+\fB\-c\fR
+This flag has no effect\. It is kept for historical compatibility only\.
+.
+.TP
+\fB\-n\fR
+This flag has no effect\. It is kept for historical compatibility only\.
+.
 .SH "ENVIRONMENT"
 .
 .TP
@@ -115,4 +109,4 @@ Files \fBREADME\fR and \fBdoc/protocol\.txt\fR in the \fBbeanstalkd\fR distribut
 \fIhttps://beanstalkd\.github\.io/\fR
 .
 .SH "AUTHOR"
-\fBBeanstalkd\fR is written and maintained by Keith Rarick with the help of many others\.
+\fBBeanstalkd\fR is written by Keith Rarick and maintained by the community at \fIhttps://github\.com/beanstalkd/beanstalkd/issues\fR

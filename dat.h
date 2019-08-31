@@ -440,7 +440,6 @@ struct Wal {
     int    wantsync;
     int64  syncrate;
     int64  lastsync;
-    int    nocomp; // disable binlog compaction?
 };
 int  waldirlock(Wal*);
 void walinit(Wal*, Job *list);
