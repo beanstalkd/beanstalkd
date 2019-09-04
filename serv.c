@@ -10,13 +10,35 @@ struct Server srv = {
     },
 };
 
+// srv_acquire_wal tries to lock the wal dir specified by s->wal and
+// replay entries from it to initialize the s state with jobs.
+// On errors it exits from the program.
+void srv_acquire_wal(Server *s) {
+    if (s->wal.use) {
+        // We want to make sure that only one beanstalkd tries
+        // to use the wal directory at a time. So acquire a lock
+        // now and never release it.
+        if (!waldirlock(&s->wal)) {
+            twarnx("failed to lock wal dir %s", s->wal.dir);
+            exit(10);
+        }
+
+        Job list = {.prev=NULL, .next=NULL};
+        list.prev = list.next = &list;
+        walinit(&s->wal, &list);
+        int ok = prot_replay(s, &list);
+        if (!ok) {
+            twarnx("failed to replay log");
+            exit(1);
+        }
+    }
+}
 
 void
 srvserve(Server *s)
 {
     int r;
     Socket *sock;
-    int64 period;
 
     if (sockinit() == -1) {
         twarnx("sockinit");
@@ -42,7 +64,7 @@ srvserve(Server *s)
 
 
     for (;;) {
-        period = prottick(s);
+        int64 period = prottick(s);
 
         int rw = socknext(&sock, period);
         if (rw == -1) {

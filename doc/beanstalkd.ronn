@@ -28,13 +28,6 @@ and format of the `beanstalkd` protocol.
   in <path>, then, during normal operation, append new jobs and
   changes in state to the binlog.
 
-* `-c`:
-  Perform online, incremental compaction of binlog files. Negates
-  `-n`. This is the default behavior.
-
-  (Do not use this option, except to negate `-n`. Both `-c` and `-n`
-  will likely be removed in a future `beanstalkd` release.)
-
 * `-f` <ms>:
   Call fsync(2) at most once every <ms> milliseconds. Larger values
   for <ms> reduce disk activity and improve speed at the cost of
@@ -59,14 +52,12 @@ and format of the `beanstalkd` protocol.
 * `-l` <addr>:
   Listen on address <addr> (default is 0.0.0.0).
 
+  When <addr> starts with "unix:", the unprefixed value of it will be
+  used as the local filesystem path to create a UNIX socket instead of
+  a TCP socket. In this case the value of `-p` will be ignored.
+
   (Option `-l` has no effect if sd-daemon(5) socket activation is
   being used. See also [ENVIRONMENT][].)
-
-* `-n`:
-  Turn off binlog compaction, negating `-c`.
-
-  (Do not use this option. Both `-c` and `-n` will likely be removed
-  in a future `beanstalkd` release.)
 
 * `-p` <port>:
   Listen on TCP port <port> (default is 11300).
@@ -92,6 +83,12 @@ and format of the `beanstalkd` protocol.
 * `-z` <bytes>:
   The maximum size in bytes of a job.
 
+* `-c`:
+  This flag has no effect. It is kept for historical compatibility only.
+
+* `-n`:
+  This flag has no effect. It is kept for historical compatibility only.
+
 ## ENVIRONMENT
 
 * `LISTEN_PID`, `LISTEN_FDS`:
@@ -109,5 +106,5 @@ distribution.
 
 ## AUTHOR
 
-`Beanstalkd` is written and maintained by Keith Rarick with the help
-of many others.
+`Beanstalkd` is written by Keith Rarick and maintained by the community at
+<https://github.com/beanstalkd/beanstalkd/issues>

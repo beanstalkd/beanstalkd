@@ -8,15 +8,15 @@ struct Ms tubes;
 Tube *
 make_tube(const char *name)
 {
-    Tube *t;
+    Tube *t = new(Tube);
+    if (!t)
+        return NULL;
 
-    t = new(Tube);
-    if (!t) return NULL;
-
-    t->name[MAX_TUBE_NAME_LEN - 1] = '\0';
-    strncpy(t->name, name, MAX_TUBE_NAME_LEN - 1);
-    if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0')
+    strncpy(t->name, name, MAX_TUBE_NAME_LEN);
+    if (t->name[MAX_TUBE_NAME_LEN - 1] != '\0') {
+        t->name[MAX_TUBE_NAME_LEN - 1] = '\0';
         twarnx("truncating tube name");
+    }
 
     t->ready.less = job_pri_less;
     t->delay.less = job_delay_less;
@@ -26,7 +26,7 @@ make_tube(const char *name)
     Job j = {.tube = NULL};
     t->buried = j;
     t->buried.prev = t->buried.next = &t->buried;
-    ms_init(&t->waiting, NULL, NULL);
+    ms_init(&t->waiting_conns, NULL, NULL);
 
     return t;
 }
@@ -34,10 +34,10 @@ make_tube(const char *name)
 static void
 tube_free(Tube *t)
 {
-    prot_remove_tube(t);
+    ms_remove(&tubes, t);
     free(t->ready.data);
     free(t->delay.data);
-    ms_clear(&t->waiting);
+    ms_clear(&t->waiting_conns);
     free(t);
 }
 

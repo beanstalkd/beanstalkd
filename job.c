@@ -104,7 +104,7 @@ allocate_job(int body_size)
     j->r.created_at = nanoseconds();
     j->r.body_size = body_size;
     j->body = (char *)j + sizeof(Job);
-    j->next = j->prev = j;      // not in a linked list
+    job_list_reset(j);
     return j;
 }
 
@@ -115,7 +115,10 @@ make_job_with_id(uint32 pri, int64 delay, int64 ttr,
     Job *j;
 
     j = allocate_job(body_size);
-    if (!j) return twarnx("OOM"), (Job *) 0;
+    if (!j) {
+        twarnx("OOM");
+        return (Job *) 0;
+    }
 
     if (id) {
         j->r.id = id;
@@ -190,15 +193,16 @@ job_delay_less(void *ja, void *jb)
 Job *
 job_copy(Job *j)
 {
-    Job *n;
-
     if (!j) return NULL;
 
-    n = malloc(sizeof(Job) + j->r.body_size);
-    if (!n) return twarnx("OOM"), (Job *) 0;
+    Job *n = malloc(sizeof(Job) + j->r.body_size);
+    if (!n) {
+        twarnx("OOM");
+        return (Job *) 0;
+    }
 
     memcpy(n, j, sizeof(Job) + j->r.body_size);
-    n->next = n->prev = n; /* not in a linked list */
+    job_list_reset(n);
 
     n->file = NULL; /* copies do not have refcnt on the wal */
 
@@ -221,30 +225,39 @@ job_state(Job *j)
     return "invalid";
 }
 
-int
-job_list_any_p(Job *head)
+// job_list_reset detaches head from the list,
+// marking the list starting in head pointing to itself.
+void
+job_list_reset(Job *head)
 {
-    return head->next != head || head->prev != head;
+    head->prev = head;
+    head->next = head;
+}
+
+int
+job_list_is_empty(Job *head)
+{
+    return head->next == head && head->prev == head;
 }
 
 Job *
-job_remove(Job *j)
+job_list_remove(Job *j)
 {
     if (!j) return NULL;
-    if (!job_list_any_p(j)) return NULL; /* not in a doubly-linked list */
+    if (job_list_is_empty(j)) return NULL; /* not in a doubly-linked list */
 
     j->next->prev = j->prev;
     j->prev->next = j->next;
 
-    j->prev = j->next = j;
+    job_list_reset(j);
 
     return j;
 }
 
 void
-job_insert(Job *head, Job *j)
+job_list_insert(Job *head, Job *j)
 {
-    if (job_list_any_p(j)) return; /* already in a linked list */
+    if (!job_list_is_empty(j)) return; /* already in a linked list */
 
     j->prev = head->prev;
     j->next = head;

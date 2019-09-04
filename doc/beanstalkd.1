@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "BEANSTALKD" "1" "April 2012" "" ""
+.TH "BEANSTALKD" "1" "August 2019" "" ""
 .
 .SH "NAME"
 \fBbeanstalkd\fR \- simple, fast work queue
@@ -20,13 +20,6 @@ When started, \fBbeanstalkd\fR opens a socket (or uses a file descriptor provide
 .TP
 \fB\-b\fR \fIpath\fR
 Use a binlog to keep jobs on persistent storage in directory \fIpath\fR\. Upon startup, \fBbeanstalkd\fR will recover any binlog that is present in \fIpath\fR, then, during normal operation, append new jobs and changes in state to the binlog\.
-.
-.TP
-\fB\-c\fR
-Perform online, incremental compaction of binlog files\. Negates \fB\-n\fR\. This is the default behavior\.
-.
-.IP
-(Do not use this option, except to negate \fB\-n\fR\. Both \fB\-c\fR and \fB\-n\fR will likely be removed in a future \fBbeanstalkd\fR release\.)
 .
 .TP
 \fB\-f\fR \fIms\fR
@@ -57,14 +50,10 @@ Show a brief help message and exit\.
 Listen on address \fIaddr\fR (default is 0\.0\.0\.0)\.
 .
 .IP
-(Option \fB\-l\fR has no effect if sd\-daemon(5) socket activation is being used\. See also \fIENVIRONMENT\fR\.)
-.
-.TP
-\fB\-n\fR
-Turn off binlog compaction, negating \fB\-c\fR\.
+When \fIaddr\fR starts with "unix:", the unprefixed value of it will be used as the local filesystem path to create a UNIX socket instead of a TCP socket\. In this case the value of \fB\-p\fR will be ignored\.
 .
 .IP
-(Do not use this option\. Both \fB\-c\fR and \fB\-n\fR will likely be removed in a future \fBbeanstalkd\fR release\.)
+(Option \fB\-l\fR has no effect if sd\-daemon(5) socket activation is being used\. See also \fIENVIRONMENT\fR\.)
 .
 .TP
 \fB\-p\fR \fIport\fR
@@ -96,6 +85,14 @@ Print the version string and exit\.
 \fB\-z\fR \fIbytes\fR
 The maximum size in bytes of a job\.
 .
+.TP
+\fB\-c\fR
+This flag has no effect\. It is kept for historical compatibility only\.
+.
+.TP
+\fB\-n\fR
+This flag has no effect\. It is kept for historical compatibility only\.
+.
 .SH "ENVIRONMENT"
 .
 .TP
@@ -112,4 +109,4 @@ Files \fBREADME\fR and \fBdoc/protocol\.txt\fR in the \fBbeanstalkd\fR distribut
 \fIhttps://beanstalkd\.github\.io/\fR
 .
 .SH "AUTHOR"
-\fBBeanstalkd\fR is written and maintained by Keith Rarick with the help of many others\.
+\fBBeanstalkd\fR is written by Keith Rarick and maintained by the community at \fIhttps://github\.com/beanstalkd/beanstalkd/issues\fR

@@ -657,7 +657,11 @@ they are not stored on disk with the -b flag.
  - "id" is a random id string for this server process, generated every time
    beanstalkd process starts.
 
- - "hostname" the hostname of the machine as determined by uname.
+ - "hostname" is the hostname of the machine as determined by uname.
+
+ - "os" is the OS version as determined by uname
+
+ - "platform" is the machine architecture as determined by uname
 
 The list-tubes command returns a list of all existing tubes. Its form is:
 

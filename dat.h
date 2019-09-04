@@ -47,12 +47,7 @@ typedef int(FAlloc)(int, int);
 // A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
 // MUST be enough to hold the longest possible command ("pause-tube a{200} 4294967295\r\n")
 // or reply line ("USING a{200}\r\n").
-#define LINE_BUF_SIZE 224
-
-// CONN_TYPE_* are bit masks used to track the count of connection types.
-#define CONN_TYPE_PRODUCER 1
-#define CONN_TYPE_WORKER   2
-#define CONN_TYPE_WAITING  4
+#define LINE_BUF_SIZE (11 + MAX_TUBE_NAME_LEN + 12)
 
 #define min(a,b) ((a)<(b)?(a):(b))
 
@@ -83,13 +78,13 @@ extern FAlloc *falloc;
 
 // stats structure holds counters for operations, both globally and per tube.
 struct stats {
-    uint urgent_ct;
-    uint waiting_ct;
-    uint buried_ct;
-    uint reserved_ct;
-    uint pause_ct;
-    uint64   total_delete_ct;
-    uint64   total_jobs_ct;
+    uint64 urgent_ct;
+    uint64 waiting_ct;
+    uint64 buried_ct;
+    uint64 reserved_ct;
+    uint64 pause_ct;
+    uint64 total_delete_ct;
+    uint64 total_jobs_ct;
 };
 
 
@@ -113,14 +108,35 @@ void* heapremove(Heap *h, size_t k);
 
 
 struct Socket {
+    // Descriptor for the socket.
     int    fd;
+
+    // f can point to srvaccept or prothandle.
     Handle f;
+
+    // x is passed as first parameter to f.
     void   *x;
+
+    // added value is platform dependend: on OSX it can be > 1.
+    // Value of 1 - socket was already added to event notifications,
+    // otherwise it is 0.
     int    added;
 };
+
 int sockinit(void);
-int sockwant(Socket*, int);
-int socknext(Socket**, int64);
+
+// sockwant updates event filter for the socket s. rw designates
+// the kind of event we should be notified about:
+// 'r' - read
+// 'w' - write
+// 'h' - hangup (closed connection)
+// 0   - ignore this socket
+int sockwant(Socket *s, int rw);
+
+// socknext waits for the next event at most timeout nanoseconds.
+// If event happens before timeout then s points to the corresponding socket,
+// and the kind of event is returned. In case of timeout, 0 is returned.
+int socknext(Socket **s, int64 timeout);
 
 
 // ms_event_fn is called with the element being inserted/removed and its position.
@@ -187,7 +203,13 @@ struct Jobrec {
     int64  ttr;
     int32  body_size;
     int64  created_at;
+
+    // deadline_at is a timestamp, in nsec, that points to:
+    // * time when job will become ready for delayed job,
+    // * time when TTR is about to expire for reserved job,
+    // * undefined otherwise.
     int64  deadline_at;
+
     uint32 reserve_ct;
     uint32 timeout_ct;
     uint32 release_ct;
@@ -221,12 +243,17 @@ struct Tube {
     char name[MAX_TUBE_NAME_LEN];
     Heap ready;
     Heap delay;
-    Ms waiting;                 // set of conns
+    Ms waiting_conns;           // conns waiting for the job at this moment
     struct stats stat;
     uint using_ct;
     uint watching_ct;
+
+    // pause is set to the duration of the current pause, otherwise 0, in nsec.
     int64 pause;
-    int64 deadline_at;
+
+    // unpause_at is a timestamp when to unpause the tube, in nsec.
+    int64 unpause_at;
+
     Job buried;                 // linked list header
 };
 
@@ -274,7 +301,7 @@ void job_free(Job *j);
 Job *job_find(uint64 job_id);
 
 /* the void* parameters are really job pointers */
-void job_setpos(void *j, size_t i);
+void job_setpos(void *j, size_t pos);
 int job_pri_less(void *ja, void *jb);
 int job_delay_less(void *ja, void *jb);
 
@@ -282,9 +309,10 @@ Job *job_copy(Job *j);
 
 const char * job_state(Job *j);
 
-int job_list_any_p(Job *head);
-Job *job_remove(Job *j);
-void job_insert(Job *head, Job *j);
+void job_list_reset(Job *head);
+int job_list_is_empty(Job *head);
+Job *job_list_remove(Job *j);
+void job_list_insert(Job *head, Job *j);
 
 /* for unit tests */
 size_t get_all_jobs_used(void);
@@ -316,32 +344,42 @@ extern size_t job_data_size_limit;
 void prot_init(void);
 int64 prottick(Server *s);
 
-Conn *remove_waiting_conn(Conn *c);
+void remove_waiting_conn(Conn *c);
 
 void enqueue_reserved_jobs(Conn *c);
 
 void enter_drain_mode(int sig);
-void h_accept(const int fd, const short which, Server* srv);
-void prot_remove_tube(Tube *t);
+void h_accept(const int fd, const short which, Server *s);
 int  prot_replay(Server *s, Job *list);
 
 
-int make_server_socket(char *host_addr, char *port);
+int make_server_socket(char *host, char *port);
 
+
+// CONN_TYPE_* are bit masks used to track the type of connection.
+// A put command adds the PRODUCER type, "reserve*" adds the WORKER type.
+// If connection awaits for data, then it has WAITING type.
+#define CONN_TYPE_PRODUCER 1
+#define CONN_TYPE_WORKER   2
+#define CONN_TYPE_WAITING  4
 
 struct Conn {
     Server *srv;
     Socket sock;
-    char   state;
-    char   type;
-    Conn   *next;
+    char   state;       // see the STATE_* description
+    char   type;        // combination of CONN_TYPE_* values
+    Conn   *next;       // only used in epollq functions
     Tube   *use;        // tube currently in use
     int64  tickat;      // time at which to do more work; determines pos in heap
     size_t tickpos;     // position in srv->conns, stale when in_conns=0
     byte   in_conns;    // 1 if the conn is in srv->conns heap, 0 otherwise
     Job    *soonest_job;// memoization of the soonest job
     int    rw;          // currently want: 'r', 'w', or 'h'
+
+    // How long client should "wait" for the next job; -1 means forever.
     int    pending_timeout;
+
+    // Used to inform state machine that client no longer waits for the data.
     char   halfclosed;
 
     char   cmd[LINE_BUF_SIZE];     // this string is NOT NUL-terminated
@@ -357,18 +395,17 @@ struct Conn {
     // while in_job_read is nonzero, we are in bit bucket mode and
     // in_job_read's meaning is inverted -- then it counts the bytes that
     // remain to be thrown away.
-    int32 in_job_read;
-    Job   *in_job;                 // a job to be read from the client
+    int64 in_job_read;
+    Job   *in_job;              // a job to be read from the client
 
-    Job *out_job;
-    int out_job_sent;
+    Job *out_job;               // a job to be sent to the client
+    int out_job_sent;           // how many bytes of *out_job were sent already
 
-    Ms  watch;
-    Job reserved_jobs;             // linked list header
+    Ms  watch;                  // the set of watched tubes by the connection
+    Job reserved_jobs;          // linked list header
 };
-int  conn_less(void *ax, void *bx);
-void conn_setpos(void *cx, size_t i);
-void connwant(Conn *c, int rw);
+int  conn_less(void *ca, void *cb);
+void conn_setpos(void *c, size_t i);
 void connsched(Conn *c);
 void connclose(Conn *c);
 void connsetproducer(Conn *c);
@@ -376,6 +413,7 @@ void connsetworker(Conn *c);
 Job *connsoonestjob(Conn *c);
 int  conndeadlinesoon(Conn *c);
 int conn_ready(Conn *c);
+void conn_reserve_job(Conn *c, Job *j);
 #define conn_waiting(c) ((c)->type & CONN_TYPE_WAITING)
 
 
@@ -402,7 +440,6 @@ struct Wal {
     int    wantsync;
     int64  syncrate;
     int64  lastsync;
-    int    nocomp; // disable binlog compaction?
 };
 int  waldirlock(Wal*);
 void walinit(Wal*, Job *list);
@@ -452,5 +489,6 @@ struct Server {
     // Connections that must produce deadline or timeout, ordered by the time.
     Heap   conns;
 };
-void srvserve(Server *srv);
+void srv_acquire_wal(Server *s);
+void srvserve(Server *s);
 void srvaccept(Server *s, int ev);

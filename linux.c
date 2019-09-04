@@ -16,16 +16,6 @@
 static int epfd;
 
 
-/* Allocate disk space.
- * Expects fd's offset to be 0; may also reset fd's offset to 0.
- * Returns 0 on success, and a positive errno otherwise. */
-int
-rawfalloc(int fd, int len)
-{
-    return ftruncate(fd, len);
-}
-
-
 int
 sockinit(void)
 {

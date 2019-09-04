@@ -37,6 +37,12 @@ su(const char *user)
 }
 
 static void
+handle_sigterm_pid1()
+{
+    raise(SIGKILL);
+}
+
+static void
 set_sig_handlers()
 {
     struct sigaction sa;
@@ -60,6 +66,18 @@ set_sig_handlers()
     if (r == -1) {
         twarn("sigaction(SIGUSR1)");
         exit(111);
+    }
+
+    // Workaround for running the server with pid=1 in Docker.
+    // Handle SIGTERM so the server is killed immediately and
+    // not after 10 seconds timeout. See issue #527.
+    if (getpid() == 1) {
+        sa.sa_handler = handle_sigterm_pid1;
+        r = sigaction(SIGTERM, &sa, 0);
+        if (r == -1) {
+            twarn("sigaction(SIGTERM)");
+            exit(111);
+        }
     }
 }
 
@@ -90,25 +108,7 @@ main(int argc, char **argv)
         su(srv.user);
     set_sig_handlers();
 
-    if (srv.wal.use) {
-        // We want to make sure that only one beanstalkd tries
-        // to use the wal directory at a time. So acquire a lock
-        // now and never release it.
-        if (!waldirlock(&srv.wal)) {
-            twarnx("failed to lock wal dir %s", srv.wal.dir);
-            exit(10);
-        }
-
-        Job list = {.prev=NULL, .next=NULL};
-        list.prev = list.next = &list;
-        walinit(&srv.wal, &list);
-        r = prot_replay(&srv, &list);
-        if (!r) {
-            twarnx("failed to replay log");
-            exit(1);
-        }
-    }
-
+    srv_acquire_wal(&srv);
     srvserve(&srv);
     exit(0);
 }

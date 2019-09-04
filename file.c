@@ -50,6 +50,27 @@ enum
 	Jobrec5size = offsetof(Jobrec5, pad)
 };
 
+// rawfalloc allocates disk space of len bytes.
+// It expects fd's offset to be 0; may also reset fd's offset to 0.
+// Returns 0 on success, and a positive errno otherwise.
+int
+rawfalloc(int fd, int len)
+{
+    // We do not use ftruncate() because it might extend the file
+    // with a sequence of null bytes or a hole.
+    // posix_fallocate() is not portable enough, might fail for NFS.
+    static char buf[4096] = {0};
+    int i, w;
+
+    for (i = 0; i < len; i += w) {
+        w = write(fd, buf, sizeof buf);
+        if (w == -1)
+            return errno;
+    }
+    lseek(fd, 0, 0);            // do not care if this fails
+    return 0;
+}
+
 void
 fileincref(File *f)
 {
@@ -197,6 +218,7 @@ readrec(File *f, Job *l, int *err)
     switch (jr.state) {
     case Reserved:
         jr.state = Ready;
+        /* Falls through */
     case Ready:
     case Buried:
     case Delayed:
@@ -211,11 +233,11 @@ readrec(File *f, Job *l, int *err)
             t = tube_find_or_make(tubename);
             j = make_job_with_id(jr.pri, jr.delay, jr.ttr, jr.body_size,
                                  t, jr.id);
-            j->next = j->prev = j;
+            job_list_reset(j);
             j->r.created_at = jr.created_at;
         }
         j->r = jr;
-        job_insert(l, j);
+        job_list_insert(l, j);
 
         // full record; read the job body
         if (namelen) {
@@ -242,7 +264,7 @@ readrec(File *f, Job *l, int *err)
         return 1;
     case Invalid:
         if (j) {
-            job_remove(j);
+            job_list_remove(j);
             filermjob(j->file, j);
             job_free(j);
         }
@@ -252,7 +274,7 @@ readrec(File *f, Job *l, int *err)
 Error:
     *err = 1;
     if (j) {
-        job_remove(j);
+        job_list_remove(j);
         filermjob(j->file, j);
         job_free(j);
     }
@@ -321,6 +343,7 @@ readrec5(File *f, Job *l, int *err)
     switch (jr.state) {
     case Reserved:
         jr.state = Ready;
+        /* Falls through */
     case Ready:
     case Buried:
     case Delayed:
@@ -335,8 +358,7 @@ readrec5(File *f, Job *l, int *err)
             t = tube_find_or_make(tubename);
             j = make_job_with_id(jr.pri, jr.delay, jr.ttr, jr.body_size,
                                  t, jr.id);
-            j->next = j->prev = j;
-            j->r.created_at = jr.created_at;
+            job_list_reset(j);
         }
         j->r.id = jr.id;
         j->r.pri = jr.pri;
@@ -351,7 +373,7 @@ readrec5(File *f, Job *l, int *err)
         j->r.bury_ct = jr.bury_ct;
         j->r.kick_ct = jr.kick_ct;
         j->r.state = jr.state;
-        job_insert(l, j);
+        job_list_insert(l, j);
 
         // full record; read the job body
         if (namelen) {
@@ -378,7 +400,7 @@ readrec5(File *f, Job *l, int *err)
         return 1;
     case Invalid:
         if (j) {
-            job_remove(j);
+            job_list_remove(j);
             filermjob(j->file, j);
             job_free(j);
         }
@@ -388,7 +410,7 @@ readrec5(File *f, Job *l, int *err)
 Error:
     *err = 1;
     if (j) {
-        job_remove(j);
+        job_list_remove(j);
         filermjob(j->file, j);
         job_free(j);
     }
@@ -449,7 +471,8 @@ filewopen(File *f)
 
     r = falloc(fd, f->w->filesize);
     if (r) {
-        close(fd);
+        if (close(fd) == -1)
+            twarn("close");
         errno = r;
         twarn("falloc %s", f->path);
         r = unlink(f->path);
@@ -462,7 +485,8 @@ filewopen(File *f)
     n = write(fd, &ver, sizeof(int));
     if (n < 0 || (size_t)n < sizeof(int)) {
         twarn("write %s", f->path);
-        close(fd);
+        if (close(fd) == -1)
+            twarn("close");
         return;
     }
 
@@ -538,7 +562,8 @@ filewclose(File *f)
             twarn("ftruncate");
         }
     }
-    close(f->fd);
+    if (close(f->fd) == -1)
+        twarn("close");
     f->iswopen = 0;
     filedecref(f);
 }

@@ -34,16 +34,17 @@ on_ignore(Ms *a, Tube *t, size_t i)
 Conn *
 make_conn(int fd, char start_state, Tube *use, Tube *watch)
 {
-    Job *j;
-    Conn *c;
-
-    c = new(Conn);
-    if (!c) return twarn("OOM"), NULL;
+    Conn *c = new(Conn);
+    if (!c) {
+        twarn("OOM");
+        return NULL;
+    }
 
     ms_init(&c->watch, (ms_event_fn) on_watch, (ms_event_fn) on_ignore);
     if (!ms_append(&c->watch, watch)) {
         free(c);
-        return twarn("OOM"), NULL;
+        twarn("OOM");
+        return NULL;
     }
 
     TUBE_ASSIGN(c->use, use);
@@ -54,8 +55,9 @@ make_conn(int fd, char start_state, Tube *use, Tube *watch)
     c->pending_timeout = -1;
     c->tickpos = 0; // Does not mean anything if in_conns is set to 0.
     c->in_conns = 0;
-    j = &c->reserved_jobs;
-    j->prev = j->next = j;
+
+    // The list is empty.
+    job_list_reset(&c->reserved_jobs);
 
     /* stats */
     cur_conn_ct++;
@@ -107,7 +109,7 @@ count_cur_workers()
 static int
 has_reserved_job(Conn *c)
 {
-    return job_list_any_p(&c->reserved_jobs);
+    return !job_list_is_empty(&c->reserved_jobs);
 }
 
 
@@ -138,16 +140,6 @@ conntickat(Conn *c)
 }
 
 
-// TODO: remove this function by inlining its content into 3 callees places.
-// Reason: conn.c does not use rw anywhere in this file.
-void
-connwant(Conn *c, int rw)
-{
-    c->rw = rw;
-    connsched(c);
-}
-
-
 // Remove c from the c->srv heap and reschedule it using the value
 // returned by conntickat if there is an outstanding timeout in the c.
 void
@@ -164,25 +156,43 @@ connsched(Conn *c)
     }
 }
 
+// conn_set_soonestjob updates c->soonest_job with j
+// if j should be handled sooner than c->soonest_job.
+static void
+conn_set_soonestjob(Conn *c, Job *j) {
+    if (!c->soonest_job || j->r.deadline_at < c->soonest_job->r.deadline_at) {
+        c->soonest_job = j;
+    }
+}
 
 // Return the reserved job with the earliest deadline,
-// or NULL if there's no reserved job
+// or NULL if there's no reserved job.
 Job *
 connsoonestjob(Conn *c)
 {
-    Job *j = NULL;
-    Job *soonest = c->soonest_job;
+    // use cached value and bail out.
+    if (c->soonest_job != NULL)
+        return c->soonest_job;
 
-    if (soonest == NULL) {
-        for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
-            if (j->r.deadline_at <= (soonest ? soonest : j)->r.deadline_at)
-                soonest = j;
-        }
+    Job *j = NULL;
+    for (j = c->reserved_jobs.next; j != &c->reserved_jobs; j = j->next) {
+        conn_set_soonestjob(c, j);
     }
-    c->soonest_job = soonest;
-    return soonest;
+    return c->soonest_job;
 }
 
+void
+conn_reserve_job(Conn *c, Job *j) {
+    j->tube->stat.reserved_ct++;
+    j->r.reserve_ct++;
+
+    j->r.deadline_at = nanoseconds() + j->r.ttr;
+    j->r.state = Reserved;
+    job_list_insert(&c->reserved_jobs, j);
+    j->reserver = c;
+    c->pending_timeout = -1;
+    conn_set_soonestjob(c, j);
+}
 
 // Return true if c has a reserved job with less than one second until its
 // deadline.
@@ -236,7 +246,8 @@ connclose(Conn *c)
     job_free(c->in_job);
 
     /* was this a peek or stats command? */
-    if (c->out_job && !c->out_job->r.id) job_free(c->out_job);
+    if (c->out_job && c->out_job->r.state == Copy)
+        job_free(c->out_job);
 
     c->in_job = c->out_job = NULL;
     c->in_job_read = 0;
@@ -247,7 +258,8 @@ connclose(Conn *c)
     cur_conn_ct--; /* stats */
 
     remove_waiting_conn(c);
-    if (has_reserved_job(c)) enqueue_reserved_jobs(c);
+    if (has_reserved_job(c))
+        enqueue_reserved_jobs(c);
 
     ms_clear(&c->watch);
     c->use->using_ct--;

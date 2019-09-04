@@ -128,12 +128,39 @@ cttest_job_100_000_jobs()
 }
 
 void
-ctbench_make_job(int n)
+ctbench_job_make(int n)
 {
     int i;
+    Job **j = calloc(n, sizeof *j);
     TUBE_ASSIGN(default_tube, make_tube("default"));
+
     ctresettimer();
     for (i = 0; i < n; i++) {
-        make_job(0, 0, 1, 0, default_tube);
+        j[i] = make_job(0, 0, 1, 0, default_tube);
     }
+    ctstoptimer();
+
+    for (i = 0; i < n; i++) {
+        job_free(j[i]);
+    }
+    free(j);
+}
+
+void
+ctbench_job_free(int n)
+{
+    int i;
+    Job **j = calloc(n, sizeof *j);
+    TUBE_ASSIGN(default_tube, make_tube("default"));
+    for (i = 0; i < n; i++) {
+        j[i] = make_job(0, 0, 1, 0, default_tube);
+    }
+
+    ctresettimer();
+    for (i = 0; i < n; i++) {
+        job_free(j[i]);
+    }
+    ctstoptimer();
+
+    free(j);
 }

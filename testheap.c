@@ -256,15 +256,16 @@ ctbench_heap_remove(int n)
         assertf(j, "allocate job");
         heapinsert(&h, j);
     }
-    Job *t[n];   // temp storage to deallocate jobs later
+    Job **jj = calloc(n, sizeof(Job *)); // temp storage to deallocate jobs later
 
     ctresettimer();
     for (i = 0; i < n; i++) {
-        t[i] = heapremove(&h, 0);
+        jj[i] = (Job *)heapremove(&h, 0);
     }
     ctstoptimer();
 
     free(h.data);
     for (i = 0; i < n; i++)
-        job_free(t[i]);
+        job_free(jj[i]);
+    free(jj);
 }

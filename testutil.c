@@ -29,7 +29,6 @@ cttest_opt_none()
     assert(srv.addr == NULL);
     assert(job_data_size_limit == JOB_DATA_SIZE_LIMIT_DEFAULT);
     assert(srv.wal.filesize == Filesizedef);
-    assert(srv.wal.nocomp == 0);
     assert(srv.wal.wantsync == 0);
     assert(srv.user == NULL);
     assert(srv.wal.dir == NULL);
@@ -130,31 +129,6 @@ cttest_opts()
 }
 
 void
-cttest_optc()
-{
-    char *args[] = {
-        "-n",
-        "-c",
-        NULL,
-    };
-
-    optparse(&srv, args);
-    assert(srv.wal.nocomp == 0);
-}
-
-void
-cttest_optn()
-{
-    char *args[] = {
-        "-n",
-        NULL,
-    };
-
-    optparse(&srv, args);
-    assert(srv.wal.nocomp == 1);
-}
-
-void
 cttest_optf()
 {
     char *args[] = {
@@ -243,15 +217,15 @@ cttest_optVVV()
 }
 
 void
-cttest_optVnVu()
+cttest_optVFVu()
 {
     char *args[] = {
-        "-VnVukr",
+        "-VFVukr",
         NULL,
     };
 
     optparse(&srv, args);
     assert(verbose == 2);
-    assert(srv.wal.nocomp == 1);
+    assert(srv.wal.wantsync == 0);
     assert(strcmp(srv.user, "kr") == 0);
 }
