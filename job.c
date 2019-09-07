@@ -81,10 +81,11 @@ rehash(int is_upscaling)
 Job *
 job_find(uint64 job_id)
 {
-    Job *jh = NULL;
     int index = _get_job_hash_index(job_id);
+    Job *jh = all_jobs[index];
 
-    for (jh = all_jobs[index]; jh && jh->r.id != job_id; jh = jh->ht_next);
+    while (jh && jh->r.id != job_id)
+        jh = jh->ht_next;
 
     return jh;
 }

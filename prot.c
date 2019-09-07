@@ -30,6 +30,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_PEEK_BURIED "peek-buried"
 #define CMD_RESERVE "reserve"
 #define CMD_RESERVE_TIMEOUT "reserve-with-timeout "
+#define CMD_RESERVE_JOB "reserve-job "
 #define CMD_DELETE "delete "
 #define CMD_RELEASE "release "
 #define CMD_BURY "bury "
@@ -56,6 +57,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_PEEKJOB_LEN CONSTSTRLEN(CMD_PEEKJOB)
 #define CMD_RESERVE_LEN CONSTSTRLEN(CMD_RESERVE)
 #define CMD_RESERVE_TIMEOUT_LEN CONSTSTRLEN(CMD_RESERVE_TIMEOUT)
+#define CMD_RESERVE_JOB_LEN CONSTSTRLEN(CMD_RESERVE_JOB)
 #define CMD_DELETE_LEN CONSTSTRLEN(CMD_DELETE)
 #define CMD_RELEASE_LEN CONSTSTRLEN(CMD_RELEASE)
 #define CMD_BURY_LEN CONSTSTRLEN(CMD_BURY)
@@ -130,7 +132,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_QUIT 22
 #define OP_PAUSE_TUBE 23
 #define OP_KICKJOB 24
-#define TOTAL_OPS 25
+#define OP_RESERVE_JOB 25
+#define TOTAL_OPS 26
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %" PRIu64 "\n" \
@@ -271,6 +274,7 @@ static const char * op_names[] = {
     CMD_QUIT,
     CMD_PAUSE_TUBE,
     CMD_KICKJOB,
+    CMD_RESERVE_JOB,
 };
 
 static Job *remove_buried_job(Job *j);
@@ -677,6 +681,8 @@ kick_jobs(Server *s, Tube *t, uint n)
     return kick_delayed_jobs(s, t, n);
 }
 
+// remove_buried_job returns non-NULL value if job j was in the buried state.
+// It excludes the job from the buried list and updates counters.
 static Job *
 remove_buried_job(Job *j)
 {
@@ -690,6 +696,8 @@ remove_buried_job(Job *j)
     return j;
 }
 
+// remove_delayed_job returns non-NULL value if job j was in the delayed state.
+// It removes the job from the tube delayed heap.
 static Job *
 remove_delayed_job(Job *j)
 {
@@ -700,6 +708,8 @@ remove_delayed_job(Job *j)
     return j;
 }
 
+// remove_ready_job returns non-NULL value if job j was in the ready state.
+// It removes the job from the tube ready heap and updates counters.
 static Job *
 remove_ready_job(Job *j)
 {
@@ -774,6 +784,7 @@ which_cmd(Conn *c)
     TEST_CMD(c->cmd, CMD_PEEK_DELAYED, OP_PEEK_DELAYED);
     TEST_CMD(c->cmd, CMD_PEEK_BURIED, OP_PEEK_BURIED);
     TEST_CMD(c->cmd, CMD_RESERVE_TIMEOUT, OP_RESERVE_TIMEOUT);
+    TEST_CMD(c->cmd, CMD_RESERVE_JOB, OP_RESERVE_JOB);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
     TEST_CMD(c->cmd, CMD_RELEASE, OP_RELEASE);
@@ -1444,6 +1455,48 @@ dispatch_cmd(Conn *c)
         /* try to get a new job for this guy */
         wait_for_job(c, timeout);
         process_queue();
+        return;
+
+    case OP_RESERVE_JOB:
+        if (read_u64(&id, c->cmd + CMD_RESERVE_JOB_LEN, NULL)) {
+            reply_msg(c, MSG_BAD_FORMAT);
+            return;
+        }
+        op_ct[type]++;
+
+        // This command could produce "deadline soon" if
+        // the connection has a reservation about to expire.
+        // We choose not to do it, because this command does not block
+        // for an arbitrary amount of time as reserve and reserve-with-timeout.
+
+        j = job_find(id);
+        if (!j) {
+            reply_msg(c, MSG_NOTFOUND);
+            return;
+        }
+        // Check if this job is already reserved.
+        if (j->r.state == Reserved || j->r.state == Invalid) {
+            reply_msg(c, MSG_NOTFOUND);
+            return;
+        }
+
+        // Job can be in ready, buried or delayed states.
+        if (j->r.state == Ready) {
+            j = remove_ready_job(j);
+        } else if (j->r.state == Buried) {
+            j = remove_buried_job(j);
+        } else if (j->r.state == Delayed) {
+            j = remove_delayed_job(j);
+        } else {
+            reply_serr(c, MSG_INTERNAL_ERROR);
+            return;
+        }
+
+        connsetworker(c);
+        global_stat.reserved_ct++;
+
+        conn_reserve_job(c, j);
+        reply_job(c, j, MSG_RESERVED);
         return;
 
     case OP_DELETE:
