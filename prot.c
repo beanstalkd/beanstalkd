@@ -1,4 +1,5 @@
 #include "dat.h"
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -724,21 +725,21 @@ remove_ready_job(Job *j)
     return j;
 }
 
-static Job *
-find_reserved_job_in_conn(Conn *c, Job *j)
+static bool
+is_job_reserved_by_conn(Conn *c, Job *j)
 {
-    return (j && j->reserver == c && j->r.state == Reserved) ? j : NULL;
+    return j && j->reserver == c && j->r.state == Reserved;
 }
 
-static Job *
+static bool
 touch_job(Conn *c, Job *j)
 {
-    j = find_reserved_job_in_conn(c, j);
-    if (j) {
+    if (is_job_reserved_by_conn(c, j)) {
         j->r.deadline_at = nanoseconds() + j->r.ttr;
         c->soonest_job = NULL;
+        return true;
     }
-    return j;
+    return false;
 }
 
 static void
@@ -1268,15 +1269,18 @@ remove_this_reserved_job(Conn *c, Job *j)
 static Job *
 remove_reserved_job(Conn *c, Job *j)
 {
-    return remove_this_reserved_job(c, find_reserved_job_in_conn(c, j));
+    if (!is_job_reserved_by_conn(c, j))
+        return NULL;
+    return remove_this_reserved_job(c, j);
 }
 
-static int
-name_is_ok(const char *name, size_t max)
+static bool
+is_valid_tube(const char *name, size_t max)
 {
     size_t len = strlen(name);
-    return len > 0 && len <= max &&
-        strspn(name, NAME_CHARS) == len && name[0] != '-';
+    return 0 < len && len <= max &&
+        strspn(name, NAME_CHARS) == len &&
+        name[0] != '-';
 }
 
 static void
@@ -1400,8 +1404,10 @@ dispatch_cmd(Conn *c)
         }
         op_ct[type]++;
 
-        // TODO: simplify the next horror line.
-        j = job_copy(buried_job_p(c->use) ? j = c->use->buried.next : NULL);
+        if (buried_job_p(c->use))
+            j = job_copy(c->use->buried.next);
+        else
+            j = NULL;
 
         if (!j) {
             reply_msg(c, MSG_NOTFOUND);
@@ -1650,9 +1656,7 @@ dispatch_cmd(Conn *c)
         }
         op_ct[type]++;
 
-        j = touch_job(c, job_find(id));
-
-        if (j) {
+        if (touch_job(c, job_find(id))) {
             reply_msg(c, MSG_TOUCHED);
         } else {
             reply_msg(c, MSG_NOTFOUND);
@@ -1692,7 +1696,7 @@ dispatch_cmd(Conn *c)
 
     case OP_STATS_TUBE:
         name = c->cmd + CMD_STATS_TUBE_LEN;
-        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
+        if (!is_valid_tube(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
@@ -1739,7 +1743,7 @@ dispatch_cmd(Conn *c)
 
     case OP_USE:
         name = c->cmd + CMD_USE_LEN;
-        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
+        if (!is_valid_tube(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
@@ -1761,7 +1765,7 @@ dispatch_cmd(Conn *c)
 
     case OP_WATCH:
         name = c->cmd + CMD_WATCH_LEN;
-        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
+        if (!is_valid_tube(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
@@ -1786,7 +1790,7 @@ dispatch_cmd(Conn *c)
 
     case OP_IGNORE:
         name = c->cmd + CMD_IGNORE_LEN;
-        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
+        if (!is_valid_tube(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
@@ -1824,7 +1828,7 @@ dispatch_cmd(Conn *c)
         op_ct[type]++;
 
         *delay_buf = '\0';
-        if (!name_is_ok(name, MAX_TUBE_NAME_LEN - 1)) {
+        if (!is_valid_tube(name, MAX_TUBE_NAME_LEN - 1)) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
