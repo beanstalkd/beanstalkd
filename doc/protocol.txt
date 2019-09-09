@@ -42,7 +42,8 @@ the server will reply with one of the following error messages:
    http://groups.google.com/group/beanstalk-talk.
 
  - "BAD_FORMAT\r\n" The client sent a command line that was not well-formed.
-   This can happen if the line does not end with \r\n, if non-numeric
+   This can happen if the line's length exceeds 224 bytes including \r\n,
+   if the name of a tube exceeds 200 bytes, if non-numeric
    characters occur where an integer is expected, if the wrong number of
    arguments are present, or if the command line is mal-formed in any other
    way.

@@ -380,10 +380,15 @@ cttest_too_long_commandline()
     int port = SERVER();
     int fd = mustdiallocal(port);
     int i;
-    for (i = 0; i < 5; i++)
-        mustsend(fd, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    for (i = 0; i < 10; i++)
+        mustsend(fd, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"); // 50 bytes
     mustsend(fd, "\r\n");
     ckresp(fd, "BAD_FORMAT\r\n");
+    // Issue another command and check that reponse is not "UNKNOWN_COMMAND"
+    // as described in issue #337
+    mustsend(fd, "put 0 0 1 1\r\n");
+    mustsend(fd, "A\r\n");
+    ckresp(fd, "INSERTED 1\r\n");
 }
 
 void
