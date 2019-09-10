@@ -251,6 +251,23 @@ in the form of a text line followed by the job body:
    previous line. This is a verbatim copy of the bytes that were originally
    sent to the server in the put command for this job.
 
+A job can be reserved by its id. Once a job is reserved for the client,
+the client has limited time to run (TTR) the job before the job times out.
+When the job times out, the server will put the job back into the ready queue.
+The command looks like this:
+
+    reserve-job <id>\r\n
+
+- <id> is the job id to reserve
+
+This should immediately return one of these responses:
+
+- "NOT_FOUND\r\n" if the job does not exist or reserved by a client or
+  is not either ready, buried or delayed.
+
+- "RESERVED <id> <bytes>\r\n<data>\r\n". See the description for
+  the reserve command.
+
 The delete command removes a job from the server entirely. It is normally used
 by the client when the job has successfully run to completion. A client can
 delete jobs that it has reserved, ready jobs, delayed jobs, and jobs that are
