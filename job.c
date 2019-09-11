@@ -194,7 +194,8 @@ job_delay_less(void *ja, void *jb)
 Job *
 job_copy(Job *j)
 {
-    if (!j) return NULL;
+    if (!j)
+        return NULL;
 
     Job *n = malloc(sizeof(Job) + j->r.body_size);
     if (!n) {
