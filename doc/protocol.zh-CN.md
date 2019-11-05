@@ -95,8 +95,8 @@ put <pri> <delay> <ttr> <bytes>\r\n
 ```
 
 * `<pri>` 整型值, 为优先级, 可以为0-2^32 (4,294,967,295) 值越小优先级越高, 默认为1024.
-* `<delay>` 整型值，延迟`ready`的秒数，在这段时间 job 为 `delayed` 状态.
-* `<ttr>` -- time to run --整型值，允许 worker 执行的最大秒数，如果 worker 在这段时间不能 delete，release，bury job，那么当 job 超时，服务器将**自动** release 此job，此 job 的状态迁移为`ready`. 最小为 1 秒，如果客户端指定为 0 将会被重置为 1.
+* `<delay>` 整型值，延迟`ready`的秒数，在这段时间 job 为 `delayed` 状态. 最大 delay 值为 2^32-1.
+* `<ttr>` -- time to run --整型值，允许 worker 执行的最大秒数，如果 worker 在这段时间不能 delete，release，bury job，那么当 job 超时，服务器将**自动** release 此job，此 job 的状态迁移为`ready`. 最小为 1 秒，如果客户端指定为 0 将会被重置为 1. 最大 ttr 值为 2^32-1.
 * `<bytes>` 整型值，job body的长度，不包含`\r\n`，这个值必须小于 `max-job-size`，默认为 2^16.
 * `<data>`   job body
 
