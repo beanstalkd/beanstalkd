@@ -289,7 +289,7 @@ WATCHING <count>\r\n 表明成功
 
 * `<count>` 整型值，已监控的 tube 数量
 
-####`ignore`
+#### `ignore`
 
 从已监控的 watch list 列表中移出特定的 tube 
 
