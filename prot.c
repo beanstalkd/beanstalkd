@@ -1300,7 +1300,6 @@ dispatch_cmd(Conn *c)
 
     /* NUL-terminate this string so we can use strtol and friends */
     c->cmd[c->cmd_len - 2] = '\0';
-    printf("%zu %s\n", c->cmd_len, c->cmd);
 
     /* check for possible maliciousness */
     if (strlen(c->cmd) != c->cmd_len - 2) {
