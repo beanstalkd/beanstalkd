@@ -5,7 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "sd-daemon.h"
+
+#ifdef HAVE_LIBSYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
 
 const char *progname;
 
@@ -86,9 +89,11 @@ zalloc(int n)
 static void
 warn_systemd_ignored_option(char *opt, char *arg)
 {
+#ifdef HAVE_LIBSYSTEMD
     if (sd_listen_fds(0) > 0) {
         warnx("inherited listen fd; ignoring option: %s %s", opt, arg);
     }
+#endif
 }
 
 

@@ -1,5 +1,4 @@
 #include "dat.h"
-#include "sd-daemon.h"
 #include <netdb.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -11,6 +10,10 @@
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+
+#ifdef HAVE_LIBSYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
 
 static int
 set_nonblocking(int fd)
@@ -211,6 +214,7 @@ make_unix_socket(char *path)
 int
 make_server_socket(char *host, char *port)
 {
+#ifdef HAVE_LIBSYSTEMD
     int fd = -1, r;
 
     /* See if we got a listen fd from systemd. If so, all socket options etc
@@ -247,6 +251,7 @@ make_server_socket(char *host, char *port)
         }
         return fd;
     }
+#endif
 
     if (host && !strncmp(host, "unix:", 5)) {
         return make_unix_socket(&host[5]);
