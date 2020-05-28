@@ -8,6 +8,7 @@ LDLIBS?=
 
 OS?=$(shell uname | tr 'A-Z' 'a-z')
 INSTALL?=install
+PKG_CONFIG?=pkg-config
 
 ifeq ($(OS),sunos)
 override LDFLAGS += -lxnet -lsocket -lnsl
@@ -26,7 +27,6 @@ OFILES=\
 	net.o\
 	primes.o\
 	prot.o\
-	sd-daemon.o\
 	serv.o\
 	time.o\
 	tube.o\
@@ -43,10 +43,24 @@ TOFILES=\
 
 HFILES=\
 	dat.h\
-	sd-daemon.h\
 
 ifeq ($(OS),linux)
    LDLIBS+=-lrt
+endif
+
+# systemd support can be configured via USE_SYSTEMD:
+#        no: disabled
+#       yes: enabled, build fails if libsystemd is not found
+# otherwise: enabled if libsystemd is found
+ifneq ($(USE_SYSTEMD),no)
+ifeq ($(shell $(PKG_CONFIG) --exists libsystemd && echo $$?),0)
+	LDLIBS+=$(shell $(PKG_CONFIG) --libs libsystemd)
+	CPPFLAGS+=-DHAVE_LIBSYSTEMD
+else
+ifeq ($(USE_SYSTEMD),yes)
+$(error USE_SYSTEMD is set to "$(USE_SYSTEMD)", but $(PKG_CONFIG) cannot find libsystemd)
+endif
+endif
 endif
 
 CLEANFILES=\
