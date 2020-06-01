@@ -2054,13 +2054,13 @@ ctbench_put_delete_wal_1024_fsync_000ms(int n)
 void
 ctbench_put_delete_wal_1024_fsync_050ms(int n)
 {
-    bench_put_delete_size(n, 1024, 512000, 1, 100);
+    bench_put_delete_size(n, 1024, 512000, 1, 50);
 }
 
 void
 ctbench_put_delete_wal_1024_fsync_200ms(int n)
 {
-    bench_put_delete_size(n, 1024, 512000, 1, 500);
+    bench_put_delete_size(n, 1024, 512000, 1, 200);
 }
 
 void
@@ -2078,13 +2078,13 @@ ctbench_put_delete_wal_8192_fsync_000ms(int n)
 void
 ctbench_put_delete_wal_8192_fsync_050ms(int n)
 {
-    bench_put_delete_size(n, 8192, 512000, 1, 100);
+    bench_put_delete_size(n, 8192, 512000, 1, 50);
 }
 
 void
 ctbench_put_delete_wal_8192_fsync_200ms(int n)
 {
-    bench_put_delete_size(n, 8192, 512000, 1, 500);
+    bench_put_delete_size(n, 8192, 512000, 1, 200);
 }
 
 void
