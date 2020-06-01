@@ -62,6 +62,9 @@ typedef int(FAlloc)(int, int);
 // The width is restricted by Jobrec.body_size that is int32.
 #define JOB_DATA_SIZE_LIMIT_MAX 1073741824
 
+// The default value for the fsync (-f) parameter, milliseconds.
+#define DEFAULT_FSYNC_MS 50
+
 // Use this macro to designate unused parameters in functions.
 #define UNUSED_PARAMETER(x) (void)(x)
 
@@ -437,8 +440,8 @@ struct Wal {
     int64  alive; // bytes in use
     int64  nmig;  // migrations
     int64  nrec;  // records written ever
-    int    wantsync;
-    int64  syncrate;
+    int    wantsync; // do we sync to disk?
+    int64  syncrate; // how often we sync to disk, in nanoseconds
     int64  lastsync;
 };
 int  waldirlock(Wal*);
