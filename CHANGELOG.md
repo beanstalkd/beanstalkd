@@ -3,15 +3,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
+
 - Support of UNIX domain sockets
 - Solaris/illumos support
-- the "reserve-job" command 
+- the "reserve-job" command
 - draining status to the "stats" command
 
 ### Changed
+
 - specify C99 as required compiler
 - replaced vendored systemd files with libsystemd
 - systemd usage can be controlled with USE_SYSTEMD=yes/no parameter
+- when binlog is used, by default it is synced every 50ms instead of never
 
 ## [1.11] - 2019-06-29
 
