@@ -29,7 +29,8 @@ cttest_opt_none()
     assert(srv.addr == NULL);
     assert(job_data_size_limit == JOB_DATA_SIZE_LIMIT_DEFAULT);
     assert(srv.wal.filesize == Filesizedef);
-    assert(srv.wal.wantsync == 0);
+    assert(srv.wal.wantsync == 1);
+    assert(srv.wal.syncrate == DEFAULT_FSYNC_MS*1000000);
     assert(srv.user == NULL);
     assert(srv.wal.dir == NULL);
     assert(srv.wal.use == 0);

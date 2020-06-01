@@ -7,6 +7,8 @@ struct Server srv = {
     .port = Portdef,
     .wal = {
         .filesize = Filesizedef,
+        .wantsync = 1,
+        .syncrate = DEFAULT_FSYNC_MS * 1000000,
     },
 };
 
