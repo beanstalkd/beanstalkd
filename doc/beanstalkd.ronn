@@ -37,12 +37,12 @@ and format of the `beanstalkd` protocol.
   A <ms> value of 0 will cause `beanstalkd` to call fsync every time
   it writes to the binlog.
 
+  The default behavior is to sync every 50 ms.
+
   (This option has no effect without `-b`.)
 
 * `-F`:
   Never call fsync(2). Equivalent to `-f` with an infinite <ms> value.
-
-  This is the default behavior.
 
   (This option has no effect without `-b`.)
 
@@ -97,9 +97,9 @@ and format of the `beanstalkd` protocol.
 
 ## SEE ALSO
 
-sd-daemon(5), sd_listen_fds(5)
+sd-daemon(3), sd_listen_fds(3)
 
-Files `README` and `doc/protocol.txt` in the `beanstalkd`
+Files `README.md` and `doc/protocol.txt` in the `beanstalkd`
 distribution.
 
 <https://beanstalkd.github.io/>
