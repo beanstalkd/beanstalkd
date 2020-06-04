@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.12] - 2020-06-04
+
 - add support of UNIX domain sockets
 - add support of Solaris/illumos
 - add the "reserve-job" command
@@ -27,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - add DESTDIR support to Makefile
 
 
-[unreleased]: https://github.com/beanstalkd/beanstalkd/compare/v1.11...HEAD
+[unreleased]: https://github.com/beanstalkd/beanstalkd/compare/v1.12...HEAD
+[1.12]:       https://github.com/beanstalkd/beanstalkd/compare/v1.11...v1.12
 [1.11]:       https://github.com/beanstalkd/beanstalkd/compare/v1.10...v1.11
 [1.10]:       https://github.com/beanstalkd/beanstalkd/compare/v1.9...v1.10
