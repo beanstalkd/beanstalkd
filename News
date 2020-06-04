@@ -1,0 +1,31 @@
+This release contains several new features as well as lots of smaller improvements and fixes:
+
+- add support of UNIX domain sockets
+- add support of Solaris/illumos
+- add the "reserve-job" command
+- add draining status to the "stats" command
+- make fsync turned on by default when binlog is used: it's synced every 50ms instead of never
+- replace vendored systemd files with libsystemd
+- systemd usage can be controlled with USE_SYSTEMD=yes/no
+- specify C99 as required compiler
+
+Full list of changes (includes authorship information):
+<http://github.com/beanstalkd/beanstalkd/compare/v1.11...v1.12>
+
+Our Urls
+--------
+
+Download the 1.12 tarball directly:
+<https://github.com/beanstalkd/beanstalkd/archive/v1.12.tar.gz>
+
+Learn all about beanstalk:
+<https://beanstalkd.github.io/>
+
+Talk about beanstalk development or use at:
+<https://groups.google.com/group/beanstalk-talk>
+
+Bugs
+----
+
+Please report any bugs to:
+<http://github.com/beanstalkd/beanstalkd/issues>
