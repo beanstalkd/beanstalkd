@@ -39,7 +39,6 @@ void srv_acquire_wal(Server *s) {
 void
 srvserve(Server *s)
 {
-    int r;
     Socket *sock;
 
     if (sockinit() == -1) {
@@ -52,14 +51,7 @@ srvserve(Server *s)
     s->conns.less = conn_less;
     s->conns.setpos = conn_setpos;
 
-    r = listen(s->sock.fd, 1024);
-    if (r == -1) {
-        twarn("listen");
-        return;
-    }
-
-    r = sockwant(&s->sock, 'r');
-    if (r == -1) {
+    if (sockwant(&s->sock, 'r') == -1) {
         twarn("sockwant");
         exit(2);
     }
