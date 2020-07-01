@@ -1,0 +1,6 @@
+*.gcda
+*.gcno
+*.o
+/vers.c
+/beanstalkd
+/News
