@@ -1,0 +1,27 @@
+name: build and test on ubuntu
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: make
+      run: make -j2 || ( echo "Build failure. Verbose build follows." && make V=1 ; false )
+      env:
+        COVERAGE: OFF
+    - name: make check
+      run: make check -j1 VERBOSE=1
+    - name: Benchmark
+      run: |
+        make -j2
+        make -j2 bench
+      env:
+        CFLAGS: "-march=native -mtune=native -O3"
