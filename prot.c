@@ -166,6 +166,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "cmd-pause-tube: %" PRIu64 "\n" \
     "job-timeouts: %" PRIu64 "\n" \
     "total-jobs: %" PRIu64 "\n" \
+    "replayed-jobs: %" PRIu64 "\n" \
     "max-job-size: %zu\n" \
     "current-tubes: %zu\n" \
     "current-connections: %u\n" \
@@ -198,6 +199,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "current-jobs-delayed: %zu\n" \
     "current-jobs-buried: %" PRIu64 "\n" \
     "total-jobs: %" PRIu64 "\n" \
+    "replayed-jobs: %" PRIu64 "\n" \
     "current-using: %u\n" \
     "current-watching: %u\n" \
     "current-waiting: %" PRIu64 "\n" \
@@ -974,6 +976,7 @@ fmt_stats(char *buf, size_t size, void *x)
                     op_ct[OP_PAUSE_TUBE],
                     timeout_ct,
                     global_stat.total_jobs_ct,
+                    global_stat.replayed_jobs_ct,
                     job_data_size_limit,
                     tubes.len,
                     count_cur_conns(),
@@ -1228,6 +1231,7 @@ fmt_stats_tube(char *buf, size_t size, Tube *t)
             t->delay.len,
             t->stat.buried_ct,
             t->stat.total_jobs_ct,
+            t->stat.replayed_jobs_ct,
             t->using_ct,
             t->watching_ct,
             t->stat.waiting_ct,
@@ -2337,8 +2341,12 @@ prot_replay(Server *s, Job *list)
             /* Falls through */
         default:
             r = enqueue_job(s, j, delay, 0);
-            if (r < 1)
+            if (r < 1) {
                 twarnx("error recovering job %"PRIu64, j->r.id);
+            } else {
+              global_stat.replayed_jobs_ct++;
+              j->tube->stat.replayed_jobs_ct++;
+            }
         }
     }
     return 1;
