@@ -186,7 +186,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "draining: %s\n" \
     "id: %s\n" \
     "hostname: %s\n" \
-    "os: %s\n" \
+    "os: \"%s\"\n" \
     "platform: %s\n" \
     "\r\n"
 
