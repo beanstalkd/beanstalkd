@@ -191,8 +191,8 @@ mustforksrv(void)
         exit(1);
     }
 
-    size_t len = sizeof(addr);
-    int r = getsockname(srv.sock.fd, (struct sockaddr *)&addr, (socklen_t *)&len);
+    socklen_t len = sizeof(addr);
+    int r = getsockname(srv.sock.fd, (struct sockaddr *)&addr, &len);
     if (r == -1 || len > sizeof(addr)) {
         puts("mustforksrv failed");
         exit(1);
