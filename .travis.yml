@@ -75,7 +75,7 @@ jobs:
           - export COVERAGE=OFF
       script:
           - make $MAKEJOBS
-          - make $MAKEJOBS 
+          - make $MAKEJOBS bench
    # power jobs 
     - stage: Benchmark
       os: linux
