@@ -19,7 +19,6 @@ compiler:
 os:
     - linux
     - osx
-    - ppc64le
 
 env:
     global:
@@ -79,8 +78,8 @@ jobs:
           - make $MAKEJOBS 
    # power jobs 
       os: linux
-      compiler: gcc
       arch: ppc64le
+      compiler: gcc
       before_script:
           - export COVERAGE=OFF
       script:
@@ -88,9 +87,8 @@ jobs:
           - make $MAKEJOBS bench
     - stage: Benchmark
       os: linux
+      arch: ppc64le
       compiler: gcc
-      arch: ppc64le
-
       env:
           - CFLAGS="-march=native -mtune=native -O3"
       before_script:
@@ -100,8 +98,8 @@ jobs:
           - make $MAKEJOBS bench
     - stage: Benchmark
       os: osx
-      compiler: clang
       arch: ppc64le
+      compiler: clang
       env:
           - CFLAGS="-march=native -mtune=native -O3"
       before_script:
@@ -111,8 +109,8 @@ jobs:
           - make $MAKEJOBS bench
     - stage: Benchmark
       os: osx
-      compiler: clang
       arch: ppc64le
+      compiler: clang
       before_script:
           - export COVERAGE=OFF
       script:
