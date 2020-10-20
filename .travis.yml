@@ -7,6 +7,9 @@ git:
     depth: 5
 
 language: c
+arch: 
+  - amd64
+  - ppc64le
 addons:
     apt:
       packages:
@@ -19,6 +22,7 @@ compiler:
 os:
     - linux
     - osx
+    - ppc64le
 
 env:
     global:
