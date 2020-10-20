@@ -7,9 +7,6 @@ git:
     depth: 5
 
 language: c
-arch:
-- amd64
-- ppc64le
 addons:
     apt:
       packages:
@@ -79,7 +76,24 @@ jobs:
       script:
           - make $MAKEJOBS
           - make $MAKEJOBS bench
-     #power soup
+   # power jobs 
+jobs:
+  include:
+    - stage: Benchmark
+      os: linux
+      compiler: gcc
+      arch: ppc64le
+      before_script:
+          - export COVERAGE=OFF
+      script:
+          - make $MAKEJOBS
+          - make $MAKEJOBS bench
+    - stage: Benchmark
+      os: linux
+      compiler: gcc
+      arch: ppc64le
+      env:
+          - CFLAGS="-march=native -mtune=native -O3"
      os: linux
      arch: ppc64le
       compiler: gcc
