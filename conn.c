@@ -50,7 +50,6 @@ make_conn(int fd, char start_state, Tube *use, Tube *watch)
     TUBE_ASSIGN(c->use, use);
     use->using_ct++;
 
-    c->sock.fd = fd;
     c->state = start_state;
     c->pending_timeout = -1;
     c->tickpos = 0; // Does not mean anything if in_conns is set to 0.
