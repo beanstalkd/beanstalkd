@@ -278,6 +278,7 @@ static const char * op_names[] = {
     CMD_RESERVE_JOB,
 };
 
+static Job *remove_ready_job(Job *j);
 static Job *remove_buried_job(Job *j);
 
 // epollq_add schedules connection c in the s->conns heap, adds c
@@ -459,11 +460,9 @@ process_queue()
     int64 now = nanoseconds();
 
     while ((j = next_awaited_job(now))) {
-        heapremove(&j->tube->ready, j->heap_index);
-        ready_ct--;
-        if (j->r.pri < URGENT_THRESHOLD) {
-            global_stat.urgent_ct--;
-            j->tube->stat.urgent_ct--;
+        j = remove_ready_job(j);
+        if (j == NULL) {
+            continue; // precaution
         }
 
         Conn *c = ms_take(&j->tube->waiting_conns);
