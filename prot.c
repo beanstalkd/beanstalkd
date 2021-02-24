@@ -1700,7 +1700,7 @@ dispatch_cmd(Conn *c)
         }
         op_ct[type]++;
 
-        t = tube_find(name);
+        t = tube_find(&tubes, name);
         if (!t) {
             reply_msg(c, MSG_NOTFOUND);
             return;
@@ -1794,14 +1794,7 @@ dispatch_cmd(Conn *c)
         }
         op_ct[type]++;
 
-        t = NULL;
-        for (i = 0; i < c->watch.len; i++) {
-            t = c->watch.items[i];
-            if (strncmp(t->name, name, MAX_TUBE_NAME_LEN) == 0)
-                break;
-            t = NULL;
-        }
-
+        t = tube_find(&c->watch, name);
         if (t && c->watch.len < 2) {
             reply_msg(c, MSG_NOT_IGNORED);
             return;
@@ -1830,7 +1823,7 @@ dispatch_cmd(Conn *c)
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
-        t = tube_find(name);
+        t = tube_find(&tubes, name);
         if (!t) {
             reply_msg(c, MSG_NOTFOUND);
             return;
