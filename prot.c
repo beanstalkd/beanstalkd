@@ -232,8 +232,6 @@ static uint64 timeout_ct = 0;
 static uint64 op_ct[TOTAL_OPS] = {0};
 static struct stats global_stat = {0};
 
-static Tube *default_tube;
-
 // If drain_mode is 1, then server does not accept new jobs.
 // Variable is set by the SIGUSR1 handler.
 static volatile sig_atomic_t drain_mode = 0;
@@ -2242,6 +2240,7 @@ h_accept(const int fd, const short which, Server *s)
         return;
     }
 
+    Tube* default_tube = tube_find_or_make("default");
     Conn *c = make_conn(cfd, STATE_WANT_COMMAND, default_tube, default_tube);
     if (!c) {
         twarnx("make_conn() failed");
@@ -2298,10 +2297,6 @@ prot_init()
     }
 
     ms_init(&tubes, NULL, NULL);
-
-    default_tube = tube_find_or_make("default");
-    if (!default_tube)
-        twarnx("Out of memory during startup!");
 }
 
 // For each job in list, inserts the job into the appropriate data
