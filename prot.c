@@ -2299,7 +2299,7 @@ prot_init()
 
     ms_init(&tubes, NULL, NULL);
 
-    TUBE_ASSIGN(default_tube, tube_find_or_make("default"));
+    default_tube = tube_find_or_make("default");
     if (!default_tube)
         twarnx("Out of memory during startup!");
 }
