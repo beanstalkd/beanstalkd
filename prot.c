@@ -2240,7 +2240,7 @@ h_accept(const int fd, const short which, Server *s)
         return;
     }
 
-    Tube* default_tube = tube_find_or_make("default");
+    Tube *default_tube = tube_find_or_make("default");
     Conn *c = make_conn(cfd, STATE_WANT_COMMAND, default_tube, default_tube);
     if (!c) {
         twarnx("make_conn() failed");
