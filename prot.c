@@ -461,6 +461,10 @@ process_queue()
 
     while ((j = next_awaited_job(now))) {
         j = remove_ready_job(j);
+        if (j == NULL) {
+            twarnx("job not ready");
+            continue;
+        }
         Conn *c = ms_take(&j->tube->waiting_conns);
         if (c == NULL) {
             twarnx("waiting_conns is empty");
