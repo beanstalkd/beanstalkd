@@ -82,12 +82,12 @@ make_and_insert_tube(const char *name)
 }
 
 Tube *
-tube_find(const char *name)
+tube_find(Ms *tubeset, const char *name)
 {
     size_t i;
 
-    for (i = 0; i < tubes.len; i++) {
-        Tube *t = tubes.items[i];
+    for (i = 0; i < tubeset->len; i++) {
+        Tube *t = tubeset->items[i];
         if (strncmp(t->name, name, MAX_TUBE_NAME_LEN) == 0)
             return t;
     }
@@ -97,7 +97,7 @@ tube_find(const char *name)
 Tube *
 tube_find_or_make(const char *name)
 {
-    Tube *t = tube_find(name);
+    Tube *t = tube_find(&tubes, name);
     if (t)
         return t;
     return make_and_insert_tube(name);

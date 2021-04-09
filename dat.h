@@ -326,7 +326,7 @@ extern struct Ms tubes;
 Tube *make_tube(const char *name);
 void  tube_dref(Tube *t);
 void  tube_iref(Tube *t);
-Tube *tube_find(const char *name);
+Tube *tube_find(Ms *tubeset, const char *name);
 Tube *tube_find_or_make(const char *name);
 #define TUBE_ASSIGN(a,b) (tube_dref(a), (a) = (b), tube_iref(a))
 
