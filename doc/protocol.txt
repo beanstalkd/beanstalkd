@@ -532,6 +532,9 @@ keys to scalar values. It contains these keys:
  - "total-jobs" is the cumulative count of jobs created in this tube in
    the current beanstalkd process.
 
+ - "replayed-jobs" is the count of jobs created in this tube that were
+   obtained from the binlog on startup.
+
  - "current-using" is the number of open connections that are currently
    using this tube.
 
@@ -624,6 +627,8 @@ they are not stored on disk with the -b flag.
  - "job-timeouts" is the cumulative count of times a job has timed out.
 
  - "total-jobs" is the cumulative count of jobs created.
+
+ - "replayed-jobs" is the count of jobs obtained from the binlog on startup.
 
  - "max-job-size" is the maximum number of bytes in a job.
 

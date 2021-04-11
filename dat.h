@@ -88,6 +88,7 @@ struct stats {
     uint64 pause_ct;
     uint64 total_delete_ct;
     uint64 total_jobs_ct;
+    uint64 replayed_jobs_ct;
 };
 
 
