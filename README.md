@@ -19,7 +19,6 @@ to abide by its terms. See CodeOfConduct.txt for details.
     $ make
     $ ./beanstalkd
 
-
 also try,
 
     $ ./beanstalkd -h
