@@ -1436,7 +1436,7 @@ dispatch_cmd(Conn *c)
 
     case OP_RESERVE_TIMEOUT:
         errno = 0;
-        unsigned int utimeout = 0;
+        uint32 utimeout = 0;
         if (read_u32(&utimeout, c->cmd + CMD_RESERVE_TIMEOUT_LEN, &end_buf) != 0 || utimeout > INT_MAX) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
