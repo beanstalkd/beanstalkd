@@ -15,6 +15,7 @@
 #include <inttypes.h>
 #include <stdarg.h>
 #include <signal.h>
+#include <limits.h>
 
 /* job body cannot be greater than this many bytes long */
 size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
@@ -1435,11 +1436,12 @@ dispatch_cmd(Conn *c)
 
     case OP_RESERVE_TIMEOUT:
         errno = 0;
-        timeout = strtol(c->cmd + CMD_RESERVE_TIMEOUT_LEN, &end_buf, 10);
-        if (errno) {
+        uint32 utimeout = 0;
+        if (read_u32(&utimeout, c->cmd + CMD_RESERVE_TIMEOUT_LEN, &end_buf) != 0 || utimeout > INT_MAX) {
             reply_msg(c, MSG_BAD_FORMAT);
             return;
         }
+        timeout = (int)utimeout;
         /* Falls through */
 
     case OP_RESERVE:
