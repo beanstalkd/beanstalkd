@@ -16,6 +16,6 @@ RUN apk -U upgrade --no-cache
 
 COPY --from=builder /tmp/beanstalkd/beanstalkd /usr/bin/
 
-RUN mkdir /beanstalkd
+USER nobody:nogroup
 EXPOSE 11300
 ENTRYPOINT ["/usr/bin/beanstalkd"]
