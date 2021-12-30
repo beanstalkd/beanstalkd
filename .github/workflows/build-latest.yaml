@@ -25,5 +25,5 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - run: docker build . -t ghcr.io/sammousa/beanstalkd:latest
-      - run: docker push ghcr.io/sammousa/beanstalkd:latest
+      - run: docker build . -t ghcr.io/${{ github.repository }}:latest
+      - run: docker push ghcr.io/${{ github.repository }}/beanstalkd:latest
