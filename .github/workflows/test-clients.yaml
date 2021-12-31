@@ -64,8 +64,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pytest
-          pip install --use-feature=in-tree-build .
+          pip install .
       - name: Run tests
         env:
           BEANSTALKD_PATH: ${{steps.download.outputs.download-path}}/beanstalkd
-        run: make test
+        run: ls -lah ${{steps.download.outputs.download-path}} && make test
