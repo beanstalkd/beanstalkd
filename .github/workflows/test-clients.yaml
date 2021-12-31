@@ -26,7 +26,7 @@ jobs:
         with:
           name: beanstalkd
       - name: Start beanstalkd
-        run: ./beanstalkd &
+        run: chmod +x ./beanstalkd && ./beanstalkd &
       - uses: actions/checkout@v2
         with:
           repository: pheanstalk/pheanstalk
