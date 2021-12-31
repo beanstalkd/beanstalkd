@@ -53,7 +53,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: beanstalkd
-          path: /beanstalkd
+          path: /
       - name: Make beanstalkd executable
         run: chmod +x /beanstalkd
       - uses: actions/checkout@v2
