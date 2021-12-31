@@ -25,6 +25,5 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      -
       - run: docker build . -t `echo ghcr.io/${{ github.repository }}:latest | tr '[:upper:]' '[:lower:]'`
       - run: docker push `echo ghcr.io/${{ github.repository }}:latest | tr '[:upper:]' '[:lower:]'`
