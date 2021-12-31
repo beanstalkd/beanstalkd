@@ -37,3 +37,32 @@ jobs:
         run: composer install
       - name: Run PHPUnit tests
         run: phpunit
+  greenstalk:
+    name: Test against Greenstalk Python client
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.9, 3.8, 3.7, 3.6 ]
+    needs:
+      - build
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v2
+        with:
+          name: beanstalkd
+      - name: Make beanstalkd executable
+        run: chmod +x ./beanstalkd
+      - uses: actions/checkout@v2
+        with:
+          repository: justinmayhew/greenstalk
+      - name: Install dependencies
+        run: |
+          pip install pytest
+          pip install --use-feature=in-tree-build .
+      - name: Run tests
+        env:
+          BEANSTALKD_PATH: ./beanstalkd
+        run: make test
