@@ -1,5 +1,7 @@
 name: Integration test for beanstalk clients
-on: push
+on:
+  - push
+  - pull_request
 jobs:
   build:
     name: Build beanstalkd
