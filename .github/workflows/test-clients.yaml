@@ -50,6 +50,9 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v2
+        with:
+          repository: justinmayhew/greenstalk
       - uses: actions/download-artifact@v2
         id: download
         with:
@@ -58,9 +61,7 @@ jobs:
         run: chmod +x ${{steps.download.outputs.download-path}}/beanstalkd
       - name: Run beanstalkd -v
         run: ${{steps.download.outputs.download-path}}/beanstalkd -v
-      - uses: actions/checkout@v2
-        with:
-          repository: justinmayhew/greenstalk
+
       - name: Install dependencies
         run: |
           pip install pytest
@@ -68,4 +69,4 @@ jobs:
       - name: Run tests
         env:
           BEANSTALKD_PATH: ${{steps.download.outputs.download-path}}/beanstalkd
-        run: ls -lah ${{steps.download.outputs.download-path}} && make test
+        run: make test
