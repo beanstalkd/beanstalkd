@@ -1,0 +1,37 @@
+name: Integration test for beanstalk clients
+on: push
+jobs:
+  build:
+    name: Build beanstalkd
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: make
+      - uses: actions/upload-artifact@v2
+        with:
+          name: beanstalkd
+          path: beanstalkd
+  pheanstalk:
+    name: Test against Pheanstalk PHP client
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: phpunit
+      - uses: actions/download-artifact@v2
+        with:
+          name: beanstalkd
+      - name: Start beanstalkd
+        run: chmod +x ./beanstalkd && ./beanstalkd &
+      - uses: actions/checkout@v2
+        with:
+          repository: pheanstalk/pheanstalk
+          ref: v5
+      - name: Install dependencies including dev-dependencies
+        run: composer install
+      - name: Run PHPUnit tests
+        run: phpunit
