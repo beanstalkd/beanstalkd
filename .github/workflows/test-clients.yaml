@@ -55,9 +55,9 @@ jobs:
         with:
           name: beanstalkd
       - name: Make beanstalkd executable
-        run: chmod +x ${{steps.download.outputs.download-path}}
+        run: chmod +x ${{steps.download.outputs.download-path}}/beanstalkd
       - name: Run beanstalkd -v
-        run: ${{steps.download.outputs.download-path}} -v
+        run: ${{steps.download.outputs.download-path}}/beanstalkd -v
       - uses: actions/checkout@v2
         with:
           repository: justinmayhew/greenstalk
@@ -67,5 +67,5 @@ jobs:
           pip install --use-feature=in-tree-build .
       - name: Run tests
         env:
-          BEANSTALKD_PATH: ${{steps.download.outputs.download-path}}
+          BEANSTALKD_PATH: ${{steps.download.outputs.download-path}}/beanstalkd
         run: make test
