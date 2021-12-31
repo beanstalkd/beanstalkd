@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.9, 3.8, 3.7, 3.6 ]
+        python-version: [ 3.9 ]
     needs:
       - build
     steps:
@@ -53,9 +53,9 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: beanstalkd
-          path: /bin/beanstalkd
+          path: /beanstalkd
       - name: Make beanstalkd executable
-        run: chmod +x /bin/beanstalkd
+        run: chmod +x /beanstalkd
       - uses: actions/checkout@v2
         with:
           repository: justinmayhew/greenstalk
@@ -65,5 +65,5 @@ jobs:
           pip install --use-feature=in-tree-build .
       - name: Run tests
         env:
-          BEANSTALKD_PATH: /bin/beanstalkd
+          BEANSTALKD_PATH: /beanstalkd
         run: make test
