@@ -53,8 +53,9 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: beanstalkd
+          path: /bin/beanstalkd
       - name: Make beanstalkd executable
-        run: chmod +x ./beanstalkd
+        run: chmod +x /bin/beanstalkd
       - uses: actions/checkout@v2
         with:
           repository: justinmayhew/greenstalk
@@ -64,5 +65,5 @@ jobs:
           pip install --use-feature=in-tree-build .
       - name: Run tests
         env:
-          BEANSTALKD_PATH: ./beanstalkd
+          BEANSTALKD_PATH: /bin/beanstalkd
         run: make test
