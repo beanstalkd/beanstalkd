@@ -54,10 +54,10 @@ jobs:
         id: download
         with:
           name: beanstalkd
-      - name: 'Echo download path'
-        run: echo ${{steps.download.outputs.download-path}}
       - name: Make beanstalkd executable
         run: chmod +x ${{steps.download.outputs.download-path}}
+      - name: Run beanstalkd -v
+        run: ${{steps.download.outputs.download-path}} -v
       - uses: actions/checkout@v2
         with:
           repository: justinmayhew/greenstalk
