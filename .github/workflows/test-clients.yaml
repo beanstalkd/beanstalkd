@@ -25,13 +25,13 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: beanstalkd
+      - name: Start beanstalkd
+        run: beanstalkd &
       - uses: actions/checkout@v2
         with:
           repository: pheanstalk/pheanstalk
           ref: v5
-      - name: Start beanstalkd
-        run: beanstalkd &
-      - name: Wait a few sec so we're sure beanstalkd is up
-        run: sleep 2
+      - name: Install dependencies including dev-dependencies
+        run: composer install
       - name: Run PHPUnit tests
         run: phpunit
