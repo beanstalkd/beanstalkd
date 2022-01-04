@@ -186,13 +186,13 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
     "binlog-max-size: %d\n" \
     "draining: %s\n" \
     "id: %s\n" \
-    "hostname: %s\n" \
+    "hostname: \"%s\"\n" \
     "os: \"%s\"\n" \
-    "platform: %s\n" \
+    "platform: \"%s\"\n" \
     "\r\n"
 
 #define STATS_TUBE_FMT "---\n" \
-    "name: %s\n" \
+    "name: \"%s\"\n" \
     "current-jobs-urgent: %" PRIu64 "\n" \
     "current-jobs-ready: %zu\n" \
     "current-jobs-reserved: %" PRIu64 "\n" \
@@ -210,7 +210,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 
 #define STATS_JOB_FMT "---\n" \
     "id: %" PRIu64 "\n" \
-    "tube: %s\n" \
+    "tube: \"%s\"\n" \
     "state: %s\n" \
     "pri: %u\n" \
     "age: %" PRId64 "\n" \
