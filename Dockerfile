@@ -1,21 +1,14 @@
+ARG BASE=alpine
 FROM alpine as builder
-
-RUN \
-	apk -U upgrade --no-cache && \
-	apk add --no-cache build-base git 
-
+RUN apk add --no-cache build-base git
 COPY . /tmp/beanstalkd
-RUN \ 
-	cd /tmp/beanstalkd && \
-	make 
+RUN cd /tmp/beanstalkd && make
 
 ################################
-FROM alpine
-
-RUN apk -U upgrade --no-cache 
+ARG BASE
+FROM ${BASE}
 
 COPY --from=builder /tmp/beanstalkd/beanstalkd /usr/bin/
-
 USER nobody:nogroup
 EXPOSE 11300
 ENTRYPOINT ["/usr/bin/beanstalkd"]
