@@ -1,0 +1,29 @@
+---
+name: Continous integration
+on:
+  push:
+    branches:
+      - master
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Tests
+        run: make check
+  build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs:
+      - tests
+    steps:
+      - uses: actions/checkout@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: docker build . -t `echo ghcr.io/${{ github.repository }}:latest | tr '[:upper:]' '[:lower:]'`
+      - run: docker push `echo ghcr.io/${{ github.repository }}:latest | tr '[:upper:]' '[:lower:]'`
