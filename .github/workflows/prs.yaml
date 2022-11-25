@@ -1,0 +1,15 @@
+---
+name: Checks for PRs
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - master
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Tests
+        run: make check
