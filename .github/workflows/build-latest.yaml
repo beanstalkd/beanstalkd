@@ -1,5 +1,5 @@
 ---
-name: Continous integration
+name: Continous integration2
 on:
   push:
     branches:
