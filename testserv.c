@@ -941,7 +941,7 @@ cttest_stats_tube()
 
     mustsend(fd, "stats-tube tubea\r\n");
     ckrespsub(fd, "OK ");
-    ckrespsub(fd, "\nname: tubea\n");
+    ckrespsub(fd, "\nname: \"tubea\"\n");
     mustsend(fd, "stats-tube tubea\r\n");
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\ncurrent-jobs-urgent: 0\n");
@@ -984,7 +984,7 @@ cttest_stats_tube()
 
     mustsend(fd, "stats-tube default\r\n");
     ckrespsub(fd, "OK ");
-    ckrespsub(fd, "\nname: default\n");
+    ckrespsub(fd, "\nname: \"default\"\n");
     mustsend(fd, "stats-tube default\r\n");
     ckrespsub(fd, "OK ");
     ckrespsub(fd, "\ncurrent-jobs-urgent: 0\n");
