@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/beanstalkd/beanstalkd.svg?branch=master)](https://travis-ci.org/beanstalkd/beanstalkd)
+[![Build Status](https://github.com/beanstalkd/beanstalkd/actions/workflows/build-latest.yaml/badge.svg)](https://github.com/beanstalkd/beanstalkd/actions/workflows/build-latest.yaml)
 [![codecov](https://codecov.io/gh/beanstalkd/beanstalkd/branch/master/graph/badge.svg)](https://codecov.io/gh/beanstalkd/beanstalkd)
 
 # beanstalkd
