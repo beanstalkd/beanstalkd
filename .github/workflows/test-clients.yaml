@@ -1,4 +1,4 @@
-name: Integration test for beanstalk clients
+name: Testing clients
 on:
   - push
   - pull_request
@@ -14,7 +14,7 @@ jobs:
           name: beanstalkd
           path: beanstalkd
   pheanstalk:
-    name: Test against Pheanstalk PHP client
+    name: Test Pheanstalk PHP
     runs-on: ubuntu-latest
     needs:
       - build
@@ -38,7 +38,7 @@ jobs:
       - name: Run PHPUnit tests
         run: phpunit
   greenstalk:
-    name: Test against Greenstalk Python client
+    name: Test Greenstalk Python
     runs-on: ubuntu-latest
     strategy:
       matrix:
