@@ -36,8 +36,10 @@ jobs:
           ref: v5
       - name: Install dependencies including dev-dependencies
         run: composer install
-      - name: Run PHPUnit tests
+      - name: Run tests
         run: phpunit
+        env:
+          SERVER_HOST: localhost
   greenstalk:
     name: Test Greenstalk Python
     runs-on: ubuntu-latest
