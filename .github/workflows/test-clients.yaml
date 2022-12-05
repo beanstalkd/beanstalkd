@@ -70,3 +70,33 @@ jobs:
         env:
           BEANSTALKD_PATH: ${{steps.download.outputs.download-path}}/beanstalkd
         run: make test
+  pystalk:
+    name: Test Pystalk Python
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.10 ]
+    needs:
+      - build
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v3
+        with:
+          repository: EasyPost/pystalk
+      - uses: actions/download-artifact@v2
+        id: download
+        with:
+          name: beanstalkd
+      - name: Make beanstalkd executable
+        run: chmod +x ${{steps.download.outputs.download-path}}/beanstalkd
+      - name: Run beanstalkd -v
+        run: ${{steps.download.outputs.download-path}}/beanstalkd -v
+      - name: Install dependencies
+        run: python -m pip install -r requirements-tests.txt -e .
+      - name: Run tests
+        env:
+          BEANSTALKD_PATH: ${{steps.download.outputs.download-path}}/beanstalkd
+        run: pytest tests/
