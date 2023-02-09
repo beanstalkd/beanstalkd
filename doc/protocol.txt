@@ -592,6 +592,10 @@ they are not stored on disk with the -b flag.
 
  - "cmd-reserve" is the cumulative number of reserve commands.
 
+ - "cmd-reserve-with-timeout" is the cumulative number of reserve-with-timeout commands.
+
+ - "cmd-touch" is the cumulative number of touch commands.
+
  - "cmd-use" is the cumulative number of use commands.
 
  - "cmd-watch" is the cumulative number of watch commands.
