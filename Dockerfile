@@ -9,5 +9,6 @@ ARG BASE
 FROM ${BASE}
 
 COPY --from=builder /tmp/beanstalkd/beanstalkd /usr/bin/
+USER nobody:nogroup
 EXPOSE 11300
 ENTRYPOINT ["/usr/bin/beanstalkd"]
