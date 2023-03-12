@@ -1,0 +1,41 @@
+This is a maintenance release. The list of merged PRs:
+
+Add Missing Stats (#643)
+Add pystalk client (#638)
+ci: run tests of some beanstalk clients (#630)
+ci: add a workflow for running tests on PRs or pushes to non-master branch (#635)
+ci: update actions to their latest versions (#634)
+Fix test regression (#632)
+set up CI using GH actions (#613)
+Update beanstalkd.service (#623)
+Quote string values in yaml dictionaries (#610) (#611)
+clean up Dockerfile and support dynamic base image via build args (#616)
+use read_u32 to safely read reserve-with-timeout argument (#607)
+fix pause-tube parameter (#604)
+refactor code using tube_find and remove_ready_job functions (#600)
+testserv: fix endianness issue (#594)
+Make sure to quote os value in stats cmd (#592)
+add dockerfile (#586)
+exit when SIGTERM is received and pid is 1 (#585)
+server: remove redundant listen (#583)
+Updates changelog with 1.12 release (#584)
+Full list of changes (includes authorship information):
+<http://github.com/beanstalkd/beanstalkd/compare/v1.12...v1.13>
+
+Our Urls
+--------
+
+Download the 1.13 tarball directly:
+<https://github.com/beanstalkd/beanstalkd/archive/v1.13.tar.gz>
+
+Learn all about beanstalk:
+<https://beanstalkd.github.io/>
+
+Talk about beanstalk development or use at:
+<https://groups.google.com/group/beanstalk-talk>
+
+Bugs
+----
+
+Please report any bugs to:
+<http://github.com/beanstalkd/beanstalkd/issues>
