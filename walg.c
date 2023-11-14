@@ -410,7 +410,7 @@ waldirlock(Wal *w)
     }
     snprintf(path, path_length, "%s/lock", w->dir);
 
-    fd = open(path, O_WRONLY|O_CREAT, 0600);
+    fd = open(path, O_WRONLY|O_CREAT, 0660);
     free(path);
     if (fd == -1) {
         twarn("open");
