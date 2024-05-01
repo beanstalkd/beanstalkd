@@ -10,4 +10,4 @@ FROM ${BASE}
 
 COPY --from=builder /tmp/beanstalkd/beanstalkd /usr/bin/
 EXPOSE 11300
-ENTRYPOINT ["/usr/bin/beanstalkd"]
+ENTRYPOINT ["/usr/bin/beanstalkd", "-b", "/var/binlog/"]
