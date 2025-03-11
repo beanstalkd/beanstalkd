@@ -7,9 +7,9 @@ jobs:
     name: Build beanstalkd
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: make
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: beanstalkd
           path: beanstalkd
@@ -25,7 +25,7 @@ jobs:
         with:
           php-version: '8.1'
           tools: phpunit
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: beanstalkd
       - name: Start beanstalkd
@@ -56,12 +56,13 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: justinmayhew/greenstalk
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         id: download
         with:
+          #include-hidden-files: true
           name: beanstalkd
       - name: Make beanstalkd executable
         run: chmod +x ${{steps.download.outputs.download-path}}/beanstalkd
@@ -90,10 +91,10 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: EasyPost/pystalk
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         id: download
         with:
           name: beanstalkd
