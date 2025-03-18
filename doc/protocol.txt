@@ -281,9 +281,9 @@ The client then waits for one line of response, which may be:
 
  - "DELETED\r\n" to indicate success.
 
- - "NOT_FOUND\r\n" if the job does not exist or is not either reserved by the
-   client, ready, or buried. This could happen if the job timed out before the
-   client sent the delete command.
+ - "NOT_FOUND\r\n" if the job does not exist or it cannot be deleted. To be
+   deleted it must be buried or reserved by the client. This could happen
+   if the job timed out before the client sent the delete command.
 
 The release command puts a reserved job back into the ready queue (and marks
 its state as "ready") to be run by any client. It is normally used when the job
