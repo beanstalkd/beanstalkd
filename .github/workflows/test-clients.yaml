@@ -30,7 +30,7 @@ jobs:
           name: beanstalkd
       - name: Start beanstalkd
         run: chmod +x ./beanstalkd && ./beanstalkd &
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: pheanstalk/pheanstalk
           ref: v5
@@ -41,8 +41,6 @@ jobs:
         env:
           SERVER_HOST: localhost
   greenstalk:
-    # Disable this test suite until https://github.com/justinmayhew/greenstalk/issues/9 is fixed
-    if: ${{ false }}
     name: Test Greenstalk Python
     runs-on: ubuntu-latest
     continue-on-error: true
