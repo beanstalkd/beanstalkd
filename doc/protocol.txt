@@ -202,6 +202,10 @@ Alternatively, you can specify a timeout as follows:
 
     reserve-with-timeout <seconds>\r\n
 
+Or keep control over the duration of the command at the client as follows:
+
+    reserve-with-abort\r\n
+
 This will return a newly-reserved job. If no job is available to be reserved,
 beanstalkd will wait to send a response until one becomes available. Once a
 job is reserved for the client, the client has limited time to run (TTR) the
@@ -217,6 +221,11 @@ A timeout value of 0 will cause the server to immediately return either a
 response or TIMED_OUT.  A positive value of timeout will limit the amount of
 time the client will block on the reserve request until a job becomes
 available.
+
+When using reserve-with-abort, no timeout is observed by the server, but the
+command will be aborted by any subsequent command sent by the client. Sending
+any command while reserve-with-abort is active, will abort the reserve command
+and make it return ABORTED.
 
 During the TTR of a reserved job, the last second is kept by the server as a
 safety margin, during which the client will not be made to wait for another

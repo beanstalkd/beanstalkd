@@ -32,6 +32,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define CMD_PEEK_BURIED "peek-buried"
 #define CMD_RESERVE "reserve"
 #define CMD_RESERVE_TIMEOUT "reserve-with-timeout "
+#define CMD_RESERVE_ABORT "reserve-with-abort"
 #define CMD_RESERVE_JOB "reserve-job "
 #define CMD_DELETE "delete "
 #define CMD_RELEASE "release "
@@ -82,6 +83,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define MSG_RESERVED "RESERVED"
 #define MSG_DEADLINE_SOON "DEADLINE_SOON\r\n"
 #define MSG_TIMED_OUT "TIMED_OUT\r\n"
+#define MSG_ABORTED "ABORTED\r\n"
 #define MSG_DELETED "DELETED\r\n"
 #define MSG_RELEASED "RELEASED\r\n"
 #define MSG_BURIED "BURIED\r\n"
@@ -108,6 +110,7 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define STATE_BITBUCKET     5  // conn discards content
 #define STATE_CLOSE         6  // conn should be closed
 #define STATE_WANT_ENDLINE  7  // skip until the end of a line
+#define STATE_WAIT_ABORT    8  // client awaits for the job reservation, or conn receives data from the client
 
 #define OP_UNKNOWN 0
 #define OP_PUT 1
@@ -135,7 +138,8 @@ size_t job_data_size_limit = JOB_DATA_SIZE_LIMIT_DEFAULT;
 #define OP_PAUSE_TUBE 23
 #define OP_KICKJOB 24
 #define OP_RESERVE_JOB 25
-#define TOTAL_OPS 26
+#define OP_RESERVE_ABORT 26
+#define TOTAL_OPS 27
 
 #define STATS_FMT "---\n" \
     "current-jobs-urgent: %" PRIu64 "\n" \
@@ -785,6 +789,7 @@ which_cmd(Conn *c)
     TEST_CMD(c->cmd, CMD_PEEK_DELAYED, OP_PEEK_DELAYED);
     TEST_CMD(c->cmd, CMD_PEEK_BURIED, OP_PEEK_BURIED);
     TEST_CMD(c->cmd, CMD_RESERVE_TIMEOUT, OP_RESERVE_TIMEOUT);
+    TEST_CMD(c->cmd, CMD_RESERVE_ABORT, OP_RESERVE_ABORT);
     TEST_CMD(c->cmd, CMD_RESERVE_JOB, OP_RESERVE_JOB);
     TEST_CMD(c->cmd, CMD_RESERVE, OP_RESERVE);
     TEST_CMD(c->cmd, CMD_DELETE, OP_DELETE);
@@ -1096,16 +1101,24 @@ read_tube_name(char **tubename, char *buf, char **end)
 }
 
 static void
-wait_for_job(Conn *c, int timeout)
+wait_for_job(Conn *c, int timeout, bool abortable)
 {
-    c->state = STATE_WAIT;
+    if (abortable) {
+        c->state = STATE_WAIT_ABORT;
+    } else {
+        c->state = STATE_WAIT;
+    }
     enqueue_waiting_conn(c);
 
     /* Set the pending timeout to the requested timeout amount */
     c->pending_timeout = timeout;
 
-    // only care if they hang up
-    epollq_add(c, 'h');
+    if (abortable) {
+        epollq_add(c, 'r');
+    } else {
+        // only care if they hang up
+        epollq_add(c, 'h');
+    }
 }
 
 typedef int(*fmt_fn)(char *, size_t, void *);
@@ -1445,6 +1458,7 @@ dispatch_cmd(Conn *c)
         /* Falls through */
 
     case OP_RESERVE:
+    case OP_RESERVE_ABORT:
         /* don't allow trailing garbage */
         if (type == OP_RESERVE && c->cmd_len != CMD_RESERVE_LEN + 2) {
             reply_msg(c, MSG_BAD_FORMAT);
@@ -1459,7 +1473,7 @@ dispatch_cmd(Conn *c)
         }
 
         /* try to get a new job for this guy */
-        wait_for_job(c, timeout);
+        wait_for_job(c, timeout, type == OP_RESERVE_ABORT);
         process_queue();
         return;
 
@@ -2098,6 +2112,15 @@ conn_process_io(Conn *c)
             return;
         }
         break;
+    case STATE_WAIT_ABORT:
+        c->pending_timeout = -1;
+        remove_waiting_conn(c);
+        if (c->halfclosed) {
+            reply_msg(c, MSG_TIMED_OUT);
+        } else {
+            reply_msg(c, MSG_ABORTED);
+        }
+        break;
     }
 }
 
@@ -2123,6 +2146,11 @@ h_conn(const int fd, const short which, Conn *c)
     while (cmd_data_ready(c) && (c->cmd_len = scan_line_end(c->cmd, c->cmd_read))) {
         dispatch_cmd(c);
         fill_extra_data(c);
+    }
+    if (c->state == STATE_WAIT_ABORT && c->cmd_read) {
+        c->pending_timeout = -1;
+        remove_waiting_conn(c);
+        reply_msg(c, MSG_ABORTED);
     }
     if (c->state == STATE_CLOSE) {
         epollq_rmconn(c);

@@ -1118,6 +1118,18 @@ cttest_reserve_with_timeout_2conns()
 }
 
 void
+cttest_reserve_with_abort()
+{
+    int port = SERVER();
+    int fd = mustdiallocal(port);
+    mustsend(fd, "reserve-with-abort\r\n");
+    usleep(100000);
+    mustsend(fd, "watch foo\r\n");
+    ckresp(fd, "ABORTED\r\n");
+    ckresp(fd, "WATCHING 2\r\n");
+}
+
+void
 cttest_reserve_ttr_deadline_soon()
 {
     int port = SERVER();
